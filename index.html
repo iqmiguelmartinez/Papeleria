@@ -33,25 +33,49 @@
 
         <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Productos Disponibles -->
-            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
-                <input type="text" id="buscar-producto" placeholder="Buscar producto..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
-                <div class="overflow-x-auto max-h-96">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
-                                <th class="p-3">Código</th>
-                                <th class="p-3">Producto</th>
-                                <th class="p-3">Precio</th>
-                                <th class="p-3">Stock Disponible</th>
-                                <th class="p-3 text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-productos-venta" class="divide-y divide-gray-100 text-sm">
-                            <!-- Dinámico -->
-                        </tbody>
-                    </table>
+            <!-- Productos Disponibles (Ocupa 2 columnas y se expande en vertical) -->
+            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
+                    <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                    
+                    <!-- Contenedor dividido en dos tablas lado a lado -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Tabla Izquierda -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                                        <th class="p-2">Código</th>
+                                        <th class="p-2">Producto</th>
+                                        <th class="p-2">Precio</th>
+                                        <th class="p-2">Stock</th>
+                                        <th class="p-2 text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 text-sm">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Tabla Derecha -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                                        <th class="p-2">Código</th>
+                                        <th class="p-2">Producto</th>
+                                        <th class="p-2">Precio</th>
+                                        <th class="p-2">Stock</th>
+                                        <th class="p-2 text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 text-sm">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -59,7 +83,7 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Ticket Actual</h2>
-                    <div id="lista-carrito" class="space-y-3 max-h-64 overflow-y-auto mb-4 pr-1">
+                    <div id="lista-carrito" class="space-y-3 max-h-96 overflow-y-auto mb-4 pr-1">
                         <p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>
                     </div>
                 </div>
@@ -193,7 +217,7 @@
             if(tab === 'inventario') renderInventario();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') {
-                cargarTransaccionesHoy(); // Actualiza al abrir la pestaña de corte
+                cargarTransaccionesHoy();
             }
         }
 
@@ -240,24 +264,46 @@
             }
         }
 
+        // Renderizado dividido en dos tablas automáticas
         function renderProductos(filtro = "") {
-            const tbody = document.getElementById('tabla-productos-venta');
-            tbody.innerHTML = "";
-            inventario
-                .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()))
-                .forEach(p => {
-                    tbody.innerHTML += `
-                        <tr class="border-b border-gray-50 hover:bg-gray-50">
-                            <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
-                            <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
-                            <td class="p-3 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
-                            <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">${p.stock} un.</span></td>
-                            <td class="p-3 text-center">
-                                <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
-                            </td>
-                        </tr>
-                    `;
-                });
+            const tbody1 = document.getElementById('tabla-productos-venta-1');
+            const tbody2 = document.getElementById('tabla-productos-venta-2');
+            tbody1.innerHTML = "";
+            tbody2.innerHTML = "";
+
+            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
+            
+            const mitad = Math.ceil(filtrados.length / 2);
+            const lista1 = filtrados.slice(0, mitad);
+            const lista2 = filtrados.slice(mitad);
+
+            lista1.forEach(p => {
+                tbody1.innerHTML += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="p-2 font-mono text-xs text-gray-500">${p.codigo}</td>
+                        <td class="p-2 font-medium text-gray-800">${p.nombre}</td>
+                        <td class="p-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                        <td class="p-2 text-center">
+                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            lista2.forEach(p => {
+                tbody2.innerHTML += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="p-2 font-mono text-xs text-gray-500">${p.codigo}</td>
+                        <td class="p-2 font-medium text-gray-800">${p.nombre}</td>
+                        <td class="p-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                        <td class="p-2 text-center">
+                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
+                        </td>
+                    </tr>
+                `;
+            });
         }
 
         function filtrarProductos() {
@@ -330,7 +376,6 @@
                 if (p) p.stock -= item.cantidad;
             });
 
-            // Formato amigable para guardar inmediatamente en local
             let productosStr = carrito.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
             const ventaInfoLocal = {
                 hora: new Date().toLocaleTimeString(),
@@ -491,7 +536,6 @@
             Swal.fire('¡Sincronizado!', 'El stock, precios y corte de hoy se han actualizado.', 'success');
         }
 
-        // Carga automática al iniciar la página
         cargarDatosIniciales();
     </script>
 </body>
