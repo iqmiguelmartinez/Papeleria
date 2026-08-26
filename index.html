@@ -172,18 +172,11 @@
         </div>
     </div>
 
-    <!-- Script de lógica -->
+   <!-- Script de lógica corregido -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
 
-        let inventario = [
-            { codigo: "P001", nombre: "Libreta Profesional Raya", precio: 25.00, stock: 45 },
-            { codigo: "P002", nombre: "Lápiz del número 2", precio: 6.50, stock: 120 },
-            { codigo: "P003", nombre: "Borrador Blanco", precio: 5.00, stock: 60 },
-            { codigo: "P004", nombre: "Juego de Geometría", precio: 30.00, stock: 15 },
-            { codigo: "P005", nombre: "Bolígrafo Bic Negro", precio: 8.00, stock: 90 }
-        ];
-
+        let inventario = [];
         let carrito = [];
         let ventasRealizadas = [];
         let retirosRealizados = [];
@@ -200,6 +193,8 @@
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
         }
+
+        // Cargar inventario real desde Google Sheets
         async function cargarInventarioDesdeSheets() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
@@ -216,6 +211,7 @@
                 console.error("Error al cargar inventario:", e);
             }
         }
+
         function renderProductos(filtro = "") {
             const tbody = document.getElementById('tabla-productos-venta');
             tbody.innerHTML = "";
@@ -243,7 +239,7 @@
         function agregarAlCarrito(codigo) {
             const prod = inventario.find(p => p.codigo === codigo);
             if (!prod || prod.stock <= 0) {
-                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles.', 'warning');
+                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles o no se cargó el stock.', 'warning');
                 return;
             }
 
@@ -422,7 +418,6 @@
             document.getElementById('corte-total-retiros').innerText = `$${totalRetiros.toFixed(2)}`;
             document.getElementById('corte-efectivo-neto').innerText = `$${efectivoNeto.toFixed(2)}`;
 
-            // Listas en el corte
             const tbodyVentas = document.getElementById('tabla-corte-ventas');
             tbodyVentas.innerHTML = ventasRealizadas.length === 0 ? `<tr><td class="p-3 text-gray-400 text-center">Sin ventas</td></tr>` : "";
             ventasRealizadas.slice().reverse().forEach(v => {
@@ -437,13 +432,14 @@
             });
         }
 
+        // Envío seguro usando text/plain para evitar bloqueos CORS
         async function enviarDatosAGoogleSheets(data) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
                 await fetch(URL_APPS_SCRIPT, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(data)
                 });
             } catch (e) {
@@ -451,14 +447,14 @@
             }
         }
 
+        // Botón de sincronización real
         async function sincronizarDatos() {
-            Swal.fire({ title: 'Sincronizando...', text: 'Actualizando con Google Sheets', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            setTimeout(() => {
-                Swal.fire('Sincronizado', 'La conexión con Google Sheets está activa.', 'success');
-            }, 1000);
+            Swal.fire({ title: 'Sincronizando...', text: 'Descargando datos de Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            await cargarInventarioDesdeSheets();
+            Swal.fire('¡Sincronizado!', 'Los productos y precios se han actualizado correctamente.', 'success');
         }
 
-        renderProductos();
+        // Carga inicial al abrir la página
         cargarInventarioDesdeSheets();
     </script>
 </body>
