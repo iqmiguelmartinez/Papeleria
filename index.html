@@ -23,7 +23,7 @@
             </div>
         </header>
 
-        <!-- Navegación por pestañas (Añadida pestaña Retiros) -->
+        <!-- Navegación por pestañas -->
         <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📦 Inventario</button>
@@ -44,6 +44,7 @@
                                 <th class="p-3">Código</th>
                                 <th class="p-3">Producto</th>
                                 <th class="p-3">Precio</th>
+                                <th class="p-3">Stock Disponible</th> <!-- Columna de solo lectura añadida -->
                                 <th class="p-3 text-center">Acción</th>
                             </tr>
                         </thead>
@@ -74,7 +75,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVENTARIO -->
+        <!-- SECCIÓN: INVENTARIO (Aquí sí se mantiene editable) -->
         <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-800">Gestión de Inventario</h2>
@@ -98,7 +99,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: RETIROS / GASTOS (NUEVA) -->
+        <!-- SECCIÓN: RETIROS / GASTOS -->
         <div id="tab-retiros" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Registrar Retiro o Gasto de Caja</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -172,7 +173,7 @@
         </div>
     </div>
 
-   <!-- Script de lógica corregido -->
+    <!-- Script de lógica -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
 
@@ -194,7 +195,6 @@
             if(tab === 'corte') renderCorte();
         }
 
-        // Cargar inventario real desde Google Sheets
         async function cargarInventarioDesdeSheets() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
@@ -218,11 +218,13 @@
             inventario
                 .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()))
                 .forEach(p => {
+                    // Se muestra el stock como una etiqueta de texto estática (no editable)
                     tbody.innerHTML += `
                         <tr class="border-b border-gray-50 hover:bg-gray-50">
                             <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
                             <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
                             <td class="p-3 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                            <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">${p.stock} un.</span></td>
                             <td class="p-3 text-center">
                                 <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
                             </td>
@@ -239,7 +241,7 @@
         function agregarAlCarrito(codigo) {
             const prod = inventario.find(p => p.codigo === codigo);
             if (!prod || prod.stock <= 0) {
-                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles o no se cargó el stock.', 'warning');
+                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles.', 'warning');
                 return;
             }
 
@@ -248,7 +250,7 @@
                 if (itemEnCarrito.cantidad < prod.stock) {
                     itemEnCarrito.cantidad++;
                 } else {
-                    Swal.fire('Límite alcanzado', 'No hay más stock disponible.', 'info');
+                    Swal.fire('Límite alcanzado', 'No hay más stock disponible en caja.', 'info');
                     return;
                 }
             } else {
@@ -432,7 +434,6 @@
             });
         }
 
-        // Envío seguro usando text/plain para evitar bloqueos CORS
         async function enviarDatosAGoogleSheets(data) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
@@ -447,14 +448,12 @@
             }
         }
 
-        // Botón de sincronización real
         async function sincronizarDatos() {
             Swal.fire({ title: 'Sincronizando...', text: 'Descargando datos de Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             await cargarInventarioDesdeSheets();
             Swal.fire('¡Sincronizado!', 'Los productos y precios se han actualizado correctamente.', 'success');
         }
 
-        // Carga inicial al abrir la página
         cargarInventarioDesdeSheets();
     </script>
 </body>
