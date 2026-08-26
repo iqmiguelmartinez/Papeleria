@@ -3,18 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punto de Venta - Papelería</title>
+    <title>Punto de Venta - Papelería Pixel y Papel</title>
+    <!-- Agrega esta línea para el ícono de la pestaña -->
+    <link rel="icon" type="image/png" href="logo.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
     <div class="max-w-7xl mx-auto p-4 md:p-6">
-        <!-- Título -->
+        <!-- Título y Logotipo -->
         <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">📚 Sistema de Papelería</h1>
-                <p class="text-sm text-gray-500">Control de ventas, gastos y stock</p>
+            <div class="flex items-center gap-4">
+                <!-- Imagen del logotipo -->
+                <img src="logo.png" alt="Pixel y Papel" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">📚 Pixel y Papel</h1>
+                    <p class="text-sm text-gray-500">Control de ventas, gastos y stock conectado a Google Sheets</p>
+                </div>
             </div>
             <div class="mt-4 md:mt-0 flex gap-2">
                 <button onclick="sincronizarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
@@ -22,7 +29,6 @@
                 </button>
             </div>
         </header>
-
         <!-- Navegación por pestañas -->
         <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
