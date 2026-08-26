@@ -497,6 +497,47 @@
         </div>
     </div>
 
+    <!-- Contenedor oculto para generar la imagen del ticket de corte -->
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="print-corte-ticket" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 600px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4f46e5; padding-bottom: 12px;">
+                <h2 style="font-size: 20px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
+                <p style="font-size: 14px; font-weight: 600; color: #4f46e5; margin: 0;" id="print-corte-titulo">Corte de Caja</p>
+                <p id="print-corte-fecha" style="font-size: 11px; color: #6b7280; margin: 6px 0 0 0;"></p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                    <p style="font-size: 11px; color: #4b5563; margin: 0;">Ventas Totales</p>
+                    <p id="print-corte-ventas" style="font-size: 18px; font-weight: bold; color: #2563eb; margin: 4px 0 0 0;">$0.00</p>
+                </div>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                    <p style="font-size: 11px; color: #4b5563; margin: 0;">Retiros / Gastos</p>
+                    <p id="print-corte-retiros" style="font-size: 18px; font-weight: bold; color: #dc2626; margin: 4px 0 0 0;">$0.00</p>
+                </div>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                    <p style="font-size: 11px; color: #4b5563; margin: 0;">Promedio de Venta</p>
+                    <p id="print-corte-promedio" style="font-size: 18px; font-weight: bold; color: #9333ea; margin: 4px 0 0 0;">$0.00</p>
+                </div>
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
+                    <p style="font-size: 11px; color: #4b5563; margin: 0;">Efectivo en Caja (Neto)</p>
+                    <p id="print-corte-neto" style="font-size: 18px; font-weight: bold; color: #059669; margin: 4px 0 0 0;">$0.00</p>
+                </div>
+            </div>
+            <h3 style="font-size: 14px; font-weight: bold; color: #374151; margin: 0 0 8px 0;">Artículos Vendidos en el Turno</h3>
+            <table style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 16px;">
+                <thead>
+                    <tr style="background-color: #f3f4f6; font-size: 11px; text-transform: uppercase; color: #4b5563;">
+                        <th style="padding: 8px; border-bottom: 1px solid #d1d5db;">Producto</th>
+                        <th style="padding: 8px; text-align: center; border-bottom: 1px solid #d1d5db;">Cantidad</th>
+                        <th style="padding: 8px; text-align: right; border-bottom: 1px solid #d1d5db;">Total Recaudado</th>
+                    </tr>
+                </thead>
+                <tbody id="print-corte-tbody-articulos"></tbody>
+            </table>
+            <p style="font-size: 11px; text-align: center; color: #9ca3af; margin: 0;">Generado automáticamente por el Sistema Interno Pixel y Papel</p>
+        </div>
+    </div>
+
     <!-- Script de lógica -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
@@ -1242,6 +1283,101 @@
             link.click();
         }
 
+        // Descargar imagen de un corte pasado
+        async function descargarImagenCorte(index) {
+            let corte = cortesRealizados[index];
+            if (!corte) return;
+
+            document.getElementById('print-corte-titulo').innerText = `Corte de Caja #${index + 1}`;
+            document.getElementById('print-corte-fecha').innerText = `Hora del corte: ${corte.hora} - Fecha: ${new Date().toLocaleDateString('es-MX')}`;
+            document.getElementById('print-corte-ventas').innerText = `$${corte.totalVentas.toFixed(2)}`;
+            document.getElementById('print-corte-retiros').innerText = `$${corte.totalRetiros.toFixed(2)}`;
+            document.getElementById('print-corte-promedio').innerText = `$${corte.promedioVenta.toFixed(2)}`;
+            document.getElementById('print-corte-neto').innerText = `$${corte.efectivoNeto.toFixed(2)}`;
+
+            let tbody = document.getElementById('print-corte-tbody-articulos');
+            tbody.innerHTML = "";
+            if (corte.articulos && corte.articulos.length > 0) {
+                corte.articulos.forEach(art => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; color: #1f2937;">${art.nombre}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 12px; font-weight: bold; color: #2563eb;">${art.cantidad} un.</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 12px; font-weight: bold; color: #059669;">$${art.total.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="3" style="padding: 12px; text-align: center; color: #9ca3af; font-size: 12px;">Sin artículos registrados</td></tr>`;
+            }
+
+            const el = document.getElementById('print-corte-ticket');
+            const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+            const link = document.createElement('a');
+            link.download = `corte-caja-${index + 1}-${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Ver detalle flotante de un corte pasado
+        function verDetalleCorte(index) {
+            let corte = cortesRealizados[index];
+            if (!corte) return;
+
+            let htmlTabla = `
+                <div class="overflow-x-auto max-h-[300px] text-left">
+                    <table class="w-full border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase">
+                                <th class="p-2">Producto</th>
+                                <th class="p-2 text-center">Cantidad</th>
+                                <th class="p-2 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            `;
+
+            if (corte.articulos && corte.articulos.length > 0) {
+                corte.articulos.forEach(art => {
+                    htmlTabla += `
+                        <tr>
+                            <td class="p-2 font-medium text-gray-800 dark:text-gray-200">${art.nombre}</td>
+                            <td class="p-2 text-center font-bold text-blue-600">${art.cantidad} un.</td>
+                            <td class="p-2 text-right font-semibold text-emerald-600">$${art.total.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                htmlTabla += `<tr><td colspan="3" class="p-3 text-center text-gray-400">Sin artículos registrados</td></tr>`;
+            }
+
+            htmlTabla += `</tbody></table></div>`;
+
+            Swal.fire({
+                title: `📋 Detalle del Corte #${index + 1} (${corte.hora})`,
+                html: `
+                    <div class="mb-4 grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="bg-blue-50 dark:bg-blue-950/40 p-2 rounded">
+                            <p class="text-gray-500">Ventas</p>
+                            <p class="font-bold text-blue-600">$${corte.totalVentas.toFixed(2)}</p>
+                        </div>
+                        <div class="bg-red-50 dark:bg-red-950/40 p-2 rounded">
+                            <p class="text-gray-500">Retiros</p>
+                            <p class="font-bold text-red-600">$${corte.totalRetiros.toFixed(2)}</p>
+                        </div>
+                        <div class="bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded">
+                            <p class="text-gray-500">Neto</p>
+                            <p class="font-bold text-emerald-600">$${corte.efectivoNeto.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    ${htmlTabla}
+                `,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#2563eb',
+                width: '600px'
+            });
+        }
+
         function renderProductos(filtro = "") {
             const tbody1 = document.getElementById('tabla-productos-venta-1');
             const tbody2 = document.getElementById('tabla-productos-venta-2');
@@ -1566,10 +1702,14 @@
                                         <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded font-bold text-xs">Corte #${idx + 1}</span>
                                         <span class="font-semibold text-gray-800 dark:text-white">Hora: ${corte.hora}</span>
                                     </div>
-                                    <div class="flex gap-4 text-xs font-semibold">
+                                    <div class="flex gap-4 text-xs font-semibold items-center">
                                         <span class="text-blue-600 dark:text-blue-400">Ventas: $${corte.totalVentas.toFixed(2)}</span>
                                         <span class="text-red-600 dark:text-red-400">Retiros: $${corte.totalRetiros.toFixed(2)}</span>
                                         <span class="text-emerald-600 dark:text-emerald-400">Neto: $${corte.efectivoNeto.toFixed(2)}</span>
+                                        <div class="flex gap-2 ml-2">
+                                            <button onclick="verDetalleCorte(${idx})" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition">👁️ Detalle</button>
+                                            <button onclick="descargarImagenCorte(${idx})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition">📥 Imagen</button>
+                                        </div>
                                     </div>
                                 </div>
                                 ${htmlArticulos}
@@ -1596,7 +1736,6 @@
                 articulos: resumenArticulos 
             });
 
-            // Agregar localmente al historial para que se refleje de inmediato
             cortesRealizados.push({
                 hora: new Date().toLocaleTimeString(),
                 totalVentas: totalVentas,
