@@ -44,7 +44,7 @@
                                 <th class="p-3">Código</th>
                                 <th class="p-3">Producto</th>
                                 <th class="p-3">Precio</th>
-                                <th class="p-3">Stock Disponible</th>
+                                <th class="p-3">Stock Disponible</th> <!-- Columna de solo lectura añadida -->
                                 <th class="p-3 text-center">Acción</th>
                             </tr>
                         </thead>
@@ -75,10 +75,10 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVENTARIO (Ahora también estático de solo lectura) -->
+        <!-- SECCIÓN: INVENTARIO (Aquí sí se mantiene editable) -->
         <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-gray-800">Control de Inventario</h2>
+                <h2 class="text-lg font-semibold text-gray-800">Gestión de Inventario</h2>
                 <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
             </div>
             <div class="overflow-x-auto">
@@ -88,7 +88,7 @@
                             <th class="p-3">Código</th>
                             <th class="p-3">Producto</th>
                             <th class="p-3">Precio ($)</th>
-                            <th class="p-3">Stock Restante</th>
+                            <th class="p-3">Stock</th>
                             <th class="p-3 text-center">Acción</th>
                         </tr>
                     </thead>
@@ -218,6 +218,7 @@
             inventario
                 .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()))
                 .forEach(p => {
+                    // Se muestra el stock como una etiqueta de texto estática (no editable)
                     tbody.innerHTML += `
                         <tr class="border-b border-gray-50 hover:bg-gray-50">
                             <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
@@ -315,9 +316,6 @@
             carrito = [];
             renderCarrito();
             renderProductos();
-            if(!document.getElementById('tab-inventario').classList.contains('hidden')) {
-                renderInventario();
-            }
             Swal.fire('¡Venta Exitosa!', 'El registro se ha completado correctamente.', 'success');
         }
 
@@ -364,7 +362,6 @@
             });
         }
 
-        // Inventario ahora es puramente estático de lectura
         function renderInventario() {
             const tbody = document.getElementById('tabla-inventario-completo');
             tbody.innerHTML = "";
@@ -374,11 +371,18 @@
                         <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
                         <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
                         <td class="p-3 text-gray-600">$${p.precio.toFixed(2)}</td>
-                        <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">${p.stock} un.</span></td>
-                        <td class="p-3 text-center text-xs text-gray-400">Actualizado por ventas</td>
+                        <td class="p-3"><input type="number" value="${p.stock}" onchange="actualizarStock('${p.codigo}', this.value)" class="w-20 px-2 py-1 border rounded text-sm"></td>
+                        <td class="p-3 text-center">
+                            <button onclick="eliminarProducto('${p.codigo}')" class="text-red-500 hover:text-red-700 text-xs font-medium cursor-pointer">Eliminar</button>
+                        </td>
                     </tr>
                 `;
             });
+        }
+
+        function actualizarStock(codigo, nuevoStock) {
+            let p = inventario.find(prod => prod.codigo === codigo);
+            if(p) p.stock = parseInt(nuevoStock) || 0;
         }
 
         function agregarProductoPrompt() {
@@ -387,7 +391,7 @@
                 html: '<input id="sw-cod" class="swal2-input" placeholder="Código">' +
                       '<input id="sw-nom" class="swal2-input" placeholder="Nombre">' +
                       '<input id="sw-pre" type="number" class="swal2-input" placeholder="Precio">' +
-                      '<input id="sw-sto" type="number" class="swal2-input" placeholder="Stock Inicial">',
+                      '<input id="sw-sto" type="number" class="swal2-input" placeholder="Stock">',
                 focusConfirm: false,
                 preConfirm: () => {
                     return {
@@ -447,7 +451,7 @@
         async function sincronizarDatos() {
             Swal.fire({ title: 'Sincronizando...', text: 'Descargando datos de Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             await cargarInventarioDesdeSheets();
-            Swal.fire('¡Sincronizado!', 'El stock y los precios se han actualizado correctamente.', 'success');
+            Swal.fire('¡Sincronizado!', 'Los productos y precios se han actualizado correctamente.', 'success');
         }
 
         cargarInventarioDesdeSheets();
