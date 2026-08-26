@@ -449,7 +449,6 @@
             });
         }
 
-        // Función para confirmar el surtido por lote con contraseña
         async function confirmarSurtidoInventario() {
             const { value: password } = await Swal.fire({
                 title: '🔒 Autorizar Surtido de Inventario',
@@ -465,14 +464,13 @@
                 confirmButtonColor: '#059669'
             });
 
-            if (password === undefined) return; // Canceló
+            if (password === undefined) return;
 
-            if (password !== "1234") { // Contraseña por defecto (puedes cambiarla aquí)
+            if (password !== "1234") {
                 Swal.fire('Error', 'Contraseña incorrecta.', 'error');
                 return;
             }
 
-            // Recopilar entradas de los inputs
             let entradas = {};
             let hayCambios = false;
 
@@ -482,7 +480,7 @@
                     const cant = parseInt(input.value) || 0;
                     if (cant > 0) {
                         entradas[p.codigo] = cant;
-                        p.stock += cant; // Actualiza localmente
+                        p.stock += cant;
                         hayCambios = true;
                     }
                 }
@@ -505,8 +503,8 @@
             Swal.fire('¡Inventario Surtido!', 'Las entradas de mercancía se han registrado correctamente en Google Sheets.', 'success');
         }
 
-        function agregarProductoPrompt() {
-            Swal.fire({
+        async function agregarProductoPrompt() {
+            const { value: formValues } = await Swal.fire({
                 title: 'Nuevo Producto',
                 html: '<input id="sw-cod" class="swal2-input" placeholder="Código">' +
                       '<input id="sw-nom" class="swal2-input" placeholder="Nombre">' +
@@ -515,20 +513,31 @@
                 focusConfirm: false,
                 preConfirm: () => {
                     return {
-                        codigo: document.getElementById('sw-cod').value,
-                        nombre: document.getElementById('sw-nom').value,
+                        codigo: document.getElementById('sw-cod').value.trim(),
+                        nombre: document.getElementById('sw-nom').value.trim(),
                         precio: parseFloat(document.getElementById('sw-pre').value) || 0,
                         stock: parseInt(document.getElementById('sw-sto').value) || 0
                     }
                 }
-            }).then((result) => {
-                if (result.value && result.value.codigo && result.value.nombre) {
-                    inventario.push(result.value);
-                    renderInventario();
-                    renderProductos();
-                    Swal.fire('Agregado', 'Producto registrado con éxito.', 'success');
-                }
             });
+
+            if (formValues && formValues.codigo && formValues.nombre) {
+                Swal.fire({ title: 'Guardando...', text: 'Registrando nuevo producto en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                inventario.push(formValues);
+                renderInventario();
+                renderProductos();
+
+                await enviarDatosAGoogleSheets({
+                    tipo: 'nuevoProducto',
+                    codigo: formValues.codigo,
+                    nombre: formValues.nombre,
+                    precio: formValues.precio,
+                    stock: formValues.stock
+                });
+
+                Swal.fire('¡Agregado!', 'Producto registrado con éxito en Google Sheets.', 'success');
+            }
         }
 
         function calcularResumenArticulos(ventas) {
