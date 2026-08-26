@@ -93,7 +93,7 @@
                 </div>
             </div>
 
-            <!-- Carrito (Se expande fluidamente sin altura fija) -->
+            <!-- Carrito -->
             <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between transition-colors duration-200">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Ticket Actual</h2>
@@ -1525,15 +1525,91 @@
             document.getElementById('corte-total-retiros').innerText = `$${totalRetiros.toFixed(2)}`;
             document.getElementById('corte-promedio-venta').innerText = `$${(ventasActivas.length > 0 ? totalVentas / ventasActivas.length : 0).toFixed(2)}`;
             document.getElementById('corte-efectivo-neto').innerText = `$${(totalVentas - totalRetiros).toFixed(2)}`;
+
+            // Renderizar resumen de artículos vendidos en el turno actual
+            const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
+            if (tbodyArticulos) {
+                let resumen = calcularResumenArticulos(ventasActivas);
+                if (resumen.length === 0) {
+                    tbodyArticulos.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-gray-400">No hay artículos vendidos en este turno</td></tr>`;
+                } else {
+                    tbodyArticulos.innerHTML = "";
+                    resumen.forEach(art => {
+                        tbodyArticulos.innerHTML += `
+                            <tr class="border-b dark:border-gray-700 text-sm">
+                                <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${art.nombre}</td>
+                                <td class="p-3 text-center font-bold text-blue-600 dark:text-blue-400">${art.cantidad} un.</td>
+                                <td class="p-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${art.total.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            }
+
+            // Renderizar historial de cortes realizados hoy
+            const containerCortes = document.getElementById('historial-cortes-container');
+            if (containerCortes) {
+                if (!Array.isArray(cortesRealizados) || cortesRealizados.length === 0) {
+                    containerCortes.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>`;
+                } else {
+                    containerCortes.innerHTML = "";
+                    cortesRealizados.forEach((corte, idx) => {
+                        let htmlArticulos = "";
+                        if (corte.articulos && corte.articulos.length > 0) {
+                            htmlArticulos = `<div class="mt-2 text-xs text-gray-500 dark:text-gray-400"><span class="font-semibold">Artículos:</span> ` + 
+                                corte.articulos.map(a => `${a.cantidad}x ${a.nombre}`).join(", ") + `</div>`;
+                        }
+                        containerCortes.innerHTML += `
+                            <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3">
+                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded font-bold text-xs">Corte #${idx + 1}</span>
+                                        <span class="font-semibold text-gray-800 dark:text-white">Hora: ${corte.hora}</span>
+                                    </div>
+                                    <div class="flex gap-4 text-xs font-semibold">
+                                        <span class="text-blue-600 dark:text-blue-400">Ventas: $${corte.totalVentas.toFixed(2)}</span>
+                                        <span class="text-red-600 dark:text-red-400">Retiros: $${corte.totalRetiros.toFixed(2)}</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400">Neto: $${corte.efectivoNeto.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                ${htmlArticulos}
+                            </div>
+                        `;
+                    });
+                }
+            }
         }
 
         async function realizarCorteTurno() {
             if (ventasActivas.length === 0 && retirosActivos.length === 0) return;
             let totalVentas = ventasActivas.reduce((acc, v) => acc + v.total, 0);
             let totalRetiros = retirosActivos.reduce((acc, r) => acc + r.monto, 0);
-            await enviarDatosAGoogleSheets({ tipo: 'corte', totalVentas, totalRetiros, efectivoNeto: totalVentas - totalRetiros, promedioVenta: totalVentas / (ventasActivas.length || 1), articulos: calcularResumenArticulos(ventasActivas) });
-            ventasActivas = []; retirosActivos = [];
-            renderCorte(); renderRetiros();
+            
+            let resumenArticulos = calcularResumenArticulos(ventasActivas);
+
+            await enviarDatosAGoogleSheets({ 
+                tipo: 'corte', 
+                totalVentas, 
+                totalRetiros, 
+                efectivoNeto: totalVentas - totalRetiros, 
+                promedioVenta: totalVentas / (ventasActivas.length || 1), 
+                articulos: resumenArticulos 
+            });
+
+            // Agregar localmente al historial para que se refleje de inmediato
+            cortesRealizados.push({
+                hora: new Date().toLocaleTimeString(),
+                totalVentas: totalVentas,
+                totalRetiros: totalRetiros,
+                efectivoNeto: totalVentas - totalRetiros,
+                promedioVenta: ventasActivas.length > 0 ? totalVentas / ventasActivas.length : 0,
+                articulos: resumenArticulos
+            });
+
+            ventasActivas = []; 
+            retirosActivos = [];
+            renderCorte(); 
+            renderRetiros();
             Swal.fire('¡Corte Realizado!', 'Turno reiniciado con éxito.', 'success');
         }
 
