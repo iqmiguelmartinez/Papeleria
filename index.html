@@ -54,7 +54,7 @@
         </div>
 
         <!-- SECCIÓN: VENTAS -->
-        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
             <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between transition-colors duration-200">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Productos</h2>
@@ -93,15 +93,15 @@
                 </div>
             </div>
 
-            <!-- Carrito -->
+            <!-- Carrito (Se expande fluidamente sin altura fija) -->
             <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between transition-colors duration-200">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Ticket Actual</h2>
-                    <div id="lista-carrito" class="space-y-3 max-h-[500px] overflow-y-auto mb-4 pr-1">
+                    <div id="lista-carrito" class="space-y-3 mb-4 pr-1">
                         <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">El carrito está vacío</p>
                     </div>
                 </div>
-                <div class="border-t dark:border-gray-700 pt-4">
+                <div class="border-t dark:border-gray-700 pt-4 mt-auto">
                     <div class="flex justify-between text-lg font-bold text-gray-800 dark:text-white mb-4">
                         <span>Total:</span>
                         <span id="total-venta">$0.00</span>
