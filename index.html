@@ -114,26 +114,33 @@
         </div>
 
         <!-- SECCIÓN: INVENTARIO -->
-        <div id="tab-inventario" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+        <div id="tab-inventario" class="hidden bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Control de Inventario</h2>
-                <div class="flex gap-2">
-                    <button onclick="confirmarSurtidoInventario()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔒 Surtir Inventario Ingresado</button>
-                    <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
+                <div class="flex gap-2 flex-wrap items-center">
+                    <!-- Botón para modificar productos (Visible solo si tiene permisos de análisis) -->
+                    <button id="btn-modificar-productos" onclick="toggleModificarInventario()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✏️ Modificar Productos</button>
+                    <!-- Botones de Guardar / Cancelar en modo edición -->
+                    <button id="btn-guardar-modificacion" onclick="guardarModificacionInventario()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">💾 Finalizado (Guardar)</button>
+                    <button id="btn-cancelar-modificacion" onclick="cancelarModificacionInventario()" class="hidden bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">❌ Cancelar</button>
+                    
+                    <button id="btn-surtir-inv" onclick="confirmarSurtidoInventario()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔒 Surtir Inventario</button>
+                    <button id="btn-nuevo-prod" onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">+ Nuevo Producto</button>
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
-                            <th class="p-3">Código</th>
-                            <th class="p-3">Producto</th>
-                            <th class="p-3">Precio Venta ($)</th>
-                            <th class="p-3">Stock Restante</th>
-                            <th class="p-3 text-center bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">Surtir Cantidad</th>
+                        <tr class="bg-gray-50 dark:bg-gray-700/70 text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600">
+                            <th class="py-2 px-3">Código</th>
+                            <th class="py-2 px-3">Producto</th>
+                            <th class="py-2 px-3">Precio Venta ($)</th>
+                            <th class="py-2 px-3">Costo ($)</th>
+                            <th class="py-2 px-3">Stock Restante</th>
+                            <th class="py-2 px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 th-surtir-header">Surtir Cantidad</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 dark:divide-gray-700/60"></tbody>
                 </table>
             </div>
         </div>
@@ -499,6 +506,7 @@
 
         let usuarioActual = null;
         let tienePermisoAnalisis = false;
+        let editandoInventario = false;
         let inventario = [];
         let carrito = [];
         let ventasActivas = [];
@@ -627,6 +635,13 @@
                     else el.classList.add('hidden');
                 }
             });
+
+            // Mostrar u ocultar botón de modificar inventario según permisos de análisis
+            const btnModInv = document.getElementById('btn-modificar-productos');
+            if (btnModInv) {
+                if (tienePermisoAnalisis) btnModInv.classList.remove('hidden');
+                else btnModInv.classList.add('hidden');
+            }
         }
 
         function cerrarSesion() {
@@ -639,6 +654,11 @@
             if (restringidas.includes(tab) && !tienePermisoAnalisis) {
                 Swal.fire('Acceso Denegado', 'No tienes permisos para ver esta sección.', 'warning');
                 return;
+            }
+
+            // Si cambiamos de pestaña y estábamos editando inventario, cancelar edición
+            if (tab !== 'inventario' && editandoInventario) {
+                cancelarModificacionInventario();
             }
 
             ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis'].forEach(t => {
@@ -755,7 +775,7 @@
             if (act.includes("VENTA")) colorClass = "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300";
             else if (act.includes("RETIRO")) colorClass = "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300";
             else if (act.includes("CORTE")) colorClass = "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300";
-            else if (act.includes("SURTIR") || act.includes("ALTA")) colorClass = "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300";
+            else if (act.includes("SURTIR") || act.includes("ALTA") || act.includes("MODIFICAR")) colorClass = "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300";
             else if (act.includes("INVERSIÓN") || act.includes("GASTO") || act.includes("ESTADO")) colorClass = "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300";
             
             return `<span class="px-2 py-0.5 rounded font-bold text-xs ${colorClass}">${accion}</span>`;
@@ -1013,7 +1033,6 @@
             let horasPicoMap = {};
             for(let h=8; h<=20; h++) horasPicoMap[h] = 0;
 
-            // Procesamiento de clientes y WhatsApp
             let primerAparicionCliente = {};
             let ventasOrdenadas = [...ventas].sort((a, b) => a.timestamp - b.timestamp);
             let totalVentasCount = ventas.length;
@@ -1043,7 +1062,6 @@
                     horasPicoMap[hora] = (horasPicoMap[hora] || 0) + v.total;
                 }
 
-                // Clientes y WhatsApp
                 let tel = v.telefono ? v.telefono.toString().trim() : "";
                 if (tel && tel !== "N/A" && tel.replace(/\D/g, '').length >= 10) {
                     if (!primerAparicionCliente[tel]) {
@@ -1075,7 +1093,6 @@
                 }
             });
 
-            // Clientes nuevos por mes
             let nuevosClientesPorMes = {};
             Object.values(primerAparicionCliente).forEach(mes => {
                 nuevosClientesPorMes[mes] = (nuevosClientesPorMes[mes] || 0) + 1;
@@ -1359,13 +1376,115 @@
             });
         }
 
+        // --- MÓDULO DE INVENTARIO COMPACTO Y EDICIÓN ---
         function renderInventario() {
             const tbody = document.getElementById('tabla-inventario-completo');
             if(!tbody) return;
             tbody.innerHTML = "";
-            inventario.forEach(p => {
-                tbody.innerHTML += `<tr class="border-b dark:border-gray-700"><td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td><td class="p-3 font-medium">${p.nombre}</td><td class="p-3">$${p.precio.toFixed(2)}</td><td class="p-3"><span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">${p.stock} un.</span></td><td class="p-3 text-center"><input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 rounded text-center text-sm bg-emerald-50/50 dark:bg-emerald-950/30"></td></tr>`;
+
+            const thSurtir = document.querySelector('.th-surtir-header');
+            if(thSurtir) thSurtir.style.display = editandoInventario ? 'none' : '';
+
+            inventario.forEach((p, idx) => {
+                if (editandoInventario) {
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <td class="py-1.5 px-3 font-mono text-xs"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-2 py-1 border border-amber-300 dark:border-amber-600 rounded bg-amber-50/50 dark:bg-amber-950/30 text-gray-800 dark:text-gray-100 font-semibold"></td>
+                            <td class="py-1.5 px-3"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-2 py-1 border border-amber-300 dark:border-amber-600 rounded bg-amber-50/50 dark:bg-amber-950/30 text-gray-800 dark:text-gray-100 font-semibold"></td>
+                            <td class="py-1.5 px-3"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-28 px-2 py-1 border border-amber-300 dark:border-amber-600 rounded bg-amber-50/50 dark:bg-amber-950/30 text-gray-800 dark:text-gray-100 font-semibold"></td>
+                            <td class="py-1.5 px-3"><input type="number" step="0.01" value="${p.costo || 0}" data-index="${idx}" data-field="costo" class="inv-edit-input w-28 px-2 py-1 border border-amber-300 dark:border-amber-600 rounded bg-amber-50/50 dark:bg-amber-950/30 text-gray-800 dark:text-gray-100 font-semibold"></td>
+                            <td class="py-1.5 px-3"><input type="number" value="${p.stock}" data-index="${idx}" data-field="stock" class="inv-edit-input w-28 px-2 py-1 border border-amber-300 dark:border-amber-600 rounded bg-amber-50/50 dark:bg-amber-950/30 text-gray-800 dark:text-gray-100 font-semibold"></td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <td class="py-1.5 px-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                            <td class="py-1.5 px-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                            <td class="py-1.5 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
+                            <td class="py-1.5 px-3 text-gray-600 dark:text-gray-400">$${(p.costo || 0).toFixed(2)}</td>
+                            <td class="py-1.5 px-3"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
+                            <td class="py-1.5 px-3 text-center">
+                                <input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-20 px-2 py-0.5 border border-emerald-300 rounded text-center text-xs bg-emerald-50/50 dark:bg-emerald-950/30">
+                            </td>
+                        </tr>
+                    `;
+                }
             });
+        }
+
+        function toggleModificarInventario() {
+            if (!tienePermisoAnalisis) {
+                Swal.fire('Acceso Denegado', 'No tienes permisos de análisis para modificar el inventario.', 'warning');
+                return;
+            }
+            editandoInventario = true;
+            document.getElementById('btn-modificar-productos').classList.add('hidden');
+            document.getElementById('btn-guardar-modificacion').classList.remove('hidden');
+            document.getElementById('btn-cancelar-modificacion').classList.remove('hidden');
+            document.getElementById('btn-surtir-inv').classList.add('hidden');
+            document.getElementById('btn-nuevo-prod').classList.add('hidden');
+            renderInventario();
+        }
+
+        function cancelarModificacionInventario() {
+            editandoInventario = false;
+            document.getElementById('btn-modificar-productos').classList.remove('hidden');
+            document.getElementById('btn-guardar-modificacion').classList.add('hidden');
+            document.getElementById('btn-cancelar-modificacion').classList.add('hidden');
+            document.getElementById('btn-surtir-inv').classList.remove('hidden');
+            document.getElementById('btn-nuevo-prod').classList.remove('hidden');
+            renderInventario();
+        }
+
+        async function guardarModificacionInventario() {
+            const inputs = document.querySelectorAll('.inv-edit-input');
+            let inventarioActualizado = JSON.parse(JSON.stringify(inventario));
+
+            inputs.forEach(input => {
+                let idx = parseInt(input.getAttribute('data-index'));
+                let field = input.getAttribute('data-field');
+                let val = input.value;
+
+                if (field === 'precio' || field === 'costo') {
+                    inventarioActualizado[idx][field] = parseFloat(val) || 0;
+                } else if (field === 'stock') {
+                    inventarioActualizado[idx][field] = parseInt(val) || 0;
+                } else {
+                    inventarioActualizado[idx][field] = val.trim();
+                }
+            });
+
+            const { value: confirmacion } = await Swal.fire({
+                title: 'Confirmar Cambios',
+                text: '¿Deseas guardar las modificaciones realizadas en el inventario?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#059669'
+            });
+
+            if (!confirmacion) return;
+
+            Swal.fire({ title: 'Guardando...', text: 'Actualizando inventario en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            await enviarDatosAGoogleSheets({
+                tipo: 'actualizarInventario',
+                inventario: inventarioActualizado
+            });
+
+            inventario = inventarioActualizado;
+            editandoInventario = false;
+            document.getElementById('btn-modificar-productos').classList.remove('hidden');
+            document.getElementById('btn-guardar-modificacion').classList.add('hidden');
+            document.getElementById('btn-cancelar-modificacion').classList.add('hidden');
+            document.getElementById('btn-surtir-inv').classList.remove('hidden');
+            document.getElementById('btn-nuevo-prod').classList.remove('hidden');
+
+            renderInventario();
+            renderProductos();
+            Swal.fire('¡Actualizado!', 'Los cambios en el inventario se han guardado correctamente.', 'success');
         }
 
         async function confirmarSurtidoInventario() {
