@@ -6,22 +6,30 @@
     <title>Punto de Venta - Pixel y Papel</title>
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200">
 
     <div class="max-w-[95%] mx-auto p-4 md:p-6">
         <!-- Título y Logotipo -->
-        <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
             <div class="flex items-center gap-4">
-                <img src="logo.jpeg" alt="Pixel y Papel" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200">
+                <img src="logo.jpeg" alt="Pixel y Papel" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">📚 Pixel y Papel</h1>
-                    <p class="text-sm text-gray-500">Control de ventas, gastos y stock conectado a Google Sheets</p>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Control de ventas, gastos y stock conectado a Google Sheets</p>
                 </div>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2">
+            <div class="mt-4 md:mt-0 flex gap-2 items-center">
+                <button onclick="toggleTheme()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3.5 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
+                    <span id="icono-tema">🌙</span> <span class="hidden sm:inline">Tema</span>
+                </button>
                 <button onclick="sincronizarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
                     🔄 Sincronizar Sheets
                 </button>
@@ -29,26 +37,26 @@
         </header>
 
         <!-- Navegación por pestañas -->
-        <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
+        <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
-            <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📦 Inventario</button>
-            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">💸 Retiros / Gastos</button>
-            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📊 Corte Diario</button>
+            <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
+            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
+            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
         </div>
 
         <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div class="lg:col-span-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between transition-colors duration-200">
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
-                    <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Productos</h2>
+                    <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-blue-500">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Tabla Izquierda -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                                    <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                                         <th class="p-2.5">Código</th>
                                         <th class="p-2.5">Producto</th>
                                         <th class="p-2.5">Precio</th>
@@ -56,14 +64,14 @@
                                         <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 text-sm"></tbody>
+                                <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                             </table>
                         </div>
                         <!-- Tabla Derecha -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                                    <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                                         <th class="p-2.5">Código</th>
                                         <th class="p-2.5">Producto</th>
                                         <th class="p-2.5">Precio</th>
@@ -71,7 +79,7 @@
                                         <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 text-sm"></tbody>
+                                <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                             </table>
                         </div>
                     </div>
@@ -79,15 +87,15 @@
             </div>
 
             <!-- Carrito -->
-            <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between transition-colors duration-200">
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Ticket Actual</h2>
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Ticket Actual</h2>
                     <div id="lista-carrito" class="space-y-3 max-h-[500px] overflow-y-auto mb-4 pr-1">
-                        <p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">El carrito está vacío</p>
                     </div>
                 </div>
-                <div class="border-t pt-4">
-                    <div class="flex justify-between text-lg font-bold text-gray-800 mb-4">
+                <div class="border-t dark:border-gray-700 pt-4">
+                    <div class="flex justify-between text-lg font-bold text-gray-800 dark:text-white mb-4">
                         <span>Total:</span>
                         <span id="total-venta">$0.00</span>
                     </div>
@@ -99,9 +107,9 @@
         </div>
 
         <!-- SECCIÓN: INVENTARIO -->
-        <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div id="tab-inventario" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
             <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                <h2 class="text-lg font-semibold text-gray-800">Control de Inventario</h2>
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Control de Inventario</h2>
                 <div class="flex gap-2">
                     <button onclick="confirmarSurtidoInventario()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔒 Surtir Inventario Ingresado</button>
                     <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
@@ -110,96 +118,96 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Código</th>
                             <th class="p-3">Producto</th>
                             <th class="p-3">Precio ($)</th>
                             <th class="p-3">Stock Restante</th>
-                            <th class="p-3 text-center bg-emerald-50 text-emerald-800">Surtir Cantidad</th>
+                            <th class="p-3 text-center bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">Surtir Cantidad</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 text-sm"></tbody>
+                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                 </table>
             </div>
         </div>
 
         <!-- SECCIÓN: RETIROS / GASTOS -->
-        <div id="tab-retiros" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Registrar Retiro o Gasto de Caja</h2>
+        <div id="tab-retiros" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Registrar Retiro o Gasto de Caja</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Concepto / Motivo</label>
-                    <input type="text" id="ret-motivo" placeholder="Ej: Pago de luz, Proveedor..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Concepto / Motivo</label>
+                    <input type="text" id="ret-motivo" placeholder="Ej: Pago de luz, Proveedor..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-blue-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Monto ($)</label>
-                    <input type="number" id="ret-monto" placeholder="0.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Monto ($)</label>
+                    <input type="number" id="ret-monto" placeholder="0.00" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-blue-500">
                 </div>
                 <div class="flex items-end">
                     <button onclick="registrarRetiro()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition cursor-pointer">Registrar Retiro</button>
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 mb-2">Historial del Turno Actual</h3>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Historial del Turno Actual</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Hora</th>
                             <th class="p-3">Concepto</th>
                             <th class="p-3">Monto</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-retiros-historial" class="divide-y divide-gray-100 text-sm"></tbody>
+                    <tbody id="tabla-retiros-historial" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                 </table>
             </div>
         </div>
 
         <!-- SECCIÓN: CORTE DIARIO -->
-        <div id="tab-corte" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div id="tab-corte" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
             <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-gray-800">📊 Corte de Caja Actual</h2>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📊 Corte de Caja Actual</h2>
                 <button onclick="realizarCorteTurno()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition cursor-pointer">
                     🔒 Realizar Corte y Reiniciar Turno
                 </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p class="text-xs text-blue-600 font-medium">Ventas Totales</p>
-                    <p id="corte-total-ventas" class="text-2xl font-bold text-blue-800">$0.00</p>
+                <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Ventas Totales</p>
+                    <p id="corte-total-ventas" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
                 </div>
-                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <p class="text-xs text-red-600 font-medium">Retiros / Gastos</p>
-                    <p id="corte-total-retiros" class="text-2xl font-bold text-red-800">$0.00</p>
+                <div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
+                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Retiros / Gastos</p>
+                    <p id="corte-total-retiros" class="text-2xl font-bold text-red-800 dark:text-red-200">$0.00</p>
                 </div>
-                <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                    <p class="text-xs text-purple-600 font-medium">Promedio de Venta</p>
-                    <p id="corte-promedio-venta" class="text-2xl font-bold text-purple-800">$0.00</p>
+                <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Promedio de Venta</p>
+                    <p id="corte-promedio-venta" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
                 </div>
-                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                    <p class="text-xs text-emerald-600 font-medium">Efectivo en Caja</p>
-                    <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800">$0.00</p>
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Efectivo en Caja</p>
+                    <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 mb-2">Resumen de Artículos Vendidos en el Turno</h3>
-            <div class="overflow-x-auto border rounded-xl mb-6 max-h-60">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Resumen de Artículos Vendidos en el Turno</h3>
+            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl mb-6 max-h-60">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Producto</th>
                             <th class="p-3 text-center">Cantidad Vendida</th>
                             <th class="p-3 text-right">Total Recaudado</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-resumen-articulos" class="divide-y divide-gray-100 text-sm"></tbody>
+                    <tbody id="tabla-resumen-articulos" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                 </table>
             </div>
 
-            <h3 class="font-semibold text-gray-700 mb-2">Historial de Cortes Realizados Hoy</h3>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Historial de Cortes Realizados Hoy</h3>
             <div id="historial-cortes-container" class="space-y-3">
-                <p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
         </div>
     </div>
@@ -214,10 +222,39 @@
         let retirosActivos = [];
         let cortesRealizados = [];
 
+        // Inicializar Tema
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const icono = document.getElementById('icono-tema');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                if(icono) icono.innerText = '☀️';
+            } else {
+                document.documentElement.classList.remove('dark');
+                if(icono) icono.innerText = '🌙';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icono = document.getElementById('icono-tema');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                icono.innerText = '🌙';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                icono.innerText = '☀️';
+            }
+        }
+
+        initTheme();
+
         function cambiarTab(tab) {
             ['ventas', 'inventario', 'retiros', 'corte'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`btn-tab-${t}`).className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition";
+                document.getElementById(`btn-tab-${t}`).className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
             document.getElementById(`btn-tab-${tab}`).className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
@@ -262,13 +299,13 @@
 
             lista1.forEach(p => {
                 tbody1.innerHTML += `
-                    <tr class="border-b border-gray-50 hover:bg-gray-50">
-                        <td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td>
-                        <td class="p-2.5 font-medium text-gray-800">${p.nombre}</td>
-                        <td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="p-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
                         <td class="p-2.5 text-center">
-                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
+                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
                         </td>
                     </tr>
                 `;
@@ -276,13 +313,13 @@
 
             lista2.forEach(p => {
                 tbody2.innerHTML += `
-                    <tr class="border-b border-gray-50 hover:bg-gray-50">
-                        <td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td>
-                        <td class="p-2.5 font-medium text-gray-800">${p.nombre}</td>
-                        <td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="p-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
                         <td class="p-2.5 text-center">
-                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
+                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
                         </td>
                     </tr>
                 `;
@@ -318,7 +355,7 @@
         function renderCarrito() {
             const contenedor = document.getElementById('lista-carrito');
             if (carrito.length === 0) {
-                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>`;
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">El carrito está vacío</p>`;
                 document.getElementById('total-venta').innerText = "$0.00";
                 return;
             }
@@ -329,13 +366,13 @@
                 let subtotal = item.precio * item.cantidad;
                 total += subtotal;
                 contenedor.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg text-sm">
+                    <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm border dark:border-gray-700">
                         <div>
-                            <p class="font-medium text-gray-800">${item.nombre}</p>
-                            <p class="text-xs text-gray-500">Cantidad: ${item.cantidad}</p>
+                            <p class="font-medium text-gray-800 dark:text-gray-200">${item.nombre}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Cantidad: ${item.cantidad}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="font-semibold text-gray-700">$${subtotal.toFixed(2)}</span>
+                            <span class="font-semibold text-gray-700 dark:text-gray-300">$${subtotal.toFixed(2)}</span>
                             <button onclick="quitarDelCarrito(${index})" class="text-red-500 hover:text-red-700 font-bold px-1 text-xs cursor-pointer">×</button>
                         </div>
                     </div>
@@ -416,16 +453,16 @@
         function renderRetiros() {
             const tbody = document.getElementById('tabla-retiros-historial');
             if (retirosActivos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">No hay retiros en este turno</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400 dark:text-gray-500">No hay retiros en este turno</td></tr>`;
                 return;
             }
             tbody.innerHTML = "";
             retirosActivos.slice().reverse().forEach(r => {
                 tbody.innerHTML += `
-                    <tr class="border-b border-gray-50 text-sm">
-                        <td class="p-3 text-gray-500">${r.hora}</td>
-                        <td class="p-3 text-gray-800">${r.motivo}</td>
-                        <td class="p-3 font-semibold text-red-600">-$${r.monto.toFixed(2)}</td>
+                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
+                        <td class="p-3 text-gray-500 dark:text-gray-400">${r.hora}</td>
+                        <td class="p-3 text-gray-800 dark:text-gray-200">${r.motivo}</td>
+                        <td class="p-3 font-semibold text-red-600 dark:text-red-400">-$${r.monto.toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -436,13 +473,13 @@
             tbody.innerHTML = "";
             inventario.forEach(p => {
                 tbody.innerHTML += `
-                    <tr class="border-b border-gray-50 hover:bg-gray-50">
-                        <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
-                        <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
-                        <td class="p-3 text-gray-600">$${p.precio.toFixed(2)}</td>
-                        <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">${p.stock} un.</span></td>
+                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="p-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="p-3 text-gray-600 dark:text-gray-300">$${p.precio.toFixed(2)}</td>
+                        <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-xs font-medium">${p.stock} un.</span></td>
                         <td class="p-3 text-center">
-                            <input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 rounded-lg text-center text-sm focus:outline-emerald-500 bg-emerald-50/50">
+                            <input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 dark:border-emerald-600 rounded-lg text-center text-sm focus:outline-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-gray-800 dark:text-gray-100">
                         </td>
                     </tr>
                 `;
@@ -569,30 +606,30 @@
 
             const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
             const resumen = calcularResumenArticulos(ventasActivas);
-            tbodyArticulos.innerHTML = resumen.length === 0 ? `<tr><td colspan="3" class="p-3 text-gray-400 text-center">Sin artículos vendidos en este turno</td></tr>` : "";
+            tbodyArticulos.innerHTML = resumen.length === 0 ? `<tr><td colspan="3" class="p-3 text-gray-400 dark:text-gray-500 text-center">Sin artículos vendidos en este turno</td></tr>` : "";
             resumen.forEach(item => {
                 tbodyArticulos.innerHTML += `
-                    <tr class="border-b text-sm">
-                        <td class="p-3 font-medium text-gray-800">${item.nombre}</td>
-                        <td class="p-3 text-center font-semibold text-blue-600">${item.cantidad} un.</td>
-                        <td class="p-3 text-right font-semibold text-emerald-600">$${item.total.toFixed(2)}</td>
+                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
+                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${item.nombre}</td>
+                        <td class="p-3 text-center font-semibold text-blue-600 dark:text-blue-400">${item.cantidad} un.</td>
+                        <td class="p-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${item.total.toFixed(2)}</td>
                     </tr>
                 `;
             });
 
             const histContainer = document.getElementById('historial-cortes-container');
             if (cortesRealizados.length === 0) {
-                histContainer.innerHTML = `<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;
+                histContainer.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>`;
             } else {
                 histContainer.innerHTML = "";
                 cortesRealizados.slice().reverse().forEach((corte, idx) => {
                     histContainer.innerHTML += `
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 flex justify-between items-center">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex justify-between items-center">
                             <div>
-                                <p class="font-bold text-gray-800">Corte #${cortesRealizados.length - idx} - <span class="text-sm text-gray-500">${corte.hora}</span></p>
-                                <p class="text-sm text-gray-600">Ventas: $${corte.totalVentas.toFixed(2)} | Retiros: $${corte.totalRetiros.toFixed(2)} | Neto: $${corte.efectivoNeto.toFixed(2)}</p>
+                                <p class="font-bold text-gray-800 dark:text-gray-100">Corte #${cortesRealizados.length - idx} - <span class="text-sm text-gray-500 dark:text-gray-400">${corte.hora}</span></p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300">Ventas: $${corte.totalVentas.toFixed(2)} | Retiros: $${corte.totalRetiros.toFixed(2)} | Neto: $${corte.efectivoNeto.toFixed(2)}</p>
                             </div>
-                            <button onclick="verReporteCorte(${cortesRealizados.length - 1 - idx})" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">Ver Reporte</button>
+                            <button onclick="verReporteCorte(${cortesRealizados.length - 1 - idx})" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">Ver Reporte</button>
                         </div>
                     `;
                 });
