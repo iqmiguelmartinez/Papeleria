@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punto de Venta - Papelería Pixel y Papel</title>
-    <!-- Agrega esta línea para el ícono de la pestaña -->
-    <link rel="icon" type="image/png" href="logo.jpeg">
-    
+    <title>Punto de Venta - Pixel y Papel</title>
+    <link rel="icon" type="image/jpeg" href="logo.jpeg">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <div class="max-w-7xl mx-auto p-4 md:p-6">
+    <!-- Contenedor principal ampliado para aprovechar mejor los espacios laterales -->
+    <div class="max-w-[95%] mx-auto p-4 md:p-6">
         <!-- Título y Logotipo -->
         <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <div class="flex items-center gap-4">
-                <!-- Imagen del logotipo -->
                 <img src="logo.jpeg" alt="Pixel y Papel" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">📚 Pixel y Papel</h1>
@@ -29,6 +27,7 @@
                 </button>
             </div>
         </header>
+
         <!-- Navegación por pestañas -->
         <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
@@ -37,26 +36,26 @@
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📊 Corte Diario</button>
         </div>
 
-        <!-- SECCIÓN: VENTAS -->
-        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Productos Disponibles (Ocupa 2 columnas y se expande en vertical) -->
-            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <!-- SECCIÓN: VENTAS (Diseño ampliado a 4 columnas: 3 para productos, 1 para ticket) -->
+        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Productos Disponibles (Ocupa 3 columnas) -->
+            <div class="lg:col-span-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
                     <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
                     
-                    <!-- Contenedor dividido en dos tablas lado a lado -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Contenedor dividido en dos tablas lado a lado con espacio amplio -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Tabla Izquierda -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
-                                        <th class="p-2">Código</th>
-                                        <th class="p-2">Producto</th>
-                                        <th class="p-2">Precio</th>
-                                        <th class="p-2">Stock</th>
-                                        <th class="p-2 text-center">Acción</th>
+                                        <th class="p-2.5">Código</th>
+                                        <th class="p-2.5">Producto</th>
+                                        <th class="p-2.5">Precio</th>
+                                        <th class="p-2.5">Stock</th>
+                                        <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 text-sm">
@@ -69,11 +68,11 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
-                                        <th class="p-2">Código</th>
-                                        <th class="p-2">Producto</th>
-                                        <th class="p-2">Precio</th>
-                                        <th class="p-2">Stock</th>
-                                        <th class="p-2 text-center">Acción</th>
+                                        <th class="p-2.5">Código</th>
+                                        <th class="p-2.5">Producto</th>
+                                        <th class="p-2.5">Precio</th>
+                                        <th class="p-2.5">Stock</th>
+                                        <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 text-sm">
@@ -85,11 +84,11 @@
                 </div>
             </div>
 
-            <!-- Carrito de Venta -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+            <!-- Carrito de Venta (Ocupa 1 columna) -->
+            <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Ticket Actual</h2>
-                    <div id="lista-carrito" class="space-y-3 max-h-96 overflow-y-auto mb-4 pr-1">
+                    <div id="lista-carrito" class="space-y-3 max-h-[500px] overflow-y-auto mb-4 pr-1">
                         <p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>
                     </div>
                 </div>
@@ -270,7 +269,6 @@
             }
         }
 
-        // Renderizado dividido en dos tablas automáticas
         function renderProductos(filtro = "") {
             const tbody1 = document.getElementById('tabla-productos-venta-1');
             const tbody2 = document.getElementById('tabla-productos-venta-2');
@@ -286,11 +284,11 @@
             lista1.forEach(p => {
                 tbody1.innerHTML += `
                     <tr class="border-b border-gray-50 hover:bg-gray-50">
-                        <td class="p-2 font-mono text-xs text-gray-500">${p.codigo}</td>
-                        <td class="p-2 font-medium text-gray-800">${p.nombre}</td>
-                        <td class="p-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
-                        <td class="p-2 text-center">
+                        <td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td>
+                        <td class="p-2.5 font-medium text-gray-800">${p.nombre}</td>
+                        <td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                        <td class="p-2.5 text-center">
                             <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
                         </td>
                     </tr>
@@ -300,11 +298,11 @@
             lista2.forEach(p => {
                 tbody2.innerHTML += `
                     <tr class="border-b border-gray-50 hover:bg-gray-50">
-                        <td class="p-2 font-mono text-xs text-gray-500">${p.codigo}</td>
-                        <td class="p-2 font-medium text-gray-800">${p.nombre}</td>
-                        <td class="p-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
-                        <td class="p-2 text-center">
+                        <td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td>
+                        <td class="p-2.5 font-medium text-gray-800">${p.nombre}</td>
+                        <td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">${p.stock} un.</span></td>
+                        <td class="p-2.5 text-center">
                             <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
                         </td>
                     </tr>
