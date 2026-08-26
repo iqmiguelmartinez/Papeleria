@@ -378,6 +378,24 @@
                 </div>
             </div>
 
+            <!-- Nuevas Métricas: Clientes y WhatsApp -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Clientes Únicos Registrados (Total)</p>
+                        <p id="ana-total-clientes" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+                    </div>
+                    <span class="text-3xl">👥</span>
+                </div>
+                <div class="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">Promedio de Venta (Con Ticket WhatsApp)</p>
+                        <p id="ana-promedio-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">$0.00</p>
+                    </div>
+                    <span class="text-3xl">📱</span>
+                </div>
+            </div>
+
             <!-- Gráficas Interactivas -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -394,14 +412,24 @@
                 </div>
             </div>
 
-            <!-- Horas Pico de Venta y Top Productos -->
+            <!-- Gráfica de Clientes Nuevos en el Tiempo y Horas Pico -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📈 Nuevos Clientes Registrados en el Tiempo (Por Mes)</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chartClientesMes"></canvas>
+                    </div>
+                </div>
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⏰ Horas de Mayor Venta (Horas Pico)</h3>
                     <div style="height: 280px; position: relative;">
                         <canvas id="chartHorasPico"></canvas>
                     </div>
                 </div>
+            </div>
+
+            <!-- Top Productos Más Vendidos y Ganancia -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top Productos Más Vendidos y Ganancia</h3>
                     <div class="overflow-x-auto max-h-[280px]">
@@ -418,25 +446,24 @@
                         </table>
                     </div>
                 </div>
-            </div>
 
-            <!-- Recomendación Inteligente de Compra -->
-            <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo y Sugerencia de Compra</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Productos que se están acabando o requieren reabastecimiento.</p>
-                <div class="overflow-x-auto max-h-60">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
-                                <th class="p-3">Código</th>
-                                <th class="p-3">Producto</th>
-                                <th class="p-3 text-center">Stock Actual</th>
-                                <th class="p-3 text-center">Unid. Vendidas (Hist.)</th>
-                                <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerencia de Compra</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
-                    </table>
+                <!-- Recomendación Inteligente de Compra -->
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo y Sugerencia de Compra</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Productos que se están acabando o requieren reabastecimiento.</p>
+                    <div class="overflow-x-auto max-h-[220px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                                    <th class="p-3">Código</th>
+                                    <th class="p-3">Producto</th>
+                                    <th class="p-3 text-center">Stock Actual</th>
+                                    <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerido</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -482,6 +509,7 @@
         let chartSemanaInstance = null;
         let chartMesInstance = null;
         let chartHorasPicoInstance = null;
+        let chartClientesMesInstance = null;
 
         // Inicializar Tema
         function initTheme() {
@@ -985,7 +1013,13 @@
             let horasPicoMap = {};
             for(let h=8; h<=20; h++) horasPicoMap[h] = 0;
 
-            ventas.forEach(v => {
+            // Procesamiento de clientes y WhatsApp
+            let primerAparicionCliente = {};
+            let ventasOrdenadas = [...ventas].sort((a, b) => a.timestamp - b.timestamp);
+            let sumaVentasWa = 0;
+            let countVentasWa = 0;
+
+            ventasOrdenadas.forEach(v => {
                 let d = new Date(v.fecha);
                 let diaSemana = d.getDay(); 
                 let nombresDias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -1009,6 +1043,19 @@
                     horasPicoMap[hora] = (horasPicoMap[hora] || 0) + v.total;
                 }
 
+                // Clientes y WhatsApp
+                let tel = v.telefono ? v.telefono.toString().trim() : "";
+                if (tel && tel !== "N/A" && tel.replace(/\D/g, '').length >= 10) {
+                    if (!primerAparicionCliente[tel]) {
+                        primerAparicionCliente[tel] = mesAno;
+                    }
+                }
+
+                if (v.whatsappEnviado === "SI" || v.whatsappEnviado === "TRUE") {
+                    sumaVentasWa += v.total;
+                    countVentasWa += 1;
+                }
+
                 if (v.productos && Array.isArray(v.productos)) {
                     v.productos.forEach(p => {
                         let costoUnitario = costoPorCodigo[p.codigo] !== undefined ? costoPorCodigo[p.codigo] : 0;
@@ -1017,7 +1064,6 @@
                         let gananciaItem = subtotalVenta - subtotalCosto;
 
                         gananciaTotalHistorica += gananciaItem;
-
                         unidadesVendidasPorProducto[p.codigo] = (unidadesVendidasPorProducto[p.codigo] || 0) + p.cantidad;
 
                         if (!topProductosMap[p.codigo]) {
@@ -1029,6 +1075,18 @@
                     });
                 }
             });
+
+            // Clientes nuevos por mes
+            let nuevosClientesPorMes = {};
+            Object.values(primerAparicionCliente).forEach(mes => {
+                nuevosClientesPorMes[mes] = (nuevosClientesPorMes[mes] || 0) + 1;
+            });
+
+            let totalClientesUnicos = Object.keys(primerAparicionCliente).length;
+            let promedioVentaWa = countVentasWa > 0 ? (sumaVentasWa / countVentasWa) : 0;
+
+            document.getElementById('ana-total-clientes').innerText = totalClientesUnicos;
+            document.getElementById('ana-promedio-wa').innerText = `$${promedioVentaWa.toFixed(2)}`;
 
             let roi = inversionTotal > 0 ? ((gananciaTotalHistorica / inversionTotal) * 100) : 0;
             let balanceNeto = gananciaTotalHistorica - inversionTotal;
@@ -1071,7 +1129,6 @@
                         <td class="p-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
                         <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
                         <td class="p-3 text-center">${badgeStock}</td>
-                        <td class="p-3 text-center text-blue-600 dark:text-blue-400 font-semibold">${p.vendidos} un.</td>
                         <td class="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400">${p.sugerido > 0 ? '+' + p.sugerido + ' un.' : 'Suficiente'}</td>
                     </tr>
                 `;
@@ -1079,6 +1136,7 @@
 
             renderGraficaSemana(ventasPorDiaSemana);
             renderGraficaMes(ventasPorMesObj);
+            renderGraficaClientesMes(nuevosClientesPorMes);
             renderGraficaHorasPico(horasPicoMap);
         }
 
@@ -1111,6 +1169,21 @@
                     ]
                 },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+            });
+        }
+
+        function renderGraficaClientesMes(datosClientesMes) {
+            const ctx = document.getElementById('chartClientesMes').getContext('2d');
+            if (chartClientesMesInstance) chartClientesMesInstance.destroy();
+            let mesesOrdenados = Object.keys(datosClientesMes).sort();
+            let valores = mesesOrdenados.map(m => datosClientesMes[m]);
+            chartClientesMesInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: mesesOrdenados.length > 0 ? mesesOrdenados : ['Sin datos'],
+                    datasets: [{ label: 'Nuevos Clientes', data: valores.length > 0 ? valores : [0], backgroundColor: 'rgba(79, 70, 229, 0.7)', borderColor: 'rgb(79, 70, 229)', borderWidth: 1, borderRadius: 6 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
             });
         }
 
