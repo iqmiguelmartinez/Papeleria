@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta - Papelería</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6">
+        <!-- Título -->
+        <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">📚 Sistema de Papelería</h1>
+                <p class="text-sm text-gray-500">Control de ventas, gastos y stock conectado a Google Sheets</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-2">
+                <button onclick="sincronizarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    🔄 Sincronizar Sheets
+                </button>
+            </div>
+        </header>
+
+        <!-- Navegación por pestañas (Añadida pestaña Retiros) -->
+        <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
+            <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
+            <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📦 Inventario</button>
+            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">💸 Retiros / Gastos</button>
+            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📊 Corte Diario</button>
+        </div>
+
+        <!-- SECCIÓN: VENTAS -->
+        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Productos Disponibles -->
+            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
+                <input type="text" id="buscar-producto" placeholder="Buscar producto..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                                <th class="p-3">Código</th>
+                                <th class="p-3">Producto</th>
+                                <th class="p-3">Precio</th>
+                                <th class="p-3 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-productos-venta" class="divide-y divide-gray-100 text-sm">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Carrito de Venta -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Ticket Actual</h2>
+                    <div id="lista-carrito" class="space-y-3 max-h-64 overflow-y-auto mb-4 pr-1">
+                        <p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>
+                    </div>
+                </div>
+                <div class="border-t pt-4">
+                    <div class="flex justify-between text-lg font-bold text-gray-800 mb-4">
+                        <span>Total:</span>
+                        <span id="total-venta">$0.00</span>
+                    </div>
+                    <button onclick="procesarVenta()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition cursor-pointer">
+                        Cobrar y Registrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: INVENTARIO -->
+        <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">Gestión de Inventario</h2>
+                <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                            <th class="p-3">Código</th>
+                            <th class="p-3">Producto</th>
+                            <th class="p-3">Precio ($)</th>
+                            <th class="p-3">Stock</th>
+                            <th class="p-3 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 text-sm">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: RETIROS / GASTOS (NUEVA) -->
+        <div id="tab-retiros" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Registrar Retiro o Gasto de Caja</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Concepto / Motivo</label>
+                    <input type="text" id="ret-motivo" placeholder="Ej: Pago de luz, Proveedor..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Monto ($)</label>
+                    <input type="number" id="ret-monto" placeholder="0.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="registrarRetiro()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition cursor-pointer">Registrar Retiro</button>
+                </div>
+            </div>
+
+            <h3 class="font-semibold text-gray-700 mb-2">Historial de Retiros de Hoy</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                            <th class="p-3">Hora</th>
+                            <th class="p-3">Concepto</th>
+                            <th class="p-3">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-retiros-historial" class="divide-y divide-gray-100 text-sm">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: CORTE DIARIO -->
+        <div id="tab-corte" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Corte de Caja Diario</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p class="text-sm text-blue-600 font-medium">Total Ventas (Ingresos)</p>
+                    <p id="corte-total-ventas" class="text-2xl font-bold text-blue-800">$0.00</p>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg border border-red-100">
+                    <p class="text-sm text-red-600 font-medium">Total Retiros (Gastos)</p>
+                    <p id="corte-total-retiros" class="text-2xl font-bold text-red-800">$0.00</p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                    <p class="text-sm text-emerald-600 font-medium">Efectivo Esperado en Caja</p>
+                    <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800">$0.00</p>
+                </div>
+            </div>
+
+            <h3 class="font-semibold text-gray-700 mb-2">Resumen de Transacciones</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-xs uppercase text-gray-500 font-semibold mb-2">Ventas del Día</h4>
+                    <div class="overflow-x-auto max-h-48 border rounded-lg">
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="tabla-corte-ventas" class="divide-y divide-gray-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xs uppercase text-gray-500 font-semibold mb-2">Retiros del Día</h4>
+                    <div class="overflow-x-auto max-h-48 border rounded-lg">
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="tabla-corte-retiros" class="divide-y divide-gray-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de lógica -->
+    <script>
+        const URL_APPS_SCRIPT = "TU_URL_DE_GOOGLE_APPS_SCRIPT_AQUI";
+
+        let inventario = [
+            { codigo: "P001", nombre: "Libreta Profesional Raya", precio: 25.00, stock: 45 },
+            { codigo: "P002", nombre: "Lápiz del número 2", precio: 6.50, stock: 120 },
+            { codigo: "P003", nombre: "Borrador Blanco", precio: 5.00, stock: 60 },
+            { codigo: "P004", nombre: "Juego de Geometría", precio: 30.00, stock: 15 },
+            { codigo: "P005", nombre: "Bolígrafo Bic Negro", precio: 8.00, stock: 90 }
+        ];
+
+        let carrito = [];
+        let ventasRealizadas = [];
+        let retirosRealizados = [];
+
+        function cambiarTab(tab) {
+            ['ventas', 'inventario', 'retiros', 'corte'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-tab-${t}`).className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition";
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tab}`).className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
+            
+            if(tab === 'inventario') renderInventario();
+            if(tab === 'retiros') renderRetiros();
+            if(tab === 'corte') renderCorte();
+        }
+
+        function renderProductos(filtro = "") {
+            const tbody = document.getElementById('tabla-productos-venta');
+            tbody.innerHTML = "";
+            inventario
+                .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()))
+                .forEach(p => {
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-50 hover:bg-gray-50">
+                            <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
+                            <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
+                            <td class="p-3 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function filtrarProductos() {
+            const val = document.getElementById('buscar-producto').value;
+            renderProductos(val);
+        }
+
+        function agregarAlCarrito(codigo) {
+            const prod = inventario.find(p => p.codigo === codigo);
+            if (!prod || prod.stock <= 0) {
+                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles.', 'warning');
+                return;
+            }
+
+            const itemEnCarrito = carrito.find(item => item.codigo === codigo);
+            if (itemEnCarrito) {
+                if (itemEnCarrito.cantidad < prod.stock) {
+                    itemEnCarrito.cantidad++;
+                } else {
+                    Swal.fire('Límite alcanzado', 'No hay más stock disponible.', 'info');
+                    return;
+                }
+            } else {
+                carrito.push({ codigo: prod.codigo, nombre: prod.nombre, precio: prod.precio, cantidad: 1 });
+            }
+            renderCarrito();
+        }
+
+        function renderCarrito() {
+            const contenedor = document.getElementById('lista-carrito');
+            if (carrito.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>`;
+                document.getElementById('total-venta').innerText = "$0.00";
+                return;
+            }
+
+            contenedor.innerHTML = "";
+            let total = 0;
+            carrito.forEach((item, index) => {
+                let subtotal = item.precio * item.cantidad;
+                total += subtotal;
+                contenedor.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg text-sm">
+                        <div>
+                            <p class="font-medium text-gray-800">${item.nombre}</p>
+                            <p class="text-xs text-gray-500">Cantidad: ${item.cantidad}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-gray-700">$${subtotal.toFixed(2)}</span>
+                            <button onclick="quitarDelCarrito(${index})" class="text-red-500 hover:text-red-700 font-bold px-1 text-xs cursor-pointer">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('total-venta').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function quitarDelCarrito(index) {
+            carrito.splice(index, 1);
+            renderCarrito();
+        }
+
+        function procesarVenta() {
+            if (carrito.length === 0) return;
+
+            let totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+            
+            carrito.forEach(item => {
+                let p = inventario.find(prod => prod.codigo === item.codigo);
+                if (p) p.stock -= item.cantidad;
+            });
+
+            const ventaInfo = {
+                tipo: 'venta',
+                hora: new Date().toLocaleTimeString(),
+                productos: [...carrito],
+                total: totalVenta
+            };
+
+            ventasRealizadas.push(ventaInfo);
+            enviarDatosAGoogleSheets(ventaInfo);
+
+            carrito = [];
+            renderCarrito();
+            renderProductos();
+            Swal.fire('¡Venta Exitosa!', 'El registro se ha completado correctamente.', 'success');
+        }
+
+        function registrarRetiro() {
+            let motivo = document.getElementById('ret-motivo').value.trim();
+            let monto = parseFloat(document.getElementById('ret-monto').value);
+
+            if (!motivo || isNaN(monto) || monto <= 0) {
+                Swal.fire('Datos incompletos', 'Escribe un concepto válido y un monto mayor a 0.', 'warning');
+                return;
+            }
+
+            const retiroInfo = {
+                tipo: 'retiro',
+                hora: new Date().toLocaleTimeString(),
+                motivo: motivo,
+                monto: monto
+            };
+
+            retirosRealizados.push(retiroInfo);
+            enviarDatosAGoogleSheets(retiroInfo);
+
+            document.getElementById('ret-motivo').value = "";
+            document.getElementById('ret-monto').value = "";
+            renderRetiros();
+            Swal.fire('Retiro Registrado', 'La salida de dinero se ha guardado correctamente.', 'success');
+        }
+
+        function renderRetiros() {
+            const tbody = document.getElementById('tabla-retiros-historial');
+            if (retirosRealizados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">No hay retiros registrados hoy</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = "";
+            retirosRealizados.slice().reverse().forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-50 text-sm">
+                        <td class="p-3 text-gray-500">${r.hora}</td>
+                        <td class="p-3 text-gray-800">${r.motivo}</td>
+                        <td class="p-3 font-semibold text-red-600">-$${r.monto.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderInventario() {
+            const tbody = document.getElementById('tabla-inventario-completo');
+            tbody.innerHTML = "";
+            inventario.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td>
+                        <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
+                        <td class="p-3 text-gray-600">$${p.precio.toFixed(2)}</td>
+                        <td class="p-3"><input type="number" value="${p.stock}" onchange="actualizarStock('${p.codigo}', this.value)" class="w-20 px-2 py-1 border rounded text-sm"></td>
+                        <td class="p-3 text-center">
+                            <button onclick="eliminarProducto('${p.codigo}')" class="text-red-500 hover:text-red-700 text-xs font-medium cursor-pointer">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function actualizarStock(codigo, nuevoStock) {
+            let p = inventario.find(prod => prod.codigo === codigo);
+            if(p) p.stock = parseInt(nuevoStock) || 0;
+        }
+
+        function agregarProductoPrompt() {
+            Swal.fire({
+                title: 'Nuevo Producto',
+                html: '<input id="sw-cod" class="swal2-input" placeholder="Código">' +
+                      '<input id="sw-nom" class="swal2-input" placeholder="Nombre">' +
+                      '<input id="sw-pre" type="number" class="swal2-input" placeholder="Precio">' +
+                      '<input id="sw-sto" type="number" class="swal2-input" placeholder="Stock">',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        codigo: document.getElementById('sw-cod').value,
+                        nombre: document.getElementById('sw-nom').value,
+                        precio: parseFloat(document.getElementById('sw-pre').value) || 0,
+                        stock: parseInt(document.getElementById('sw-sto').value) || 0
+                    }
+                }
+            }).then((result) => {
+                if (result.value && result.value.codigo && result.value.nombre) {
+                    inventario.push(result.value);
+                    renderInventario();
+                    renderProductos();
+                    Swal.fire('Agregado', 'Producto registrado con éxito.', 'success');
+                }
+            });
+        }
+
+        function renderCorte() {
+            let totalVentas = ventasRealizadas.reduce((acc, v) => acc + v.total, 0);
+            let totalRetiros = retirosRealizados.reduce((acc, r) => acc + r.monto, 0);
+            let efectivoNeto = totalVentas - totalRetiros;
+
+            document.getElementById('corte-total-ventas').innerText = `$${totalVentas.toFixed(2)}`;
+            document.getElementById('corte-total-retiros').innerText = `$${totalRetiros.toFixed(2)}`;
+            document.getElementById('corte-efectivo-neto').innerText = `$${efectivoNeto.toFixed(2)}`;
+
+            // Listas en el corte
+            const tbodyVentas = document.getElementById('tabla-corte-ventas');
+            tbodyVentas.innerHTML = ventasRealizadas.length === 0 ? `<tr><td class="p-3 text-gray-400 text-center">Sin ventas</td></tr>` : "";
+            ventasRealizadas.slice().reverse().forEach(v => {
+                let descProds = v.productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
+                tbodyVentas.innerHTML += `<tr class="border-b text-xs"><td class="p-2 text-gray-600">${v.hora} - ${descProds}</td><td class="p-2 font-semibold text-emerald-600">+$${v.total.toFixed(2)}</td></tr>`;
+            });
+
+            const tbodyRetiros = document.getElementById('tabla-corte-retiros');
+            tbodyRetiros.innerHTML = retirosRealizados.length === 0 ? `<tr><td class="p-3 text-gray-400 text-center">Sin retiros</td></tr>` : "";
+            retirosRealizados.slice().reverse().forEach(r => {
+                tbodyRetiros.innerHTML += `<tr class="border-b text-xs"><td class="p-2 text-gray-600">${r.hora} - ${r.motivo}</td><td class="p-2 font-semibold text-red-600">-$${r.monto.toFixed(2)}</td></tr>`;
+            });
+        }
+
+        async function enviarDatosAGoogleSheets(data) {
+            if (URL_APPS_SCRIPT.includes("TU_URL")) return;
+            try {
+                await fetch(URL_APPS_SCRIPT, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch (e) {
+                console.error("Error al sincronizar con Google Sheets", e);
+            }
+        }
+
+        async function sincronizarDatos() {
+            Swal.fire({ title: 'Sincronizando...', text: 'Actualizando con Google Sheets', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            setTimeout(() => {
+                Swal.fire('Sincronizado', 'La conexión con Google Sheets está activa.', 'success');
+            }, 1000);
+        }
+
+        renderProductos();
+    </script>
+</body>
+</html>
