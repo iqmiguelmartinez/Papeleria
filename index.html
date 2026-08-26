@@ -200,7 +200,22 @@
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
         }
-
+        async function cargarInventarioDesdeSheets() {
+            if (URL_APPS_SCRIPT.includes("TU_URL")) return;
+            try {
+                let respuesta = await fetch(URL_APPS_SCRIPT + "?action=getInventario");
+                let datosSheets = await respuesta.json();
+                if (Array.isArray(datosSheets) && datosSheets.length > 0) {
+                    inventario = datosSheets;
+                    renderProductos();
+                    if(!document.getElementById('tab-inventario').classList.contains('hidden')) {
+                        renderInventario();
+                    }
+                }
+            } catch (e) {
+                console.error("Error al cargar inventario:", e);
+            }
+        }
         function renderProductos(filtro = "") {
             const tbody = document.getElementById('tabla-productos-venta');
             tbody.innerHTML = "";
@@ -444,6 +459,7 @@
         }
 
         renderProductos();
+        cargarInventarioDesdeSheets();
     </script>
 </body>
 </html>
