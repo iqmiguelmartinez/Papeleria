@@ -219,6 +219,9 @@
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
 
+        // CONTRASEÑA EXCLUSIVA PARA EL BOTÓN DE SURTIR INVENTARIO
+        const PASS_SURTIR = "surtir123"; // Puedes cambiar esta contraseña cuando gustes
+
         let inventario = [];
         let carrito = [];
         let ventasActivas = [];
@@ -570,7 +573,29 @@
             });
         }
 
+        // CONFIRMAR SURTIDO CON CONTRASEÑA EXCLUSIVA (Independiente del usuario logueado)
         async function confirmarSurtidoInventario() {
+            const { value: password } = await Swal.fire({
+                title: '🔒 Autorizar Surtido de Inventario',
+                input: 'password',
+                inputPlaceholder: 'Ingresa la contraseña exclusiva',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Autorizar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#059669'
+            });
+
+            if (password === undefined) return;
+
+            if (password !== PASS_SURTIR) {
+                Swal.fire('Error', 'Contraseña exclusiva incorrecta.', 'error');
+                return;
+            }
+
             let entradas = {};
             let hayCambios = false;
 
