@@ -220,7 +220,7 @@
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
 
         // CONTRASEÑA EXCLUSIVA PARA EL BOTÓN DE SURTIR INVENTARIO
-        const PASS_SURTIR = "surtir123"; // Puedes cambiar esta contraseña cuando gustes
+        const PASS_SURTIR = "surtir123";
 
         let inventario = [];
         let carrito = [];
@@ -573,7 +573,6 @@
             });
         }
 
-        // CONFIRMAR SURTIDO CON CONTRASEÑA EXCLUSIVA (Independiente del usuario logueado)
         async function confirmarSurtidoInventario() {
             const { value: password } = await Swal.fire({
                 title: '🔒 Autorizar Surtido de Inventario',
@@ -855,6 +854,9 @@
         async function enviarDatosAGoogleSheets(data) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
+                // Adjuntar automáticamente el usuario activo a cualquier envío de datos
+                data.usuario = sessionStorage.getItem('usuario_activo') || 'Desconocido';
+
                 await fetch(URL_APPS_SCRIPT, {
                     method: 'POST',
                     mode: 'no-cors',
