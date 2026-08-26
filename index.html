@@ -578,51 +578,51 @@
         function mostrarModalReporte(corte) {
             let articulosHtml = corte.articulos.map(item => `
                 <tr>
-                    <td class="p-2 border-b text-left text-xs">${item.nombre}</td>
-                    <td class="p-2 border-b text-center text-xs font-semibold">${item.cantidad} un.</td>
-                    <td class="p-2 border-b text-right text-xs font-semibold">$${item.total.toFixed(2)}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: left; font-size: 12px; color: #374151;">${item.nombre}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 12px; font-weight: 600; color: #2563eb;">${item.cantidad} un.</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: right; font-size: 12px; font-weight: 600; color: #059669;">$${item.total.toFixed(2)}</td>
                 </tr>
             `).join('');
 
             const htmlReporte = `
-                <div id="reporte-corte-imagen" class="bg-white p-6 rounded-2xl text-left text-gray-800 border border-gray-200">
-                    <div class="text-center mb-4 border-b pb-3">
-                        <h2 class="text-lg font-bold text-gray-900">📚 Pixel y Papel</h2>
-                        <p class="text-xs text-gray-500">Reporte de Corte de Caja</p>
-                        <p class="text-xs text-gray-400 mt-1">Hora del corte: ${corte.hora}</p>
+                <div id="reporte-corte-imagen" style="background-color: #ffffff; padding: 24px; border-radius: 16px; text-align: left; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
+                    <div style="text-align: center; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px;">
+                        <h2 style="font-size: 18px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
+                        <p style="font-size: 12px; color: #6b7280; margin: 0;">Reporte de Corte de Caja</p>
+                        <p style="font-size: 11px; color: #9ca3af; margin: 4px 0 0 0;">Hora del corte: ${corte.hora}</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
-                        <div class="bg-gray-50 p-2.5 rounded-lg border">
-                            <span class="text-gray-500 block">Ventas Totales:</span>
-                            <span class="font-bold text-blue-600 text-sm">$${corte.totalVentas.toFixed(2)}</span>
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; font-size: 12px;">
+                        <div style="background-color: #eff6ff; padding: 10px; border-radius: 8px; border: 1px solid #dbeafe;">
+                            <span style="color: #2563eb; display: block; font-weight: 500;">Ventas Totales:</span>
+                            <span style="font-weight: bold; color: #1e40af; font-size: 14px;">$${corte.totalVentas.toFixed(2)}</span>
                         </div>
-                        <div class="bg-gray-50 p-2.5 rounded-lg border">
-                            <span class="text-gray-500 block">Retiros / Gastos:</span>
-                            <span class="font-bold text-red-600 text-sm">-$${corte.totalRetiros.toFixed(2)}</span>
+                        <div style="background-color: #fef2f2; padding: 10px; border-radius: 8px; border: 1px solid #fee2e2;">
+                            <span style="color: #dc2626; display: block; font-weight: 500;">Retiros / Gastos:</span>
+                            <span style="font-weight: bold; color: #991b1b; font-size: 14px;">-$${corte.totalRetiros.toFixed(2)}</span>
                         </div>
-                        <div class="bg-gray-50 p-2.5 rounded-lg border">
-                            <span class="text-gray-500 block">Promedio de Venta:</span>
-                            <span class="font-bold text-purple-600 text-sm">$${corte.promedioVenta.toFixed(2)}</span>
+                        <div style="background-color: #f3e8ff; padding: 10px; border-radius: 8px; border: 1px solid #e9d5ff;">
+                            <span style="color: #9333ea; display: block; font-weight: 500;">Promedio de Venta:</span>
+                            <span style="font-weight: bold; color: #6b21a8; font-size: 14px;">$${corte.promedioVenta.toFixed(2)}</span>
                         </div>
-                        <div class="bg-gray-50 p-2.5 rounded-lg border">
-                            <span class="text-gray-500 block">Efectivo en Caja:</span>
-                            <span class="font-bold text-emerald-600 text-sm">$${corte.efectivoNeto.toFixed(2)}</span>
+                        <div style="background-color: #ecfdf5; padding: 10px; border-radius: 8px; border: 1px solid #d1fae5;">
+                            <span style="color: #059669; display: block; font-weight: 500;">Efectivo en Caja:</span>
+                            <span style="font-weight: bold; color: #065f46; font-size: 14px;">$${corte.efectivoNeto.toFixed(2)}</span>
                         </div>
                     </div>
-                    <p class="text-xs font-bold text-gray-700 mb-2">Artículos Vendidos:</p>
-                    <div class="max-h-40 overflow-y-auto border rounded-lg mb-4">
-                        <table class="w-full text-left border-collapse">
+                    <p style="font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 8px;">Artículos Vendidos:</p>
+                    <div style="max-height: 160px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+                        <table style="width: 100%; text-align: left; border-collapse: collapse;">
                             <thead>
-                                <tr class="bg-gray-100 text-[10px] uppercase text-gray-600">
-                                    <th class="p-2">Producto</th>
-                                    <th class="p-2 text-center">Cant.</th>
-                                    <th class="p-2 text-right">Total</th>
+                                <tr style="background-color: #f9fafb; font-size: 10px; text-transform: uppercase; color: #4b5563;">
+                                    <th style="padding: 8px;">Producto</th>
+                                    <th style="padding: 8px; text-align: center;">Cant.</th>
+                                    <th style="padding: 8px; text-align: right;">Total</th>
                                 </tr>
                             </thead>
-                            <tbody>${articulosHtml || '<tr><td colspan="3" class="p-2 text-center text-xs text-gray-400">Sin artículos</td></tr>'}</tbody>
+                            <tbody>${articulosHtml || '<tr><td colspan="3" style="padding: 12px; text-align: center; font-size: 12px; color: #9ca3af;">Sin artículos</td></tr>'}</tbody>
                         </table>
                     </div>
-                    <p class="text-[10px] text-center text-gray-400">Pixel y Papel - Sistema de Control Interno</p>
+                    <p style="font-size: 10px; text-align: center; color: #9ca3af; margin: 0;">Pixel y Papel - Sistema de Control Interno</p>
                 </div>
             `;
 
