@@ -1210,7 +1210,6 @@
         async function procesarVenta() {
             if (carrito.length === 0) return;
 
-            // Solicitar número de WhatsApp opcional antes de finalizar
             const { value: telefono } = await Swal.fire({
                 title: '📲 Enviar Ticket por WhatsApp',
                 input: 'text',
@@ -1219,13 +1218,9 @@
                 confirmButtonText: 'Cobrar y Enviar',
                 cancelButtonText: 'Omitir / Solo Cobrar',
                 confirmButtonColor: '#059669',
-                inputValidator: (value) => {
-                    // Si se ingresa valor, limpiar espacios o validar formato opcional
-                    return null; 
-                }
             });
 
-            if (telefono === undefined) return; // Si canceló por completo
+            if (telefono === undefined) return;
 
             let totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
             let productosCopia = [...carrito];
@@ -1240,14 +1235,19 @@
 
             if (telefono && telefono.trim().length >= 10) {
                 let fechaHora = new Date().toLocaleString('es-MX');
-                let mensaje = `📚 *PIXEL Y PAPEL* 📚\n*Ticket de Venta*\n📅 ${fechaHora}\n--------------------------\n`;
+                let mensaje = "*PIXEL Y PAPEL*\n" +
+                              "Ticket de Venta\n" +
+                              "Fecha: " + fechaHora + "\n" +
+                              "----------------------------------\n";
                 productosCopia.forEach(p => {
-                    mensaje += `▫️ ${p.cantidad}x ${p.nombre} ($${(p.precio * p.cantidad).toFixed(2)})\n`;
+                    mensaje += "- " + p.cantidad + "x " + p.nombre + " ($" + (p.precio * p.cantidad).toFixed(2) + ")\n";
                 });
-                mensaje += `--------------------------\n*TOTAL: $${totalVenta.toFixed(2)}*\n\n¡Gracias por tu compra! ✨`;
+                mensaje += "----------------------------------\n" +
+                           "*TOTAL: $" + totalVenta.toFixed(2) + "*\n\n" +
+                           "¡Gracias por tu compra!";
 
-                let numLimvio = telefono.replace(/\D/g, '');
-                let urlWa = `https://wa.me/${numLimvio}?text=${encodeURIComponent(mensaje)}`;
+                let numLimpio = telefono.replace(/\D/g, '');
+                let urlWa = "https://wa.me/" + numLimpio + "?text=" + encodeURIComponent(mensaje);
                 window.open(urlWa, '_blank');
             }
 
