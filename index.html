@@ -13,6 +13,8 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Chart.js para gráficas interactivas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200">
 
@@ -45,6 +47,7 @@
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
             <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
+            <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
 
         <!-- SECCIÓN: VENTAS -->
@@ -213,20 +216,86 @@
                 <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
         </div>
+
+        <!-- SECCIÓN: ANÁLISIS (NUEVA) -->
+        <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis de Ventas e Inventario Inteligente</h2>
+                <button onclick="cargarDatosAnalisis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔄 Actualizar Análisis</button>
+            </div>
+
+            <!-- Tarjetas de Métricas Clave -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Valor Total de Inventario</p>
+                    <p id="ana-valor-inventario" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Venta Promedio por Ticket</p>
+                    <p id="ana-promedio-ticket" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ventas Totales (Histórico)</p>
+                    <p id="ana-ventas-totales" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
+                </div>
+                <div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
+                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Productos en Stock Crítico</p>
+                    <p id="ana-stock-critico" class="text-2xl font-bold text-red-800 dark:text-red-200">0</p>
+                </div>
+            </div>
+
+            <!-- Gráficas Interactivas -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 Ventas por Semana (Lunes a Viernes)</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chartVentasSemana"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chartVentasMes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recomendación Inteligente de Compra -->
+            <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo y Sugerencia de Compra</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Calculado en base al stock actual y la rotación de ventas históricas.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                                <th class="p-3">Código</th>
+                                <th class="p-3">Producto</th>
+                                <th class="p-3 text-center">Stock Actual</th>
+                                <th class="p-3 text-center">Unid. Vendidas (Hist.)</th>
+                                <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerencia de Compra (Reabastecer)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script de lógica -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
-
-        // CONTRASEÑA EXCLUSIVA PARA EL BOTÓN DE SURTIR INVENTARIO
         const PASS_SURTIR = "surtir123";
 
+        let usuarioActual = null;
+        let tienePermisoAnalisis = false;
         let inventario = [];
         let carrito = [];
         let ventasActivas = [];
         let retirosActivos = [];
         let cortesRealizados = [];
+        let chartSemanaInstance = null;
+        let chartMesInstance = null;
 
         // Inicializar Tema
         function initTheme() {
@@ -260,8 +329,13 @@
         // CONTROL DE ACCESO MEDIANTE GOOGLE SHEETS
         async function verificarSesion() {
             let usuarioGuardado = sessionStorage.getItem('usuario_activo');
+            let permisoGuardado = sessionStorage.getItem('puede_analisis') === 'true';
+
             if (usuarioGuardado) {
-                document.getElementById('label-sesion').innerText = `Usuario: ${usuarioGuardado}`;
+                usuarioActual = usuarioGuardado;
+                tienePermisoAnalisis = permisoGuardado;
+                document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`;
+                actualizarVisibilidadTabs();
                 cargarDatosIniciales();
                 return;
             }
@@ -298,8 +372,14 @@
                 let usuarioEncontrado = usuariosValidos.find(u => u.usuario.toLowerCase() === formValues.usuario.toLowerCase() && u.password === formValues.password);
 
                 if (usuarioEncontrado) {
-                    sessionStorage.setItem('usuario_activo', usuarioEncontrado.usuario);
-                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioEncontrado.usuario}`;
+                    usuarioActual = usuarioEncontrado.usuario;
+                    tienePermisoAnalisis = usuarioEncontrado.puedeAnalisis;
+
+                    sessionStorage.setItem('usuario_activo', usuarioActual);
+                    sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
+
+                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`;
+                    actualizarVisibilidadTabs();
                     Swal.fire('¡Bienvenido!', `Has iniciado sesión correctamente.`, 'success');
                     cargarDatosIniciales();
                 } else {
@@ -324,17 +404,33 @@
             }
         }
 
+        function actualizarVisibilidadTabs() {
+            const btnAnalisis = document.getElementById('btn-tab-analisis');
+            if (tienePermisoAnalisis) {
+                btnAnalisis.classList.remove('hidden');
+            } else {
+                btnAnalisis.classList.add('hidden');
+            }
+        }
+
         function cerrarSesion() {
-            sessionStorage.removeItem('usuario_activo');
+            sessionStorage.clear();
             location.reload();
         }
 
         function cambiarTab(tab) {
-            ['ventas', 'inventario', 'retiros', 'corte'].forEach(t => {
+            if (tab === 'analisis' && !tienePermisoAnalisis) {
+                Swal.fire('Acceso Denegado', 'No tienes permisos para ver la sección de Análisis.', 'warning');
+                return;
+            }
+
+            ['ventas', 'inventario', 'retiros', 'corte', 'analisis'].forEach(t => {
                 const elTab = document.getElementById(`tab-${t}`);
                 const btnTab = document.getElementById(`btn-tab-${t}`);
                 if(elTab) elTab.classList.add('hidden');
-                if(btnTab) btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
+                if(btnTab && (t !== 'analisis' || tienePermisoAnalisis)) {
+                    btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
+                }
             });
             
             const targetTab = document.getElementById(`tab-${tab}`);
@@ -345,6 +441,7 @@
             if(tab === 'inventario') renderInventario();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
+            if(tab === 'analisis') cargarDatosAnalisis();
         }
 
         async function cargarDatosIniciales() {
@@ -367,6 +464,156 @@
             } catch (e) {
                 console.error("Error al sincronizar datos iniciales:", e);
             }
+        }
+
+        // CARGAR Y PROCESAR DATOS DE ANÁLISIS
+        async function cargarDatosAnalisis() {
+            Swal.fire({ title: 'Analizando datos...', text: 'Procesando historial y métricas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                let resp = await fetch(URL_APPS_SCRIPT + "?action=getDataAnalisis");
+                let data = await resp.json();
+                Swal.close();
+
+                procesarMetricasAnalisis(data.ventas, data.inventario);
+            } catch (err) {
+                Swal.close();
+                console.error(err);
+                Swal.fire('Error', 'No se pudieron cargar los datos de análisis.', 'error');
+            }
+        }
+
+        function procesarMetricasAnalisis(ventas, inventarioLista) {
+            // 1. Valor total de inventario
+            let valorInventario = inventarioLista.reduce((acc, p) => acc + (p.precio * p.stock), 0);
+            document.getElementById('ana-valor-inventario').innerText = `$${valorInventario.toFixed(2)}`;
+
+            // 2. Ventas totales y promedio por ticket
+            let ventasTotales = ventas.reduce((acc, v) => acc + v.total, 0);
+            let promedioTicket = ventas.length > 0 ? (ventasTotales / ventas.length) : 0;
+            document.getElementById('ana-ventas-totales').innerText = `$${ventasTotales.toFixed(2)}`;
+            document.getElementById('ana-promedio-ticket').innerText = `$${promedioTicket.toFixed(2)}`;
+
+            // 3. Ventas por semana (Lunes a Viernes) y por mes
+            let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
+            let ventasPorMes = {};
+            let unidadesVendidasPorProducto = {};
+
+            ventas.forEach(v => {
+                let d = new Date(v.fecha);
+                let diaSemana = d.getDay(); // 1: Lun, 2: Mar, 3: Mie, 4: Jue, 5: Vie
+                let nombresDias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+                let nombreDia = nombresDias[diaSemana];
+
+                if (ventasPorDiaSemana[nombreDia] !== undefined) {
+                    ventasPorDiaSemana[nombreDia] += v.total;
+                }
+
+                let mesAno = v.fecha.substring(0, 7); // "YYYY-MM"
+                ventasPorMes[mesAno] = (ventasPorMes[mesAno] || 0) + v.total;
+
+                if (v.productos && Array.isArray(v.productos)) {
+                    v.productos.forEach(p => {
+                        unidadesVendidasPorProducto[p.codigo] = (unidadesVendidasPorProducto[p.codigo] || 0) + p.cantidad;
+                    });
+                }
+            });
+
+            // 4. Stock crítico y sugerencia de compra
+            let stockCriticoCount = 0;
+            const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
+            tbodySugerencia.innerHTML = "";
+
+            let listaSugerencias = inventarioLista.map(p => {
+                let vendidos = unidadesVendidasPorProducto[p.codigo] || 0;
+                // Sugerencia de compra inteligente: si el stock es menor a 5 o menor a la mitad de lo vendido históricamente
+                let sugerido = p.stock <= 5 ? Math.max(10, vendidos - p.stock) : 0;
+                if (p.stock <= 5) stockCriticoCount++;
+                return { ...p, vendidos, sugerido };
+            }).sort((a, b) => a.stock - b.stock);
+
+            document.getElementById('ana-stock-critico').innerText = stockCriticoCount;
+
+            listaSugerencias.forEach(p => {
+                let badgeStock = p.stock <= 5 
+                    ? `<span class="px-2 py-0.5 bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 rounded font-bold">${p.stock} un. (Crítico)</span>` 
+                    : `<span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md">${p.stock} un.</span>`;
+
+                tbodySugerencia.innerHTML += `
+                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
+                        <td class="p-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="p-3 text-center">${badgeStock}</td>
+                        <td class="p-3 text-center text-blue-600 dark:text-blue-400 font-semibold">${p.vendidos} un.</td>
+                        <td class="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400">${p.sugerido > 0 ? '+' + p.sugerido + ' un.' : 'Stock suficiente'}</td>
+                    </tr>
+                `;
+            });
+
+            // Renderizar Gráficas con Chart.js
+            renderGraficaSemana(ventasPorDiaSemana);
+            renderGraficaMes(ventasPorMes);
+        }
+
+        function renderGraficaSemana(datosDias) {
+            const ctx = document.getElementById('chartVentasSemana').getContext('2d');
+            if (chartSemanaInstance) chartSemanaInstance.destroy();
+
+            chartSemanaInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(datosDias),
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: Object.values(datosDias),
+                        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                        borderColor: 'rgb(37, 99, 235)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderGraficaMes(datosMeses) {
+            const ctx = document.getElementById('chartVentasMes').getContext('2d');
+            if (chartMesInstance) chartMesInstance.destroy();
+
+            let mesesOrdenados = Object.keys(datosMeses).sort();
+            let valoresMeses = mesesOrdenados.map(m => datosMeses[m]);
+
+            chartMesInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: mesesOrdenados.length > 0 ? mesesOrdenados : ['Sin datos'],
+                    datasets: [{
+                        label: 'Ventas Mensuales ($)',
+                        data: valoresMeses.length > 0 ? valoresMeses : [0],
+                        borderColor: 'rgb(5, 150, 105)',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
 
         function renderProductos(filtro = "") {
@@ -854,9 +1101,7 @@
         async function enviarDatosAGoogleSheets(data) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
-                // Adjuntar automáticamente el usuario activo a cualquier envío de datos
                 data.usuario = sessionStorage.getItem('usuario_activo') || 'Desconocido';
-
                 await fetch(URL_APPS_SCRIPT, {
                     method: 'POST',
                     mode: 'no-cors',
