@@ -47,8 +47,8 @@
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
             <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📜 Ventas Pasadas</button>
             <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
-            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
-            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
+            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
+            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
             <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
@@ -118,9 +118,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Control de Inventario</h2>
                 <div class="flex gap-2 flex-wrap items-center">
-                    <!-- Botón para modificar productos (Visible solo si tiene permisos de análisis) -->
                     <button id="btn-modificar-productos" onclick="toggleModificarInventario()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✏️ Modificar Productos</button>
-                    <!-- Botones de Guardar / Cancelar en modo edición -->
                     <button id="btn-guardar-modificacion" onclick="guardarModificacionInventario()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">💾 Finalizado (Guardar)</button>
                     <button id="btn-cancelar-modificacion" onclick="cancelarModificacionInventario()" class="hidden bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">❌ Cancelar</button>
                     
@@ -636,7 +634,6 @@
                 }
             });
 
-            // Mostrar u ocultar botón de modificar inventario según permisos de análisis
             const btnModInv = document.getElementById('btn-modificar-productos');
             if (btnModInv) {
                 if (tienePermisoAnalisis) btnModInv.classList.remove('hidden');
@@ -656,7 +653,6 @@
                 return;
             }
 
-            // Si cambiamos de pestaña y estábamos editando inventario, cancelar edición
             if (tab !== 'inventario' && editandoInventario) {
                 cancelarModificacionInventario();
             }
