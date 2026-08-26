@@ -7,10 +7,10 @@
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <!-- Contenedor principal ampliado para aprovechar mejor los espacios laterales -->
     <div class="max-w-[95%] mx-auto p-4 md:p-6">
         <!-- Título y Logotipo -->
         <header class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -36,15 +36,13 @@
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100 cursor-pointer transition">📊 Corte Diario</button>
         </div>
 
-        <!-- SECCIÓN: VENTAS (Diseño ampliado a 4 columnas: 3 para productos, 1 para ticket) -->
+        <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- Productos Disponibles (Ocupa 3 columnas) -->
             <div class="lg:col-span-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
                     <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-blue-500">
                     
-                    <!-- Contenedor dividido en dos tablas lado a lado con espacio amplio -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Tabla Izquierda -->
                         <div class="overflow-x-auto">
@@ -58,9 +56,7 @@
                                         <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 text-sm">
-                                    <!-- Dinámico -->
-                                </tbody>
+                                <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 text-sm"></tbody>
                             </table>
                         </div>
                         <!-- Tabla Derecha -->
@@ -75,16 +71,14 @@
                                         <th class="p-2.5 text-center">Acción</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 text-sm">
-                                    <!-- Dinámico -->
-                                </tbody>
+                                <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 text-sm"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Carrito de Venta (Ocupa 1 columna) -->
+            <!-- Carrito -->
             <div class="lg:col-span-1 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 mb-4">Ticket Actual</h2>
@@ -121,9 +115,7 @@
                             <th class="p-3 text-center">Acción</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 text-sm">
-                        <!-- Dinámico -->
-                    </tbody>
+                    <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 text-sm"></tbody>
                 </table>
             </div>
         </div>
@@ -145,7 +137,7 @@
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 mb-2">Historial de Retiros de Hoy</h3>
+            <h3 class="font-semibold text-gray-700 mb-2">Historial del Turno Actual</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -155,49 +147,56 @@
                             <th class="p-3">Monto</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-retiros-historial" class="divide-y divide-gray-100 text-sm">
-                        <!-- Dinámico -->
-                    </tbody>
+                    <tbody id="tabla-retiros-historial" class="divide-y divide-gray-100 text-sm"></tbody>
                 </table>
             </div>
         </div>
 
         <!-- SECCIÓN: CORTE DIARIO -->
         <div id="tab-corte" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Corte de Caja Diario</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <p class="text-sm text-blue-600 font-medium">Total Ventas (Ingresos)</p>
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">📊 Corte de Caja Actual</h2>
+                <button onclick="realizarCorteTurno()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition cursor-pointer">
+                    🔒 Realizar Corte y Reiniciar Turno
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-xs text-blue-600 font-medium">Ventas Totales</p>
                     <p id="corte-total-ventas" class="text-2xl font-bold text-blue-800">$0.00</p>
                 </div>
-                <div class="bg-red-50 p-4 rounded-lg border border-red-100">
-                    <p class="text-sm text-red-600 font-medium">Total Retiros (Gastos)</p>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <p class="text-xs text-red-600 font-medium">Retiros / Gastos</p>
                     <p id="corte-total-retiros" class="text-2xl font-bold text-red-800">$0.00</p>
                 </div>
-                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
-                    <p class="text-sm text-emerald-600 font-medium">Efectivo Esperado en Caja</p>
+                <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                    <p class="text-xs text-purple-600 font-medium">Promedio de Venta</p>
+                    <p id="corte-promedio-venta" class="text-2xl font-bold text-purple-800">$0.00</p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <p class="text-xs text-emerald-600 font-medium">Efectivo en Caja</p>
                     <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800">$0.00</p>
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 mb-2">Resumen de Transacciones de Hoy</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h4 class="text-xs uppercase text-gray-500 font-semibold mb-2">Ventas del Día</h4>
-                    <div class="overflow-x-auto max-h-48 border rounded-lg">
-                        <table class="w-full text-left border-collapse">
-                            <tbody id="tabla-corte-ventas" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div>
-                    <h4 class="text-xs uppercase text-gray-500 font-semibold mb-2">Retiros del Día</h4>
-                    <div class="overflow-x-auto max-h-48 border rounded-lg">
-                        <table class="w-full text-left border-collapse">
-                            <tbody id="tabla-corte-retiros" class="divide-y divide-gray-100 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <h3 class="font-semibold text-gray-700 mb-2">Resumen de Artículos Vendidos en el Turno</h3>
+            <div class="overflow-x-auto border rounded-xl mb-6 max-h-60">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase border-b">
+                            <th class="p-3">Producto</th>
+                            <th class="p-3 text-center">Cantidad Vendida</th>
+                            <th class="p-3 text-right">Total Recaudado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-resumen-articulos" class="divide-y divide-gray-100 text-sm"></tbody>
+                </table>
+            </div>
+
+            <h3 class="font-semibold text-gray-700 mb-2">Historial de Cortes Realizados Hoy</h3>
+            <div id="historial-cortes-container" class="space-y-3">
+                <p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>
             </div>
         </div>
     </div>
@@ -208,8 +207,9 @@
 
         let inventario = [];
         let carrito = [];
-        let ventasRealizadas = [];
-        let retirosRealizados = [];
+        let ventasActivas = [];
+        let retirosActivos = [];
+        let cortesRealizados = [];
 
         function cambiarTab(tab) {
             ['ventas', 'inventario', 'retiros', 'corte'].forEach(t => {
@@ -221,51 +221,28 @@
             
             if(tab === 'inventario') renderInventario();
             if(tab === 'retiros') renderRetiros();
-            if(tab === 'corte') {
-                cargarTransaccionesHoy();
-            }
+            if(tab === 'corte') renderCorte();
         }
 
         async function cargarDatosIniciales() {
-            await cargarInventarioDesdeSheets();
-            await cargarTransaccionesHoy();
-        }
-
-        async function cargarInventarioDesdeSheets() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
                 let respuesta = await fetch(URL_APPS_SCRIPT + "?action=getInventario");
                 let datosSheets = await respuesta.json();
-                if (Array.isArray(datosSheets) && datosSheets.length > 0) {
-                    inventario = datosSheets;
-                    renderProductos();
-                    if(!document.getElementById('tab-inventario').classList.contains('hidden')) {
-                        renderInventario();
-                    }
-                }
-            } catch (e) {
-                console.error("Error al cargar inventario:", e);
-            }
-        }
+                if (Array.isArray(datosSheets)) inventario = datosSheets;
+                renderProductos();
 
-        async function cargarTransaccionesHoy() {
-            if (URL_APPS_SCRIPT.includes("TU_URL")) return;
-            try {
-                let respuesta = await fetch(URL_APPS_SCRIPT + "?action=getTransacciones");
-                let data = await respuesta.json();
-                if (data) {
-                    if (Array.isArray(data.ventas)) ventasRealizadas = data.ventas;
-                    if (Array.isArray(data.retiros)) retirosRealizados = data.retiros;
-                    
-                    if(!document.getElementById('tab-corte').classList.contains('hidden')) {
-                        renderCorte();
-                    }
-                    if(!document.getElementById('tab-retiros').classList.contains('hidden')) {
-                        renderRetiros();
-                    }
+                let respTurno = await fetch(URL_APPS_SCRIPT + "?action=getDataTurno");
+                let datosTurno = await respTurno.json();
+                if (datosTurno) {
+                    ventasActivas = datosTurno.ventasActivas || [];
+                    retirosActivos = datosTransaccion = datosTurno.retirosActivos || [];
+                    cortesRealizados = datosTurno.cortesRealizados || [];
                 }
+                renderRetiros();
+                renderCorte();
             } catch (e) {
-                console.error("Error al cargar transacciones:", e);
+                console.error("Error al sincronizar datos iniciales:", e);
             }
         }
 
@@ -276,7 +253,6 @@
             tbody2.innerHTML = "";
 
             const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
-            
             const mitad = Math.ceil(filtrados.length / 2);
             const lista1 = filtrados.slice(0, mitad);
             const lista2 = filtrados.slice(mitad);
@@ -381,21 +357,20 @@
             });
 
             let productosStr = carrito.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
-            const ventaInfoLocal = {
+            const ventaInfo = {
                 hora: new Date().toLocaleTimeString(),
+                productos: [...carrito],
                 descripcionProductos: productosStr,
                 total: totalVenta
             };
 
-            ventasRealizadas.push(ventaInfoLocal);
+            ventasActivas.push(ventaInfo);
 
-            const ventaInfoEnvio = {
+            await enviarDatosAGoogleSheets({
                 tipo: 'venta',
-                productos: [...carrito],
+                productos: carrito,
                 total: totalVenta
-            };
-
-            await enviarDatosAGoogleSheets(ventaInfoEnvio);
+            });
 
             carrito = [];
             renderCarrito();
@@ -415,21 +390,19 @@
                 return;
             }
 
-            const retiroInfoLocal = {
+            const retiroInfo = {
                 hora: new Date().toLocaleTimeString(),
                 motivo: motivo,
                 monto: monto
             };
 
-            retirosRealizados.push(retiroInfoLocal);
+            retirosActivos.push(retiroInfo);
 
-            const retiroInfoEnvio = {
+            await enviarDatosAGoogleSheets({
                 tipo: 'retiro',
                 motivo: motivo,
                 monto: monto
-            };
-
-            await enviarDatosAGoogleSheets(retiroInfoEnvio);
+            });
 
             document.getElementById('ret-motivo').value = "";
             document.getElementById('ret-monto').value = "";
@@ -439,12 +412,12 @@
 
         function renderRetiros() {
             const tbody = document.getElementById('tabla-retiros-historial');
-            if (retirosRealizados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">No hay retiros registrados hoy</td></tr>`;
+            if (retirosActivos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">No hay retiros en este turno</td></tr>`;
                 return;
             }
             tbody.innerHTML = "";
-            retirosRealizados.slice().reverse().forEach(r => {
+            retirosActivos.slice().reverse().forEach(r => {
                 tbody.innerHTML += `
                     <tr class="border-b border-gray-50 text-sm">
                         <td class="p-3 text-gray-500">${r.hora}</td>
@@ -497,26 +470,180 @@
             });
         }
 
+        function calcularResumenArticulos(ventas) {
+            let mapa = {};
+            ventas.forEach(v => {
+                if (v.productos && Array.isArray(v.productos)) {
+                    v.productos.forEach(p => {
+                        if (!mapa[p.codigo]) {
+                            mapa[p.codigo] = { nombre: p.nombre, cantidad: 0, total: 0 };
+                        }
+                        mapa[p.codigo].cantidad += p.cantidad;
+                        mapa[p.codigo].total += (p.precio * p.cantidad);
+                    });
+                }
+            });
+            return Object.values(mapa);
+        }
+
         function renderCorte() {
-            let totalVentas = ventasRealizadas.reduce((acc, v) => acc + v.total, 0);
-            let totalRetiros = retirosRealizados.reduce((acc, r) => acc + r.monto, 0);
+            let totalVentas = ventasActivas.reduce((acc, v) => acc + v.total, 0);
+            let totalRetiros = retirosActivos.reduce((acc, r) => acc + r.monto, 0);
             let efectivoNeto = totalVentas - totalRetiros;
+            let promedioVenta = ventasActivas.length > 0 ? (totalVentas / ventasActivas.length) : 0;
 
             document.getElementById('corte-total-ventas').innerText = `$${totalVentas.toFixed(2)}`;
             document.getElementById('corte-total-retiros').innerText = `$${totalRetiros.toFixed(2)}`;
+            document.getElementById('corte-promedio-venta').innerText = `$${promedioVenta.toFixed(2)}`;
             document.getElementById('corte-efectivo-neto').innerText = `$${efectivoNeto.toFixed(2)}`;
 
-            const tbodyVentas = document.getElementById('tabla-corte-ventas');
-            tbodyVentas.innerHTML = ventasRealizadas.length === 0 ? `<tr><td class="p-3 text-gray-400 text-center">Sin ventas hoy</td></tr>` : "";
-            ventasRealizadas.slice().reverse().forEach(v => {
-                let descProds = v.descripcionProductos || "";
-                tbodyVentas.innerHTML += `<tr class="border-b text-xs"><td class="p-2 text-gray-600">${v.hora} - ${descProds}</td><td class="p-2 font-semibold text-emerald-600">+$${v.total.toFixed(2)}</td></tr>`;
+            const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
+            const resumen = calcularResumenArticulos(ventasActivas);
+            tbodyArticulos.innerHTML = resumen.length === 0 ? `<tr><td colspan="3" class="p-3 text-gray-400 text-center">Sin artículos vendidos en este turno</td></tr>` : "";
+            resumen.forEach(item => {
+                tbodyArticulos.innerHTML += `
+                    <tr class="border-b text-sm">
+                        <td class="p-3 font-medium text-gray-800">${item.nombre}</td>
+                        <td class="p-3 text-center font-semibold text-blue-600">${item.cantidad} un.</td>
+                        <td class="p-3 text-right font-semibold text-emerald-600">$${item.total.toFixed(2)}</td>
+                    </tr>
+                `;
             });
 
-            const tbodyRetiros = document.getElementById('tabla-corte-retiros');
-            tbodyRetiros.innerHTML = retirosRealizados.length === 0 ? `<tr><td class="p-3 text-gray-400 text-center">Sin retiros hoy</td></tr>` : "";
-            retirosRealizados.slice().reverse().forEach(r => {
-                tbodyRetiros.innerHTML += `<tr class="border-b text-xs"><td class="p-2 text-gray-600">${r.hora} - ${r.motivo}</td><td class="p-2 font-semibold text-red-600">-$${r.monto.toFixed(2)}</td></tr>`;
+            const histContainer = document.getElementById('historial-cortes-container');
+            if (cortesRealizados.length === 0) {
+                histContainer.innerHTML = `<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;
+            } else {
+                histContainer.innerHTML = "";
+                cortesRealizados.slice().reverse().forEach((corte, idx) => {
+                    histContainer.innerHTML += `
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-gray-800">Corte #${cortesRealizados.length - idx} - <span class="text-sm text-gray-500">${corte.hora}</span></p>
+                                <p class="text-sm text-gray-600">Ventas: $${corte.totalVentas.toFixed(2)} | Retiros: $${corte.totalRetiros.toFixed(2)} | Neto: $${corte.efectivoNeto.toFixed(2)}</p>
+                            </div>
+                            <button onclick="verReporteCorte(${cortesRealizados.length - 1 - idx})" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">Ver Reporte</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function realizarCorteTurno() {
+            if (ventasActivas.length === 0 && retirosActivos.length === 0) {
+                Swal.fire('Sin movimientos', 'No hay ventas ni retiros registrados en este turno para cortar.', 'info');
+                return;
+            }
+
+            let totalVentas = ventasActivas.reduce((acc, v) => acc + v.total, 0);
+            let totalRetiros = retirosActivos.reduce((acc, r) => acc + r.monto, 0);
+            let efectivoNeto = totalVentas - totalRetiros;
+            let promedioVenta = ventasActivas.length > 0 ? (totalVentas / ventasActivas.length) : 0;
+            let resumenArticulos = calcularResumenArticulos(ventasActivas);
+            let horaActual = new Date().toLocaleTimeString();
+
+            const nuevoCorte = {
+                hora: horaActual,
+                totalVentas,
+                totalRetiros,
+                efectivoNeto,
+                promedioVenta,
+                ventas: [...ventasActivas],
+                retiros: [...retirosActivos],
+                articulos: resumenArticulos
+            };
+
+            // Enviar corte a Google Sheets para que quede guardado en la nube
+            await enviarDatosAGoogleSheets({
+                tipo: 'corte',
+                totalVentas: totalVentas,
+                totalRetiros: totalRetiros,
+                efectivoNeto: efectivoNeto,
+                promedioVenta: promedioVenta,
+                articulos: resumenArticulos
+            });
+
+            cortesRealizados.push(nuevoCorte);
+            ventasActivas = [];
+            retirosActivos = [];
+            
+            renderCorte();
+            renderRetiros();
+            mostrarModalReporte(nuevoCorte);
+        }
+
+        function verReporteCorte(index) {
+            mostrarModalReporte(cortesRealizados[index]);
+        }
+
+        function mostrarModalReporte(corte) {
+            let articulosHtml = corte.articulos.map(item => `
+                <tr>
+                    <td class="p-2 border-b text-left text-xs">${item.nombre}</td>
+                    <td class="p-2 border-b text-center text-xs font-semibold">${item.cantidad} un.</td>
+                    <td class="p-2 border-b text-right text-xs font-semibold">$${item.total.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const htmlReporte = `
+                <div id="reporte-corte-imagen" class="bg-white p-6 rounded-2xl text-left text-gray-800 border border-gray-200">
+                    <div class="text-center mb-4 border-b pb-3">
+                        <h2 class="text-lg font-bold text-gray-900">📚 Pixel y Papel</h2>
+                        <p class="text-xs text-gray-500">Reporte de Corte de Caja</p>
+                        <p class="text-xs text-gray-400 mt-1">Hora del corte: ${corte.hora}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                        <div class="bg-gray-50 p-2.5 rounded-lg border">
+                            <span class="text-gray-500 block">Ventas Totales:</span>
+                            <span class="font-bold text-blue-600 text-sm">$${corte.totalVentas.toFixed(2)}</span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-lg border">
+                            <span class="text-gray-500 block">Retiros / Gastos:</span>
+                            <span class="font-bold text-red-600 text-sm">-$${corte.totalRetiros.toFixed(2)}</span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-lg border">
+                            <span class="text-gray-500 block">Promedio de Venta:</span>
+                            <span class="font-bold text-purple-600 text-sm">$${corte.promedioVenta.toFixed(2)}</span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded-lg border">
+                            <span class="text-gray-500 block">Efectivo en Caja:</span>
+                            <span class="font-bold text-emerald-600 text-sm">$${corte.efectivoNeto.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <p class="text-xs font-bold text-gray-700 mb-2">Artículos Vendidos:</p>
+                    <div class="max-h-40 overflow-y-auto border rounded-lg mb-4">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 text-[10px] uppercase text-gray-600">
+                                    <th class="p-2">Producto</th>
+                                    <th class="p-2 text-center">Cant.</th>
+                                    <th class="p-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>${articulosHtml || '<tr><td colspan="3" class="p-2 text-center text-xs text-gray-400">Sin artículos</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-center text-gray-400">Pixel y Papel - Sistema de Control Interno</p>
+                </div>
+            `;
+
+            Swal.fire({
+                html: htmlReporte,
+                showCancelButton: true,
+                confirmButtonText: '📥 Descargar Imagen',
+                cancelButtonText: 'Cerrar',
+                confirmButtonColor: '#2563eb',
+                width: '500px'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const el = document.getElementById('reporte-corte-imagen');
+                    const canvas = await html2canvas(el, { scale: 2 });
+                    const link = document.createElement('a');
+                    link.download = `corte-pixel-papel-${corte.hora.replace(/:/g, '-')}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    Swal.fire('¡Descargado!', 'La imagen del corte se ha guardado correctamente.', 'success');
+                }
             });
         }
 
@@ -537,9 +664,10 @@
         async function sincronizarDatos() {
             Swal.fire({ title: 'Sincronizando...', text: 'Descargando datos de Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             await cargarDatosIniciales();
-            Swal.fire('¡Sincronizado!', 'El stock, precios y corte de hoy se han actualizado.', 'success');
+            Swal.fire('¡Sincronizado!', 'El stock, turnos y cortes se han actualizado desde Google Sheets.', 'success');
         }
 
+        // Cargar al iniciar la página
         cargarDatosIniciales();
     </script>
 </body>
