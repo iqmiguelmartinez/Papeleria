@@ -125,7 +125,7 @@
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Código</th>
                             <th class="p-3">Producto</th>
-                            <th class="p-3">Precio ($)</th>
+                            <th class="p-3">Precio Venta ($)</th>
                             <th class="p-3">Stock Restante</th>
                             <th class="p-3 text-center bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">Surtir Cantidad</th>
                         </tr>
@@ -218,7 +218,7 @@
         <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
         <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis de Ventas e Inventario Inteligente</h2>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis de Ventas, Ganancias e Inventario</h2>
                 <div class="flex gap-2">
                     <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
                         📥 Descargar Lista para Surtir
@@ -230,21 +230,25 @@
             </div>
 
             <!-- Tarjetas de Métricas Clave -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Valor Total de Inventario</p>
-                    <p id="ana-valor-inventario" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Ganancia Total (Histórica)</p>
+                    <p id="ana-ganancia-total" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
                 <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
-                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Venta Promedio por Ticket</p>
-                    <p id="ana-promedio-ticket" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Valor Inv. (Costo)</p>
+                    <p id="ana-valor-inventario" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
                 </div>
                 <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
-                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ventas Totales (Histórico)</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ventas Totales</p>
                     <p id="ana-ventas-totales" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
                 </div>
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
+                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Ticket Promedio</p>
+                    <p id="ana-promedio-ticket" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+                </div>
                 <div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
-                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Productos en Stock Crítico / Faltantes</p>
+                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Stock Crítico / Faltantes</p>
                     <p id="ana-stock-critico" class="text-2xl font-bold text-red-800 dark:text-red-200">0</p>
                 </div>
             </div>
@@ -274,7 +278,7 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top 5 Productos Más Vendidos</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top Productos Más Vendidos y Ganancia</h3>
                     <div class="overflow-x-auto max-h-[280px]">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -282,6 +286,7 @@
                                     <th class="p-2.5">Producto</th>
                                     <th class="p-2.5 text-center">Unidades</th>
                                     <th class="p-2.5 text-right">Recaudado</th>
+                                    <th class="p-2.5 text-right text-emerald-600 dark:text-emerald-400">Ganancia</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-top-productos" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
@@ -524,7 +529,7 @@
 
         // CARGAR Y PROCESAR DATOS DE ANÁLISIS
         async function cargarDatosAnalisis() {
-            Swal.fire({ title: 'Analizando datos...', text: 'Procesando historial y métricas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'Analizando datos...', text: 'Procesando historial y ganancias...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 let resp = await fetch(URL_APPS_SCRIPT + "?action=getDataAnalisis");
                 let data = await resp.json();
@@ -540,25 +545,29 @@
         }
 
         function procesarMetricasAnalisis(ventas, inventarioLista) {
-            // 1. Valor total de inventario
-            let valorInventario = inventarioLista.reduce((acc, p) => acc + (p.precio * p.stock), 0);
-            document.getElementById('ana-valor-inventario').innerText = `$${valorInventario.toFixed(2)}`;
+            // Mapeo rápido de costos unitarios por código
+            let costoPorCodigo = {};
+            inventarioLista.forEach(p => {
+                costoPorCodigo[p.codigo] = p.costo || 0;
+            });
 
-            // 2. Ventas totales y promedio por ticket
-            let ventasTotales = ventas.reduce((acc, v) => acc + v.total, 0);
-            let promedioTicket = ventas.length > 0 ? (ventasTotales / ventas.length) : 0;
-            document.getElementById('ana-ventas-totales').innerText = `$${ventasTotales.toFixed(2)}`;
-            document.getElementById('ana-promedio-ticket').innerText = `$${promedioTicket.toFixed(2)}`;
+            // 1. Valor total de inventario (basado en costo)
+            let valorInventarioCosto = inventarioLista.reduce((acc, p) => acc + (p.costo * p.stock), 0);
+            document.getElementById('ana-valor-inventario').innerText = `$${valorInventarioCosto.toFixed(2)}`;
 
-            // 3. Agrupaciones de análisis
+            // 2. Ventas totales y ganancia total histórica
+            let ventasTotales = 0;
+            let gananciaTotalHistorica = 0;
             let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
-            let ventasPorMesObj = {}; // { "2026-08": { total: X, tickets: Y } }
+            let ventasPorMesObj = {}; 
             let unidadesVendidasPorProducto = {};
             let topProductosMap = {};
             let horasPicoMap = {};
-            for(let h=8; h<=20; h++) horasPicoMap[h] = 0; // Horas operativas habituales (8am a 8pm)
+            for(let h=8; h<=20; h++) horasPicoMap[h] = 0;
 
             ventas.forEach(v => {
+                ventasTotales += v.total;
+
                 let d = new Date(v.fecha);
                 let diaSemana = d.getDay(); 
                 let nombresDias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -568,7 +577,7 @@
                     ventasPorDiaSemana[nombreDia] += v.total;
                 }
 
-                let mesAno = v.fecha.substring(0, 7); // "YYYY-MM"
+                let mesAno = v.fecha.substring(0, 7); 
                 if (!ventasPorMesObj[mesAno]) {
                     ventasPorMesObj[mesAno] = { total: 0, tickets: 0 };
                 }
@@ -584,32 +593,46 @@
 
                 if (v.productos && Array.isArray(v.productos)) {
                     v.productos.forEach(p => {
+                        let costoUnitario = costoPorCodigo[p.codigo] !== undefined ? costoPorCodigo[p.codigo] : 0;
+                        let subtotalVenta = p.precio * p.cantidad;
+                        let subtotalCosto = costoUnitario * p.cantidad;
+                        let gananciaItem = subtotalVenta - subtotalCosto;
+
+                        gananciaTotalHistorica += gananciaItem;
+
                         unidadesVendidasPorProducto[p.codigo] = (unidadesVendidasPorProducto[p.codigo] || 0) + p.cantidad;
 
                         if (!topProductosMap[p.codigo]) {
-                            topProductosMap[p.codigo] = { nombre: p.nombre, cantidad: 0, recaudado: 0 };
+                            topProductosMap[p.codigo] = { nombre: p.nombre, cantidad: 0, recaudado: 0, ganancia: 0 };
                         }
                         topProductosMap[p.codigo].cantidad += p.cantidad;
-                        topProductosMap[p.codigo].recaudado += (p.precio * p.cantidad);
+                        topProductosMap[p.codigo].recaudado += subtotalVenta;
+                        topProductosMap[p.codigo].ganancia += gananciaItem;
                     });
                 }
             });
 
-            // 4. Renderizar Top 5 Productos
-            let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.cantidad - a.cantidad).slice(0, 5);
+            let promedioTicket = ventas.length > 0 ? (ventasTotales / ventas.length) : 0;
+            document.getElementById('ana-ganancia-total').innerText = `$${gananciaTotalHistorica.toFixed(2)}`;
+            document.getElementById('ana-ventas-totales').innerText = `$${ventasTotales.toFixed(2)}`;
+            document.getElementById('ana-promedio-ticket').innerText = `$${promedioTicket.toFixed(2)}`;
+
+            // 3. Renderizar Top 5 Productos con su respectiva ganancia
+            let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.ganancia - a.ganancia).slice(0, 5);
             const tbodyTop = document.getElementById('tabla-top-productos');
-            tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="3" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
+            tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
             topProductosArray.forEach(tp => {
                 tbodyTop.innerHTML += `
                     <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
                         <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${tp.nombre}</td>
                         <td class="p-2.5 text-center font-bold text-blue-600 dark:text-blue-400">${tp.cantidad} un.</td>
-                        <td class="p-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${tp.recaudado.toFixed(2)}</td>
+                        <td class="p-2.5 text-right font-semibold text-gray-600 dark:text-gray-300">$${tp.recaudado.toFixed(2)}</td>
+                        <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">$${tp.ganancia.toFixed(2)}</td>
                     </tr>
                 `;
             });
 
-            // 5. Stock crítico y sugerencia de compra
+            // 4. Stock crítico y sugerencia de compra
             let stockCriticoCount = 0;
             const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
             tbodySugerencia.innerHTML = "";
@@ -639,7 +662,7 @@
                 `;
             });
 
-            // 6. Renderizar Gráficas con Chart.js
+            // 5. Renderizar Gráficas
             renderGraficaSemana(ventasPorDiaSemana);
             renderGraficaMes(ventasPorMesObj);
             renderGraficaHorasPico(horasPicoMap);
@@ -681,7 +704,7 @@
             let mesesOrdenados = Object.keys(datosMesesObj).sort();
             let totalesMes = mesesOrdenados.map(m => datosMesesObj[m].total);
             let promedioVentaMes = mesesOrdenados.map(m => datosMesesObj[m].tickets > 0 ? datosMesesObj[m].total / datosMesesObj[m].tickets : 0);
-            let promedioSemanalTicket = mesesOrdenados.map(m => (datosMesesObj[m].tickets / 4.33).toFixed(1)); // Promedio semanal de tickets
+            let promedioSemanalTicket = mesesOrdenados.map(m => (datosMesesObj[m].tickets / 4.33).toFixed(1));
 
             chartMesInstance = new Chart(ctx, {
                 type: 'line',
@@ -761,7 +784,6 @@
             });
         }
 
-        // DESCARGAR IMAGEN CON LISTA DE FALTANTES PARA SURTIR
         async function descargarListaSurtidoImagen() {
             if (!cacheUltimoAnalisis || !cacheUltimoAnalisis.inventario) {
                 Swal.fire('Sin datos', 'Actualiza primero la sección de análisis.', 'warning');
@@ -774,7 +796,6 @@
             let tbodyPrint = document.getElementById('print-tbody-surtido');
             tbodyPrint.innerHTML = "";
 
-            // Filtrar productos con stock crítico (<= 5 o 0)
             let criticos = cacheUltimoAnalisis.inventario.filter(p => p.stock <= 5);
 
             if (criticos.length === 0) {
@@ -1071,7 +1092,8 @@
                 title: 'Nuevo Producto',
                 html: '<input id="sw-cod" class="swal2-input" placeholder="Código">' +
                       '<input id="sw-nom" class="swal2-input" placeholder="Nombre">' +
-                      '<input id="sw-pre" type="number" class="swal2-input" placeholder="Precio">' +
+                      '<input id="sw-pre" type="number" class="swal2-input" placeholder="Precio de Venta">' +
+                      '<input id="sw-cos" type="number" class="swal2-input" placeholder="Costo Unitario">' +
                       '<input id="sw-sto" type="number" class="swal2-input" placeholder="Stock Inicial">',
                 focusConfirm: false,
                 preConfirm: () => {
@@ -1079,6 +1101,7 @@
                         codigo: document.getElementById('sw-cod').value.trim(),
                         nombre: document.getElementById('sw-nom').value.trim(),
                         precio: parseFloat(document.getElementById('sw-pre').value) || 0,
+                        costo: parseFloat(document.getElementById('sw-cos').value) || 0,
                         stock: parseInt(document.getElementById('sw-sto').value) || 0
                     }
                 }
@@ -1096,6 +1119,7 @@
                     codigo: formValues.codigo,
                     nombre: formValues.nombre,
                     precio: formValues.precio,
+                    costo: formValues.costo,
                     stock: formValues.stock
                 });
 
