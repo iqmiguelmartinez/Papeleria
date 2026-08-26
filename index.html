@@ -236,7 +236,7 @@
                 let datosTurno = await respTurno.json();
                 if (datosTurno) {
                     ventasActivas = datosTurno.ventasActivas || [];
-                    retirosActivos = datosTransaccion = datosTurno.retirosActivos || [];
+                    retirosActivos = datosTurno.retirosActivos || [];
                     cortesRealizados = datosTurno.cortesRealizados || [];
                 }
                 renderRetiros();
@@ -553,7 +553,6 @@
                 articulos: resumenArticulos
             };
 
-            // Enviar corte a Google Sheets para que quede guardado en la nube
             await enviarDatosAGoogleSheets({
                 tipo: 'corte',
                 totalVentas: totalVentas,
@@ -633,15 +632,24 @@
                 confirmButtonText: '📥 Descargar Imagen',
                 cancelButtonText: 'Cerrar',
                 confirmButtonColor: '#2563eb',
-                width: '500px'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
+                width: '500px',
+                preConfirm: async () => {
                     const el = document.getElementById('reporte-corte-imagen');
-                    const canvas = await html2canvas(el, { scale: 2 });
-                    const link = document.createElement('a');
-                    link.download = `corte-pixel-papel-${corte.hora.replace(/:/g, '-')}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
+                    if (!el) return false;
+                    try {
+                        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+                        const link = document.createElement('a');
+                        link.download = `corte-pixel-papel-${corte.hora.replace(/:/g, '-')}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        return true;
+                    } catch(err) {
+                        Swal.showValidationMessage(`Error al generar imagen: ${err}`);
+                        return false;
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
                     Swal.fire('¡Descargado!', 'La imagen del corte se ha guardado correctamente.', 'success');
                 }
             });
