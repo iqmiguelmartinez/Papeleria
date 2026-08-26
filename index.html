@@ -47,8 +47,8 @@
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
             <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📜 Ventas Pasadas</button>
             <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
-            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
-            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
+            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
+            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
             <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
@@ -389,8 +389,8 @@
                 </div>
                 <div class="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50 flex justify-between items-center">
                     <div>
-                        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">Promedio de Venta (Con Ticket WhatsApp)</p>
-                        <p id="ana-promedio-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">$0.00</p>
+                        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">% de Ventas con Ticket WhatsApp (Enviadas / Total)</p>
+                        <p id="ana-proporcion-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">0% (0 / 0)</p>
                     </div>
                     <span class="text-3xl">📱</span>
                 </div>
@@ -1016,7 +1016,7 @@
             // Procesamiento de clientes y WhatsApp
             let primerAparicionCliente = {};
             let ventasOrdenadas = [...ventas].sort((a, b) => a.timestamp - b.timestamp);
-            let sumaVentasWa = 0;
+            let totalVentasCount = ventas.length;
             let countVentasWa = 0;
 
             ventasOrdenadas.forEach(v => {
@@ -1052,7 +1052,6 @@
                 }
 
                 if (v.whatsappEnviado === "SI" || v.whatsappEnviado === "TRUE") {
-                    sumaVentasWa += v.total;
                     countVentasWa += 1;
                 }
 
@@ -1083,10 +1082,10 @@
             });
 
             let totalClientesUnicos = Object.keys(primerAparicionCliente).length;
-            let promedioVentaWa = countVentasWa > 0 ? (sumaVentasWa / countVentasWa) : 0;
+            let porcentajeWa = totalVentasCount > 0 ? (countVentasWa / totalVentasCount) * 100 : 0;
 
             document.getElementById('ana-total-clientes').innerText = totalClientesUnicos;
-            document.getElementById('ana-promedio-wa').innerText = `$${promedioVentaWa.toFixed(2)}`;
+            document.getElementById('ana-proporcion-wa').innerText = `${porcentajeWa.toFixed(1)}% (${countVentasWa} / ${totalVentasCount})`;
 
             let roi = inversionTotal > 0 ? ((gananciaTotalHistorica / inversionTotal) * 100) : 0;
             let balanceNeto = gananciaTotalHistorica - inversionTotal;
