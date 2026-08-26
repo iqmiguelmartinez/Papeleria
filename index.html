@@ -1224,16 +1224,28 @@
 
             let totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
             let productosCopia = [...carrito];
+            let telefonoLimpio = telefono ? telefono.trim() : "";
+            let whatsappEnviado = false;
+
+            if (telefonoLimpio && telefonoLimpio.replace(/\D/g, '').length >= 10) {
+                whatsappEnviado = true;
+            }
 
             carrito.forEach(item => { let p = inventario.find(prod => prod.codigo === item.codigo); if (p) p.stock -= item.cantidad; });
             ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: productosCopia, total: totalVenta });
             
-            await enviarDatosAGoogleSheets({ tipo: 'venta', productos: productosCopia, total: totalVenta });
+            await enviarDatosAGoogleSheets({ 
+                tipo: 'venta', 
+                productos: productosCopia, 
+                total: totalVenta,
+                telefono: telefonoLimpio || "N/A",
+                whatsappEnviado: whatsappEnviado
+            });
             
             carrito = [];
             renderCarrito(); renderProductos();
 
-            if (telefono && telefono.trim().length >= 10) {
+            if (whatsappEnviado) {
                 let fechaHora = new Date().toLocaleString('es-MX');
                 let mensaje = "*PIXEL Y PAPEL*\n" +
                               "Ticket de Venta\n" +
@@ -1246,7 +1258,7 @@
                            "*TOTAL: $" + totalVenta.toFixed(2) + "*\n\n" +
                            "¡Gracias por tu compra!";
 
-                let numLimpio = telefono.replace(/\D/g, '');
+                let numLimpio = telefonoLimpio.replace(/\D/g, '');
                 let urlWa = "https://wa.me/" + numLimpio + "?text=" + encodeURIComponent(mensaje);
                 window.open(urlWa, '_blank');
             }
