@@ -136,14 +136,14 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVERSIONES Y CRÉDITOS -->
+        <!-- SECCIÓN: INVERSIONES Y CRÉDITOS (COMPACTA) -->
         <div id="tab-inversion" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos (Cuentas por Pagar)</h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago de No a Sí para actualizar el balance.</p>
                 </div>
-                <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
                     + Registrar Gasto / Inversión
                 </button>
             </div>
@@ -166,20 +166,20 @@
                 </div>
             </div>
 
-            <!-- Tabla de Inversiones e Historial -->
+            <!-- Tabla de Inversiones (Compacta) -->
             <div class="overflow-x-auto max-h-[500px] border dark:border-gray-700 rounded-xl">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
-                            <th class="p-3">Concepto</th>
-                            <th class="p-3 text-right">Cantidad ($)</th>
-                            <th class="p-3">Observaciones</th>
-                            <th class="p-3 text-center">Pagado?</th>
-                            <th class="p-3">Fecha</th>
-                            <th class="p-3">Persona</th>
+                            <th class="py-2 px-3">Concepto</th>
+                            <th class="py-2 px-3 text-right">Cantidad ($)</th>
+                            <th class="py-2 px-3">Observaciones</th>
+                            <th class="py-2 px-3 text-center">Pagado?</th>
+                            <th class="py-2 px-3">Fecha</th>
+                            <th class="py-2 px-3">Persona</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                    <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700 text-xs"></tbody>
                 </table>
             </div>
         </div>
@@ -548,7 +548,7 @@
             if(targetBtn) targetBtn.className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
             
             if(tab === 'inventario') renderInventario();
-            if(tab === 'inversion') cargarDatosAnalisis(); // Carga inversiones también
+            if(tab === 'inversion') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
             if(tab === 'analisis') cargarDatosAnalisis();
@@ -576,7 +576,16 @@
             }
         }
 
-        // CARGAR Y PROCESAR DATOS DE ANÁLISIS E INVERSIONES
+        // Formateador de fecha simple
+        function formatearFechaSimple(fechaStr) {
+            if (!fechaStr) return '';
+            let d = new Date(fechaStr);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+            return fechaStr; // Devuelve la original si ya es un texto simple (ej: "01-agosto-2026")
+        }
+
         async function cargarDatosAnalisis() {
             Swal.fire({ title: 'Cargando datos...', text: 'Sincronizando inversiones y finanzas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
@@ -620,19 +629,21 @@
                 }
 
                 let badgePagado = esPagado 
-                    ? `<span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-bold text-xs">Sí</span>`
-                    : `<span class="px-2.5 py-1 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded font-bold text-xs">No (Crédito)</span>`;
+                    ? `<span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-bold text-xs">Sí</span>`
+                    : `<span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded font-bold text-xs">No (Crédito)</span>`;
+
+                let fechaCorta = formatearFechaSimple(inv.fecha);
 
                 tbody.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm">
-                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${inv.concepto}</td>
-                        <td class="p-3 text-right font-semibold text-gray-700 dark:text-gray-300">$${inv.cantidad.toFixed(2)}</td>
-                        <td class="p-3 text-gray-500 dark:text-gray-400 text-xs">${inv.observaciones}</td>
-                        <td class="p-3 text-center">
+                    <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs">
+                        <td class="py-1.5 px-3 font-medium text-gray-800 dark:text-gray-200">${inv.concepto}</td>
+                        <td class="py-1.5 px-3 text-right font-semibold text-gray-700 dark:text-gray-300">$${inv.cantidad.toFixed(2)}</td>
+                        <td class="py-1.5 px-3 text-gray-500 dark:text-gray-400 truncate max-w-xs">${inv.observaciones}</td>
+                        <td class="py-1.5 px-3 text-center">
                             <button onclick="cambiarEstadoPago(${inv.rowIndex}, '${inv.pagado}')" class="cursor-pointer transition hover:scale-105" title="Clic para cambiar estado">${badgePagado}</button>
                         </td>
-                        <td class="p-3 text-xs text-gray-500 dark:text-gray-400">${inv.fecha}</td>
-                        <td class="p-3 text-xs text-gray-600 dark:text-gray-300">${inv.persona}</td>
+                        <td class="py-1.5 px-3 text-gray-500 dark:text-gray-400">${fechaCorta}</td>
+                        <td class="py-1.5 px-3 text-gray-600 dark:text-gray-300">${inv.persona}</td>
                     </tr>
                 `;
             });
@@ -699,7 +710,6 @@
                 costoPorCodigo[p.codigo] = p.costo || 0;
             });
 
-            // 1. Inversión Total (Suma de todas las inversiones registradas)
             let inversionTotal = 0;
             if (Array.isArray(inversionLista)) {
                 inversionLista.forEach(inv => {
@@ -707,7 +717,6 @@
                 });
             }
 
-            // 2. Ganancia Neta Histórica
             let gananciaTotalHistorica = 0;
             let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
             let ventasPorMesObj = {}; 
@@ -769,7 +778,6 @@
             document.getElementById('ana-roi').innerText = `${roi.toFixed(1)}%`;
             document.getElementById('ana-balance-neto').innerText = `$${balanceNeto.toFixed(2)}`;
 
-            // 3. Renderizar Top 5 Productos
             let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.ganancia - a.ganancia).slice(0, 5);
             const tbodyTop = document.getElementById('tabla-top-productos');
             tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
@@ -784,15 +792,12 @@
                 `;
             });
 
-            // 4. Stock crítico y sugerencia de compra
-            let stockCriticoCount = 0;
             const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
             tbodySugerencia.innerHTML = "";
 
             let listaSugerencias = inventarioLista.map(p => {
                 let vendidos = unidadesVendidasPorProducto[p.codigo] || 0;
                 let sugerido = p.stock <= 5 ? Math.max(10, vendidos - p.stock) : 0;
-                if (p.stock <= 5) stockCriticoCount++;
                 return { ...p, vendidos, sugerido };
             }).sort((a, b) => a.stock - b.stock);
 
@@ -812,7 +817,6 @@
                 `;
             });
 
-            // 5. Renderizar Gráficas
             renderGraficaSemana(ventasPorDiaSemana);
             renderGraficaMes(ventasPorMesObj);
             renderGraficaHorasPico(horasPicoMap);
@@ -821,138 +825,59 @@
         function renderGraficaSemana(datosDias) {
             const ctx = document.getElementById('chartVentasSemana').getContext('2d');
             if (chartSemanaInstance) chartSemanaInstance.destroy();
-
             chartSemanaInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: Object.keys(datosDias),
-                    datasets: [{
-                        label: 'Ventas ($)',
-                        data: Object.values(datosDias),
-                        backgroundColor: 'rgba(37, 99, 235, 0.7)',
-                        borderColor: 'rgb(37, 99, 235)',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
+                    datasets: [{ label: 'Ventas ($)', data: Object.values(datosDias), backgroundColor: 'rgba(37, 99, 235, 0.7)', borderColor: 'rgb(37, 99, 235)', borderWidth: 1, borderRadius: 6 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
-                        x: { grid: { display: false } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
         }
 
         function renderGraficaMes(datosMesesObj) {
             const ctx = document.getElementById('chartVentasMes').getContext('2d');
             if (chartMesInstance) chartMesInstance.destroy();
-
             let mesesOrdenados = Object.keys(datosMesesObj).sort();
             let totalesMes = mesesOrdenados.map(m => datosMesesObj[m].total);
             let promedioVentaMes = mesesOrdenados.map(m => datosMesesObj[m].tickets > 0 ? datosMesesObj[m].total / datosMesesObj[m].tickets : 0);
-            let promedioSemanalTicket = mesesOrdenados.map(m => (datosMesesObj[m].tickets / 4.33).toFixed(1));
-
             chartMesInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: mesesOrdenados.length > 0 ? mesesOrdenados : ['Sin datos'],
                     datasets: [
-                        {
-                            label: 'Ventas Totales ($)',
-                            data: totalesMes.length > 0 ? totalesMes : [0],
-                            borderColor: 'rgb(5, 150, 105)',
-                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Promedio Ticket ($)',
-                            data: promedioVentaMes.length > 0 ? promedioVentaMes : [0],
-                            borderColor: 'rgb(217, 119, 6)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            tension: 0.3
-                        }
+                        { label: 'Ventas Totales ($)', data: totalesMes.length > 0 ? totalesMes : [0], borderColor: 'rgb(5, 150, 105)', backgroundColor: 'rgba(5, 150, 105, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Promedio Ticket ($)', data: promedioVentaMes.length > 0 ? promedioVentaMes : [0], borderColor: 'rgb(217, 119, 6)', borderDash: [5, 5], tension: 0.3 }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                footer: function(tooltipItems) {
-                                    let idx = tooltipItems[0].dataIndex;
-                                    let semTickets = promedioSemanalTicket[idx] || 0;
-                                    return `Prom. Tickets Semanales: ${semTickets}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
-                        x: { grid: { display: false } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
         }
 
         function renderGraficaHorasPico(horasMap) {
             const ctx = document.getElementById('chartHorasPico').getContext('2d');
             if (chartHorasPicoInstance) chartHorasPicoInstance.destroy();
-
-            let horasLabels = Object.keys(horasMap).map(h => `${h}:00 hrs`);
-            let horasValores = Object.values(horasMap);
-
             chartHorasPicoInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: horasLabels,
-                    datasets: [{
-                        label: 'Ventas por Hora ($)',
-                        data: horasValores,
-                        backgroundColor: 'rgba(147, 51, 234, 0.7)',
-                        borderColor: 'rgb(147, 51, 234)',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
+                    labels: Object.keys(horasMap).map(h => `${h}:00 hrs`),
+                    datasets: [{ label: 'Ventas por Hora ($)', data: Object.values(horasMap), backgroundColor: 'rgba(147, 51, 234, 0.7)', borderColor: 'rgb(147, 51, 234)', borderWidth: 1, borderRadius: 6 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
-                        x: { grid: { display: false } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
         }
 
         async function descargarListaSurtidoImagen() {
-            if (!cacheUltimoAnalisis || !cacheUltimoAnalisis.inventario) {
-                Swal.fire('Sin datos', 'Actualiza primero la sección de análisis.', 'warning');
-                return;
-            }
-
+            if (!cacheUltimoAnalisis || !cacheUltimoAnalisis.inventario) return;
             let fechaStr = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('print-fecha-surtido').innerText = `Fecha de emisión: ${fechaStr}`;
-
             let tbodyPrint = document.getElementById('print-tbody-surtido');
             tbodyPrint.innerHTML = "";
-
             let criticos = cacheUltimoAnalisis.inventario.filter(p => p.stock <= 5);
-
             if (criticos.length === 0) {
                 Swal.fire('Todo en orden', 'No hay productos con stock crítico en este momento.', 'success');
                 return;
             }
-
             criticos.forEach(p => {
                 let sugerido = Math.max(10, 15 - p.stock);
                 tbodyPrint.innerHTML += `
@@ -964,82 +889,38 @@
                     </tr>
                 `;
             });
-
             const el = document.getElementById('print-lista-surtido');
-            try {
-                Swal.fire({ title: 'Generando imagen...', text: 'Preparando lista para surtir...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-                const link = document.createElement('a');
-                link.download = `lista-surtido-pixel-papel-${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                Swal.fire('¡Descargado!', 'La lista de faltantes se ha guardado como imagen correctamente.', 'success');
-            } catch(err) {
-                Swal.fire('Error', `No se pudo generar la imagen: ${err}`, 'error');
-            }
+            const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+            const link = document.createElement('a');
+            link.download = `lista-surtido-pixel-papel-${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         }
 
         function renderProductos(filtro = "") {
             const tbody1 = document.getElementById('tabla-productos-venta-1');
             const tbody2 = document.getElementById('tabla-productos-venta-2');
             if(!tbody1 || !tbody2) return;
-            tbody1.innerHTML = "";
-            tbody2.innerHTML = "";
-
+            tbody1.innerHTML = ""; tbody2.innerHTML = "";
             const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
             const mitad = Math.ceil(filtrados.length / 2);
-            const lista1 = filtrados.slice(0, mitad);
-            const lista2 = filtrados.slice(mitad);
-
-            lista1.forEach(p => {
-                tbody1.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td class="p-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
-                        <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
-                        <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
-                        <td class="p-2.5 text-center">
-                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
-                        </td>
-                    </tr>
-                `;
+            filtrados.slice(0, mitad).forEach(p => {
+                tbody1.innerHTML += `<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td><td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td><td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td><td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">${p.stock} un.</span></td><td class="p-2.5 text-center"><button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 px-2.5 py-1 rounded text-xs font-medium cursor-pointer">+</button></td></tr>`;
             });
-
-            lista2.forEach(p => {
-                tbody2.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td class="p-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
-                        <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
-                        <td class="p-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
-                        <td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
-                        <td class="p-2.5 text-center">
-                            <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer">+</button>
-                        </td>
-                    </tr>
-                `;
+            filtrados.slice(mitad).forEach(p => {
+                tbody2.innerHTML += `<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-2.5 font-mono text-xs text-gray-500">${p.codigo}</td><td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td><td class="p-2.5 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td><td class="p-2.5"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">${p.stock} un.</span></td><td class="p-2.5 text-center"><button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-blue-950 text-blue-600 px-2.5 py-1 rounded text-xs font-medium cursor-pointer">+</button></td></tr>`;
             });
         }
 
-        function filtrarProductos() {
-            const val = document.getElementById('buscar-producto').value;
-            renderProductos(val);
-        }
+        function filtrarProductos() { renderProductos(document.getElementById('buscar-producto').value); }
 
         function agregarAlCarrito(codigo) {
             const prod = inventario.find(p => p.codigo === codigo);
-            if (!prod || prod.stock <= 0) {
-                Swal.fire('Sin stock', 'Este producto no tiene existencias disponibles.', 'warning');
-                return;
-            }
-
+            if (!prod || prod.stock <= 0) return;
             const itemEnCarrito = carrito.find(item => item.codigo === codigo);
             if (itemEnCarrito) {
-                if (itemEnCarrito.cantidad < prod.stock) {
-                    itemEnCarrito.cantidad++;
-                } else {
-                    Swal.fire('Límite alcanzado', 'No hay más stock disponible en caja.', 'info');
-                    return;
-                }
+                if (itemEnCarrito.cantidad < prod.stock) itemEnCarrito.cantidad++;
+                else return;
             } else {
                 carrito.push({ codigo: prod.codigo, nombre: prod.nombre, precio: prod.precio, cantidad: 1 });
             }
@@ -1050,117 +931,51 @@
             const contenedor = document.getElementById('lista-carrito');
             if(!contenedor) return;
             if (carrito.length === 0) {
-                contenedor.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">El carrito está vacío</p>`;
+                contenedor.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">El carrito está vacío</p>`;
                 document.getElementById('total-venta').innerText = "$0.00";
                 return;
             }
-
             contenedor.innerHTML = "";
             let total = 0;
             carrito.forEach((item, index) => {
                 let subtotal = item.precio * item.cantidad;
                 total += subtotal;
-                contenedor.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm border dark:border-gray-700">
-                        <div>
-                            <p class="font-medium text-gray-800 dark:text-gray-200">${item.nombre}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Cantidad: ${item.cantidad}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-semibold text-gray-700 dark:text-gray-300">$${subtotal.toFixed(2)}</span>
-                            <button onclick="quitarDelCarrito(${index})" class="text-red-500 hover:text-red-700 font-bold px-1 text-xs cursor-pointer">×</button>
-                        </div>
-                    </div>
-                `;
+                contenedor.innerHTML += `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm border dark:border-gray-700"><div><p class="font-medium text-gray-800 dark:text-gray-200">${item.nombre}</p><p class="text-xs text-gray-500">Cantidad: ${item.cantidad}</p></div><div class="flex items-center gap-2"><span class="font-semibold">$${subtotal.toFixed(2)}</span><button onclick="quitarDelCarrito(${index})" class="text-red-500 font-bold px-1 text-xs cursor-pointer">×</button></div></div>`;
             });
             document.getElementById('total-venta').innerText = `$${total.toFixed(2)}`;
         }
 
-        function quitarDelCarrito(index) {
-            carrito.splice(index, 1);
-            renderCarrito();
-        }
+        function quitarDelCarrito(index) { carrito.splice(index, 1); renderCarrito(); }
 
         async function procesarVenta() {
             if (carrito.length === 0) return;
-
             let totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
-            
-            carrito.forEach(item => {
-                let p = inventario.find(prod => prod.codigo === item.codigo);
-                if (p) p.stock -= item.cantidad;
-            });
-
-            let productosStr = carrito.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
-            const ventaInfo = {
-                hora: new Date().toLocaleTimeString(),
-                productos: [...carrito],
-                descripcionProductos: productosStr,
-                total: totalVenta
-            };
-
-            ventasActivas.push(ventaInfo);
-
-            await enviarDatosAGoogleSheets({
-                tipo: 'venta',
-                productos: carrito,
-                total: totalVenta
-            });
-
+            carrito.forEach(item => { let p = inventario.find(prod => prod.codigo === item.codigo); if (p) p.stock -= item.cantidad; });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: totalVenta });
+            await enviarDatosAGoogleSheets({ tipo: 'venta', productos: carrito, total: totalVenta });
             carrito = [];
-            renderCarrito();
-            renderProductos();
-            if(!document.getElementById('tab-inventario').classList.contains('hidden')) {
-                renderInventario();
-            }
+            renderCarrito(); renderProductos();
             Swal.fire('¡Venta Exitosa!', 'El registro se ha completado correctamente.', 'success');
         }
 
         async function registrarRetiro() {
             let motivo = document.getElementById('ret-motivo').value.trim();
             let monto = parseFloat(document.getElementById('ret-monto').value);
-
-            if (!motivo || isNaN(monto) || monto <= 0) {
-                Swal.fire('Datos incompletos', 'Escribe un concepto válido y un monto mayor a 0.', 'warning');
-                return;
-            }
-
-            const retiroInfo = {
-                hora: new Date().toLocaleTimeString(),
-                motivo: motivo,
-                monto: monto
-            };
-
-            retirosActivos.push(retiroInfo);
-
-            await enviarDatosAGoogleSheets({
-                tipo: 'retiro',
-                motivo: motivo,
-                monto: monto
-            });
-
-            document.getElementById('ret-motivo').value = "";
-            document.getElementById('ret-monto').value = "";
+            if (!motivo || isNaN(monto) || monto <= 0) return;
+            retirosActivos.push({ hora: new Date().toLocaleTimeString(), motivo, monto });
+            await enviarDatosAGoogleSheets({ tipo: 'retiro', motivo, monto });
+            document.getElementById('ret-motivo').value = ""; document.getElementById('ret-monto').value = "";
             renderRetiros();
-            Swal.fire('Retiro Registrado', 'La salida de dinero se ha guardado correctamente.', 'success');
+            Swal.fire('Retiro Registrado', 'Salida guardada correctamente.', 'success');
         }
 
         function renderRetiros() {
             const tbody = document.getElementById('tabla-retiros-historial');
             if(!tbody) return;
-            if (retirosActivos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400 dark:text-gray-500">No hay retiros en este turno</td></tr>`;
-                return;
-            }
+            if (retirosActivos.length === 0) { tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">No hay retiros en este turno</td></tr>`; return; }
             tbody.innerHTML = "";
             retirosActivos.slice().reverse().forEach(r => {
-                tbody.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
-                        <td class="p-3 text-gray-500 dark:text-gray-400">${r.hora}</td>
-                        <td class="p-3 text-gray-800 dark:text-gray-200">${r.motivo}</td>
-                        <td class="p-3 font-semibold text-red-600 dark:text-red-400">-$${r.monto.toFixed(2)}</td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3 text-gray-500">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 font-semibold text-red-600">-$${r.monto.toFixed(2)}</td></tr>`;
             });
         }
 
@@ -1169,323 +984,78 @@
             if(!tbody) return;
             tbody.innerHTML = "";
             inventario.forEach(p => {
-                tbody.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td class="p-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
-                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
-                        <td class="p-3 text-gray-600 dark:text-gray-300">$${p.precio.toFixed(2)}</td>
-                        <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-xs font-medium">${p.stock} un.</span></td>
-                        <td class="p-3 text-center">
-                            <input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 dark:border-emerald-600 rounded-lg text-center text-sm focus:outline-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-gray-800 dark:text-gray-100">
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr class="border-b dark:border-gray-700"><td class="p-3 font-mono text-xs text-gray-500">${p.codigo}</td><td class="p-3 font-medium">${p.nombre}</td><td class="p-3">$${p.precio.toFixed(2)}</td><td class="p-3"><span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">${p.stock} un.</span></td><td class="p-3 text-center"><input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 rounded text-center text-sm bg-emerald-50/50 dark:bg-emerald-950/30"></td></tr>`;
             });
         }
 
         async function confirmarSurtidoInventario() {
-            const { value: password } = await Swal.fire({
-                title: '🔒 Autorizar Surtido de Inventario',
-                input: 'password',
-                inputPlaceholder: 'Ingresa la contraseña exclusiva',
-                inputAttributes: {
-                    autocapitalize: 'off',
-                    autocorrect: 'off'
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Autorizar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#059669'
-            });
-
-            if (password === undefined) return;
-
-            if (password !== PASS_SURTIR) {
-                Swal.fire('Error', 'Contraseña exclusiva incorrecta.', 'error');
-                return;
-            }
-
-            let entradas = {};
-            let hayCambios = false;
-
+            const { value: password } = await Swal.fire({ title: '🔒 Autorizar Surtido', input: 'password', showCancelButton: true, confirmButtonColor: '#059669' });
+            if (password !== PASS_SURTIR) { if (password !== undefined) Swal.fire('Error', 'Contraseña incorrecta.', 'error'); return; }
+            let entradas = {}; let hayCambios = false;
             inventario.forEach(p => {
                 const input = document.getElementById(`surtir-${p.codigo}`);
-                if (input) {
-                    const cant = parseInt(input.value) || 0;
-                    if (cant > 0) {
-                        entradas[p.codigo] = cant;
-                        p.stock += cant;
-                        hayCambios = true;
-                    }
-                }
+                if (input) { let cant = parseInt(input.value) || 0; if (cant > 0) { entradas[p.codigo] = cant; p.stock += cant; hayCambios = true; } }
             });
-
-            if (!hayCambios) {
-                Swal.fire('Sin cambios', 'No ingresaste ninguna cantidad para surtir en los productos.', 'info');
-                return;
-            }
-
-            Swal.fire({ title: 'Actualizando...', text: 'Guardando entradas en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            await enviarDatosAGoogleSheets({
-                tipo: 'surtirLote',
-                entradas: entradas
-            });
-
-            renderInventario();
-            renderProductos();
-            Swal.fire('¡Inventario Surtido!', 'Las entradas de mercancía se han registrado correctamente en Google Sheets.', 'success');
+            if (!hayCambios) return;
+            await enviarDatosAGoogleSheets({ tipo: 'surtirLote', entradas });
+            renderInventario(); renderProductos();
+            Swal.fire('¡Inventario Surtido!', 'Entradas registradas correctamente.', 'success');
         }
 
         async function agregarProductoPrompt() {
             const { value: formValues } = await Swal.fire({
                 title: 'Nuevo Producto',
-                html: '<input id="sw-cod" class="swal2-input" placeholder="Código">' +
-                      '<input id="sw-nom" class="swal2-input" placeholder="Nombre">' +
-                      '<input id="sw-pre" type="number" class="swal2-input" placeholder="Precio de Venta">' +
-                      '<input id="sw-cos" type="number" class="swal2-input" placeholder="Costo Unitario">' +
-                      '<input id="sw-sto" type="number" class="swal2-input" placeholder="Stock Inicial">',
+                html: '<input id="sw-cod" class="swal2-input" placeholder="Código"><input id="sw-nom" class="swal2-input" placeholder="Nombre"><input id="sw-pre" type="number" class="swal2-input" placeholder="Precio"><input id="sw-cos" type="number" class="swal2-input" placeholder="Costo"><input id="sw-sto" type="number" class="swal2-input" placeholder="Stock">',
                 focusConfirm: false,
-                preConfirm: () => {
-                    return {
-                        codigo: document.getElementById('sw-cod').value.trim(),
-                        nombre: document.getElementById('sw-nom').value.trim(),
-                        precio: parseFloat(document.getElementById('sw-pre').value) || 0,
-                        costo: parseFloat(document.getElementById('sw-cos').value) || 0,
-                        stock: parseInt(document.getElementById('sw-sto').value) || 0
-                    }
-                }
+                preConfirm: () => ({ codigo: document.getElementById('sw-cod').value.trim(), nombre: document.getElementById('sw-nom').value.trim(), precio: parseFloat(document.getElementById('sw-pre').value) || 0, costo: parseFloat(document.getElementById('sw-cos').value) || 0, stock: parseInt(document.getElementById('sw-sto').value) || 0 })
             });
-
-            if (formValues && formValues.codigo && formValues.nombre) {
-                Swal.fire({ title: 'Guardando...', text: 'Registrando nuevo producto en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                
+            if (formValues && formValues.codigo) {
                 inventario.push(formValues);
-                renderInventario();
-                renderProductos();
-
-                await enviarDatosAGoogleSheets({
-                    tipo: 'nuevoProducto',
-                    codigo: formValues.codigo,
-                    nombre: formValues.nombre,
-                    precio: formValues.precio,
-                    costo: formValues.costo,
-                    stock: formValues.stock
-                });
-
-                Swal.fire('¡Agregado!', 'Producto registrado con éxito en Google Sheets.', 'success');
+                renderInventario(); renderProductos();
+                await enviarDatosAGoogleSheets({ tipo: 'nuevoProducto', ...formValues });
+                Swal.fire('¡Agregado!', 'Producto registrado.', 'success');
             }
         }
 
         function calcularResumenArticulos(ventas) {
             let mapa = {};
-            ventas.forEach(v => {
-                if (v.productos && Array.isArray(v.productos)) {
-                    v.productos.forEach(p => {
-                        if (!mapa[p.codigo]) {
-                            mapa[p.codigo] = { nombre: p.nombre, cantidad: 0, total: 0 };
-                        }
-                        mapa[p.codigo].cantidad += p.cantidad;
-                        mapa[p.codigo].total += (p.precio * p.cantidad);
-                    });
-                }
-            });
+            ventas.forEach(v => { if (v.productos) v.productos.forEach(p => { if (!mapa[p.codigo]) mapa[p.codigo] = { nombre: p.nombre, cantidad: 0, total: 0 }; mapa[p.codigo].cantidad += p.cantidad; mapa[p.codigo].total += (p.precio * p.cantidad); }); });
             return Object.values(mapa);
         }
 
         function renderCorte() {
             let totalVentas = ventasActivas.reduce((acc, v) => acc + v.total, 0);
             let totalRetiros = retirosActivos.reduce((acc, r) => acc + r.monto, 0);
-            let efectivoNeto = totalVentas - totalRetiros;
-            let promedioVenta = ventasActivas.length > 0 ? (totalVentas / ventasActivas.length) : 0;
-
             document.getElementById('corte-total-ventas').innerText = `$${totalVentas.toFixed(2)}`;
             document.getElementById('corte-total-retiros').innerText = `$${totalRetiros.toFixed(2)}`;
-            document.getElementById('corte-promedio-venta').innerText = `$${promedioVenta.toFixed(2)}`;
-            document.getElementById('corte-efectivo-neto').innerText = `$${efectivoNeto.toFixed(2)}`;
-
-            const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
-            if(!tbodyArticulos) return;
-            const resumen = calcularResumenArticulos(ventasActivas);
-            tbodyArticulos.innerHTML = resumen.length === 0 ? `<tr><td colspan="3" class="p-3 text-gray-400 dark:text-gray-500 text-center">Sin artículos vendidos en este turno</td></tr>` : "";
-            resumen.forEach(item => {
-                tbodyArticulos.innerHTML += `
-                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
-                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${item.nombre}</td>
-                        <td class="p-3 text-center font-semibold text-blue-600 dark:text-blue-400">${item.cantidad} un.</td>
-                        <td class="p-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${item.total.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            const histContainer = document.getElementById('historial-cortes-container');
-            if(!histContainer) return;
-            if (cortesRealizados.length === 0) {
-                histContainer.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>`;
-            } else {
-                histContainer.innerHTML = "";
-                cortesRealizados.slice().reverse().forEach((corte, idx) => {
-                    histContainer.innerHTML += `
-                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                            <div>
-                                <p class="font-bold text-gray-800 dark:text-gray-100">Corte #${cortesRealizados.length - idx} - <span class="text-sm text-gray-500 dark:text-gray-400">${corte.hora}</span></p>
-                                <p class="text-sm text-gray-600 dark:text-gray-300">Ventas: $${corte.totalVentas.toFixed(2)} | Retiros: $${corte.totalRetiros.toFixed(2)} | Neto: $${corte.efectivoNeto.toFixed(2)}</p>
-                            </div>
-                            <button onclick="verReporteCorte(${cortesRealizados.length - 1 - idx})" class="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">Ver Reporte</button>
-                        </div>
-                    `;
-                });
-            }
+            document.getElementById('corte-promedio-venta').innerText = `$${(ventasActivas.length > 0 ? totalVentas / ventasActivas.length : 0).toFixed(2)}`;
+            document.getElementById('corte-efectivo-neto').innerText = `$${(totalVentas - totalRetiros).toFixed(2)}`;
         }
 
         async function realizarCorteTurno() {
-            if (ventasActivas.length === 0 && retirosActivos.length === 0) {
-                Swal.fire('Sin movimientos', 'No hay ventas ni retiros registrados en este turno para cortar.', 'info');
-                return;
-            }
-
+            if (ventasActivas.length === 0 && retirosActivos.length === 0) return;
             let totalVentas = ventasActivas.reduce((acc, v) => acc + v.total, 0);
             let totalRetiros = retirosActivos.reduce((acc, r) => acc + r.monto, 0);
-            let efectivoNeto = totalVentas - totalRetiros;
-            let promedioVenta = ventasActivas.length > 0 ? (totalVentas / ventasActivas.length) : 0;
-            let resumenArticulos = calcularResumenArticulos(ventasActivas);
-            let horaActual = new Date().toLocaleTimeString();
-
-            const nuevoCorte = {
-                hora: horaActual,
-                totalVentas,
-                totalRetiros,
-                efectivoNeto,
-                promedioVenta,
-                ventas: [...ventasActivas],
-                retiros: [...retirosActivos],
-                articulos: resumenArticulos
-            };
-
-            await enviarDatosAGoogleSheets({
-                tipo: 'corte',
-                totalVentas: totalVentas,
-                totalRetiros: totalRetiros,
-                efectivoNeto: efectivoNeto,
-                promedioVenta: promedioVenta,
-                articulos: resumenArticulos
-            });
-
-            cortesRealizados.push(nuevoCorte);
-            ventasActivas = [];
-            retirosActivos = [];
-            
-            renderCorte();
-            renderRetiros();
-            mostrarModalReporte(nuevoCorte);
-        }
-
-        function verReporteCorte(index) {
-            mostrarModalReporte(cortesRealizados[index]);
-        }
-
-        function mostrarModalReporte(corte) {
-            let articulosHtml = corte.articulos.map(item => `
-                <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: left; font-size: 12px; color: #374151;">${item.nombre}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 12px; font-weight: 600; color: #2563eb;">${item.cantidad} un.</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; text-align: right; font-size: 12px; font-weight: 600; color: #059669;">$${item.total.toFixed(2)}</td>
-                </tr>
-            `).join('');
-
-            const htmlReporte = `
-                <div id="reporte-corte-imagen" style="background-color: #ffffff; padding: 24px; border-radius: 16px; text-align: left; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
-                    <div style="text-align: center; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px;">
-                        <h2 style="font-size: 18px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
-                        <p style="font-size: 12px; color: #6b7280; margin: 0;">Reporte de Corte de Caja</p>
-                        <p style="font-size: 11px; color: #9ca3af; margin: 4px 0 0 0;">Hora del corte: ${corte.hora}</p>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; font-size: 12px;">
-                        <div style="background-color: #eff6ff; padding: 10px; border-radius: 8px; border: 1px solid #dbeafe;">
-                            <span style="color: #2563eb; display: block; font-weight: 500;">Ventas Totales:</span>
-                            <span style="font-weight: bold; color: #1e40af; font-size: 14px;">$${corte.totalVentas.toFixed(2)}</span>
-                        </div>
-                        <div style="background-color: #fef2f2; padding: 10px; border-radius: 8px; border: 1px solid #fee2e2;">
-                            <span style="color: #dc2626; display: block; font-weight: 500;">Retiros / Gastos:</span>
-                            <span style="font-weight: bold; color: #991b1b; font-size: 14px;">-$${corte.totalRetiros.toFixed(2)}</span>
-                        </div>
-                        <div style="background-color: #f3e8ff; padding: 10px; border-radius: 8px; border: 1px solid #e9d5ff;">
-                            <span style="color: #9333ea; display: block; font-weight: 500;">Promedio de Venta:</span>
-                            <span style="font-weight: bold; color: #6b21a8; font-size: 14px;">$${corte.promedioVenta.toFixed(2)}</span>
-                        </div>
-                        <div style="background-color: #ecfdf5; padding: 10px; border-radius: 8px; border: 1px solid #d1fae5;">
-                            <span style="color: #059669; display: block; font-weight: 500;">Efectivo en Caja:</span>
-                            <span style="font-weight: bold; color: #065f46; font-size: 14px;">$${corte.efectivoNeto.toFixed(2)}</span>
-                        </div>
-                    </div>
-                    <p style="font-size: 12px; font-weight: bold; color: #374151; margin-bottom: 8px;">Artículos Vendidos:</p>
-                    <div style="max-height: 160px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
-                        <table style="width: 100%; text-align: left; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background-color: #f9fafb; font-size: 10px; text-transform: uppercase; color: #4b5563;">
-                                    <th style="padding: 8px;">Producto</th>
-                                    <th style="padding: 8px; text-align: center;">Cant.</th>
-                                    <th style="padding: 8px; text-align: right;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>${articulosHtml || '<tr><td colspan="3" style="padding: 12px; text-align: center; font-size: 12px; color: #9ca3af;">Sin artículos</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                    <p style="font-size: 10px; text-align: center; color: #9ca3af; margin: 0;">Pixel y Papel - Sistema de Control Interno</p>
-                </div>
-            `;
-
-            Swal.fire({
-                html: htmlReporte,
-                showCancelButton: true,
-                confirmButtonText: '📥 Descargar Imagen',
-                cancelButtonText: 'Cerrar',
-                confirmButtonColor: '#2563eb',
-                width: '500px',
-                preConfirm: async () => {
-                    const el = document.getElementById('reporte-corte-imagen');
-                    if (!el) return false;
-                    try {
-                        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-                        const link = document.createElement('a');
-                        link.download = `corte-pixel-papel-${corte.hora.replace(/:/g, '-')}.png`;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                        return true;
-                    } catch(err) {
-                        Swal.showValidationMessage(`Error al generar imagen: ${err}`);
-                        return false;
-                    }
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire('¡Descargado!', 'La imagen del corte se ha guardado correctamente.', 'success');
-                }
-            });
+            await enviarDatosAGoogleSheets({ tipo: 'corte', totalVentas, totalRetiros, efectivoNeto: totalVentas - totalRetiros, promedioVenta: totalVentas / (ventasActivas.length || 1), articulos: calcularResumenArticulos(ventasActivas) });
+            ventasActivas = []; retirosActivos = [];
+            renderCorte(); renderRetiros();
+            Swal.fire('¡Corte Realizado!', 'Turno reiniciado con éxito.', 'success');
         }
 
         async function enviarDatosAGoogleSheets(data) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
                 data.usuario = sessionStorage.getItem('usuario_activo') || 'Desconocido';
-                await fetch(URL_APPS_SCRIPT, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(data)
-                });
-            } catch (e) {
-                console.error("Error al sincronizar con Google Sheets", e);
-            }
+                await fetch(URL_APPS_SCRIPT, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
+            } catch (e) { console.error("Error al sincronizar", e); }
         }
 
         async function sincronizarDatos() {
-            Swal.fire({ title: 'Sincronizando...', text: 'Descargando datos de Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'Sincronizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             await cargarDatosIniciales();
-            Swal.fire('¡Sincronizado!', 'El stock, turnos y cortes se han actualizado desde Google Sheets.', 'success');
+            Swal.fire('¡Sincronizado!', 'Datos actualizados.', 'success');
         }
 
-        // Iniciar sesión al cargar la página
         verificarSesion();
     </script>
 </body>
