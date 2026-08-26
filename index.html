@@ -215,10 +215,10 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
+        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (CON INVERSIÓN Y ROI) -->
         <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis de Ventas, Ganancias e Inventario</h2>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
                 <div class="flex gap-2">
                     <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
                         📥 Descargar Lista para Surtir
@@ -229,27 +229,23 @@
                 </div>
             </div>
 
-            <!-- Tarjetas de Métricas Clave -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Ganancia Total (Histórica)</p>
-                    <p id="ana-ganancia-total" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
-                </div>
-                <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
-                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Valor Inv. (Costo)</p>
-                    <p id="ana-valor-inventario" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
+            <!-- Tarjetas de Métricas Clave (Inversión, ROI y Ganancias) -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
+                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión y Gastos Totales</p>
+                    <p id="ana-inversion-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
                 </div>
                 <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
-                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ventas Totales</p>
-                    <p id="ana-ventas-totales" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ganancia Neta (Histórica)</p>
+                    <p id="ana-ganancia-total" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
                 </div>
-                <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
-                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Ticket Promedio</p>
-                    <p id="ana-promedio-ticket" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+                <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Retorno de Inversión (ROI)</p>
+                    <p id="ana-roi" class="text-2xl font-bold text-blue-800 dark:text-blue-200">0%</p>
                 </div>
-                <div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
-                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Stock Crítico / Faltantes</p>
-                    <p id="ana-stock-critico" class="text-2xl font-bold text-red-800 dark:text-red-200">0</p>
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Balance Neto (Ganancia - Inversión)</p>
+                    <p id="ana-balance-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
             </div>
 
@@ -352,7 +348,7 @@
         let ventasActivas = [];
         let retirosActivos = [];
         let cortesRealizados = [];
-        let cacheUltimoAnalisis = { ventas: [], inventario: [] };
+        let cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
 
         let chartSemanaInstance = null;
         let chartMesInstance = null;
@@ -527,16 +523,16 @@
             }
         }
 
-        // CARGAR Y PROCESAR DATOS DE ANÁLISIS
+        // CARGAR Y PROCESAR DATOS DE ANÁLISIS (INVERSIÓN Y ROI)
         async function cargarDatosAnalisis() {
-            Swal.fire({ title: 'Analizando datos...', text: 'Procesando historial y ganancias...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'Analizando datos...', text: 'Procesando inversiones, ROI y ganancias...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 let resp = await fetch(URL_APPS_SCRIPT + "?action=getDataAnalisis");
                 let data = await resp.json();
                 Swal.close();
 
                 cacheUltimoAnalisis = data;
-                procesarMetricasAnalisis(data.ventas, data.inventario);
+                procesarMetricasAnalisis(data.ventas, data.inventario, data.inversion);
             } catch (err) {
                 Swal.close();
                 console.error(err);
@@ -544,19 +540,23 @@
             }
         }
 
-        function procesarMetricasAnalisis(ventas, inventarioLista) {
-            // Mapeo rápido de costos unitarios por código
+        function procesarMetricasAnalisis(ventas, inventarioLista, inversionLista) {
             let costoPorCodigo = {};
             inventarioLista.forEach(p => {
                 costoPorCodigo[p.codigo] = p.costo || 0;
             });
 
-            // 1. Valor total de inventario (basado en costo)
-            let valorInventarioCosto = inventarioLista.reduce((acc, p) => acc + (p.costo * p.stock), 0);
-            document.getElementById('ana-valor-inventario').innerText = `$${valorInventarioCosto.toFixed(2)}`;
+            // 1. Calcular Inversión Total (sumando los montos de la pestaña Inversión)
+            let inversionTotal = 0;
+            if (Array.isArray(inversionLista)) {
+                inversionLista.forEach(inv => {
+                    // Como en tu hoja los gastos son negativos (ej. -$3,731.00), los convertimos a positivo para sumar la inversión total
+                    let monto = Math.abs(inv.cantidad);
+                    inversionTotal += monto;
+                });
+            }
 
-            // 2. Ventas totales y ganancia total histórica
-            let ventasTotales = 0;
+            // 2. Calcular Ganancia Neta Histórica
             let gananciaTotalHistorica = 0;
             let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
             let ventasPorMesObj = {}; 
@@ -566,8 +566,6 @@
             for(let h=8; h<=20; h++) horasPicoMap[h] = 0;
 
             ventas.forEach(v => {
-                ventasTotales += v.total;
-
                 let d = new Date(v.fecha);
                 let diaSemana = d.getDay(); 
                 let nombresDias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -612,12 +610,17 @@
                 }
             });
 
-            let promedioTicket = ventas.length > 0 ? (ventasTotales / ventas.length) : 0;
-            document.getElementById('ana-ganancia-total').innerText = `$${gananciaTotalHistorica.toFixed(2)}`;
-            document.getElementById('ana-ventas-totales').innerText = `$${ventasTotales.toFixed(2)}`;
-            document.getElementById('ana-promedio-ticket').innerText = `$${promedioTicket.toFixed(2)}`;
+            // 3. Calcular ROI (Retorno de Inversión) y Balance Neto
+            // ROI = (Ganancia Neta / Inversión Total) * 100
+            let roi = inversionTotal > 0 ? ((gananciaTotalHistorica / inversionTotal) * 100) : 0;
+            let balanceNeto = gananciaTotalHistorica - inversionTotal;
 
-            // 3. Renderizar Top 5 Productos con su respectiva ganancia
+            document.getElementById('ana-inversion-total').innerText = `$${inversionTotal.toFixed(2)}`;
+            document.getElementById('ana-ganancia-total').innerText = `$${gananciaTotalHistorica.toFixed(2)}`;
+            document.getElementById('ana-roi').innerText = `${roi.toFixed(1)}%`;
+            document.getElementById('ana-balance-neto').innerText = `$${balanceNeto.toFixed(2)}`;
+
+            // 4. Renderizar Top 5 Productos
             let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.ganancia - a.ganancia).slice(0, 5);
             const tbodyTop = document.getElementById('tabla-top-productos');
             tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
@@ -632,7 +635,7 @@
                 `;
             });
 
-            // 4. Stock crítico y sugerencia de compra
+            // 5. Stock crítico y sugerencia de compra
             let stockCriticoCount = 0;
             const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
             tbodySugerencia.innerHTML = "";
@@ -643,8 +646,6 @@
                 if (p.stock <= 5) stockCriticoCount++;
                 return { ...p, vendidos, sugerido };
             }).sort((a, b) => a.stock - b.stock);
-
-            document.getElementById('ana-stock-critico').innerText = stockCriticoCount;
 
             listaSugerencias.forEach(p => {
                 let badgeStock = p.stock <= 5 
@@ -662,7 +663,7 @@
                 `;
             });
 
-            // 5. Renderizar Gráficas
+            // 6. Renderizar Gráficas
             renderGraficaSemana(ventasPorDiaSemana);
             renderGraficaMes(ventasPorMesObj);
             renderGraficaHorasPico(horasPicoMap);
