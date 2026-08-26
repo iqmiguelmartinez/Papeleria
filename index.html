@@ -45,6 +45,7 @@
         <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
+            <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📜 Ventas Pasadas</button>
             <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
             <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
@@ -136,7 +137,58 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVERSIONES Y CRÉDITOS (COMPACTA) -->
+        <!-- SECCIÓN: VENTAS PASADAS / HISTÓRICAS -->
+        <div id="tab-ventasPasadas" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b dark:border-gray-700 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">📜 Registro de Ventas Pasadas / Fase Inicial</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Ingresa las cantidades vendidas en periodos anteriores para que contabilicen en tus ganancias y ROI.</p>
+                </div>
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha de la Venta Histórica</label>
+                        <input type="date" id="vp-fecha" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opciones y Totales -->
+            <div class="flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 gap-4">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="vp-alterar-inv" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                    <label for="vp-alterar-inv" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                        Descontar estas cantidades del inventario actual
+                    </label>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Total Venta Histórica:</p>
+                        <p id="vp-total-calculado" class="text-xl font-bold text-emerald-600 dark:text-emerald-400">$0.00</p>
+                    </div>
+                    <button onclick="registrarVentaPasada()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition cursor-pointer shadow-sm">
+                        💾 Registrar Lote de Ventas Pasadas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de Lote de Ventas -->
+            <div class="overflow-x-auto max-h-[450px] border dark:border-gray-700 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                            <th class="py-2 px-3">Código</th>
+                            <th class="py-2 px-3">Producto</th>
+                            <th class="py-2 px-3">Precio Venta ($)</th>
+                            <th class="py-2 px-3">Stock Actual</th>
+                            <th class="py-2 px-3 text-center bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">Cantidad Vendida en el Periodo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ventas-pasadas" class="divide-y divide-gray-100 dark:divide-gray-700 text-xs"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: INVERSIONES Y CRÉDITOS -->
         <div id="tab-inversion" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
@@ -166,7 +218,7 @@
                 </div>
             </div>
 
-            <!-- Tabla de Inversiones (Compacta) -->
+            <!-- Tabla de Inversiones -->
             <div class="overflow-x-auto max-h-[500px] border dark:border-gray-700 rounded-xl">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -513,12 +565,15 @@
         function actualizarVisibilidadTabs() {
             const btnAnalisis = document.getElementById('btn-tab-analisis');
             const btnInversion = document.getElementById('btn-tab-inversion');
+            const btnVentasPasadas = document.getElementById('btn-tab-ventasPasadas');
             if (tienePermisoAnalisis) {
                 btnAnalisis.classList.remove('hidden');
                 btnInversion.classList.remove('hidden');
+                btnVentasPasadas.classList.remove('hidden');
             } else {
                 btnAnalisis.classList.add('hidden');
                 btnInversion.classList.add('hidden');
+                btnVentasPasadas.classList.add('hidden');
             }
         }
 
@@ -528,16 +583,16 @@
         }
 
         function cambiarTab(tab) {
-            if ((tab === 'analisis' || tab === 'inversion') && !tienePermisoAnalisis) {
+            if ((tab === 'analisis' || tab === 'inversion' || tab === 'ventasPasadas') && !tienePermisoAnalisis) {
                 Swal.fire('Acceso Denegado', 'No tienes permisos para ver esta sección.', 'warning');
                 return;
             }
 
-            ['ventas', 'inventario', 'inversion', 'retiros', 'corte', 'analisis'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'analisis'].forEach(t => {
                 const elTab = document.getElementById(`tab-${t}`);
                 const btnTab = document.getElementById(`btn-tab-${t}`);
                 if(elTab) elTab.classList.add('hidden');
-                if(btnTab && (t !== 'analisis' && t !== 'inversion' || tienePermisoAnalisis)) {
+                if(btnTab && (['analisis', 'inversion', 'ventasPasadas'].indexOf(t) === -1 || tienePermisoAnalisis)) {
                     btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
                 }
             });
@@ -548,6 +603,7 @@
             if(targetBtn) targetBtn.className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
             
             if(tab === 'inventario') renderInventario();
+            if(tab === 'ventasPasadas') renderVentasPasadas();
             if(tab === 'inversion') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
@@ -574,6 +630,109 @@
             } catch (e) {
                 console.error("Error al sincronizar datos iniciales:", e);
             }
+        }
+
+        // --- MÓDULO DE VENTAS PASADAS / HISTÓRICAS ---
+        function renderVentasPasadas() {
+            const tbody = document.getElementById('tabla-ventas-pasadas');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            // Establecer fecha por defecto a hoy si está vacío
+            const inputFecha = document.getElementById('vp-fecha');
+            if(inputFecha && !inputFecha.value) {
+                inputFecha.value = new Date().toISOString().slice(0, 10);
+            }
+
+            if (inventario.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">No hay productos en inventario</td></tr>`;
+                return;
+            }
+
+            inventario.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="py-2 px-3 font-mono text-xs text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="py-2 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">$${p.precio.toFixed(2)}</td>
+                        <td class="py-2 px-3"><span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">${p.stock} un.</span></td>
+                        <td class="py-2 px-3 text-center">
+                            <input type="number" min="0" value="0" data-codigo="${p.codigo}" data-precio="${p.precio}" data-nombre="${p.nombre}" oninput="calcularTotalVentasPasadas()" class="vp-cantidad-input w-24 px-2 py-1 border border-blue-300 dark:border-blue-600 rounded-lg text-center text-sm focus:outline-blue-500 bg-blue-50/50 dark:bg-blue-950/30 text-gray-800 dark:text-gray-100 font-semibold">
+                        </td>
+                    </tr>
+                `;
+            });
+            calcularTotalVentasPasadas();
+        }
+
+        function calcularTotalVentasPasadas() {
+            let total = 0;
+            const inputs = document.querySelectorAll('.vp-cantidad-input');
+            inputs.forEach(input => {
+                let cant = parseInt(input.value) || 0;
+                let precio = parseFloat(input.getAttribute('data-precio')) || 0;
+                if (cant > 0) {
+                    total += cant * precio;
+                }
+            });
+            document.getElementById('vp-total-calculado').innerText = `$${total.toFixed(2)}`;
+        }
+
+        async function registrarVentaPasada() {
+            let fechaVenta = document.getElementById('vp-fecha').value;
+            let alterarInv = document.getElementById('vp-alterar-inv').checked;
+            let productosVendidos = [];
+            let totalVenta = 0;
+
+            const inputs = document.querySelectorAll('.vp-cantidad-input');
+            inputs.forEach(input => {
+                let cant = parseInt(input.value) || 0;
+                if (cant > 0) {
+                    let codigo = input.getAttribute('data-codigo');
+                    let nombre = input.getAttribute('data-nombre');
+                    let precio = parseFloat(input.getAttribute('data-precio')) || 0;
+                    productosVendidos.push({ codigo, nombre, precio, cantidad: cant });
+                    totalVenta += cant * precio;
+                }
+            });
+
+            if (productosVendidos.length === 0 || totalVenta <= 0) {
+                Swal.fire('Sin productos', 'Ingresa la cantidad vendida al menos de un producto.', 'warning');
+                return;
+            }
+
+            const { value: confirmacion } = await Swal.fire({
+                title: 'Confirmar Venta Histórica',
+                text: `¿Registrar lote por un total de $${totalVenta.toFixed(2)} (${productosVendidos.length} productos)?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, registrar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#059669'
+            });
+
+            if (!confirmacion) return;
+
+            Swal.fire({ title: 'Guardando...', text: 'Registrando venta histórica en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            await enviarDatosAGoogleSheets({
+                tipo: 'ventaPasada',
+                fecha: fechaVenta,
+                productos: productosVendidos,
+                total: totalVenta,
+                alterarInventario: alterarInv
+            });
+
+            // Si se alteró el inventario localmente, lo actualizamos también en memoria
+            if (alterarInv) {
+                productosVendidos.forEach(item => {
+                    let p = inventario.find(prod => prod.codigo === item.codigo);
+                    if (p) p.stock -= item.cantidad;
+                });
+            }
+
+            renderVentasPasadas();
+            Swal.fire('¡Registrado!', 'La venta pasada se ha incorporado correctamente al historial financiero y ROI.', 'success');
         }
 
         // Formateador de fecha simple
@@ -710,7 +869,6 @@
                 costoPorCodigo[p.codigo] = p.costo || 0;
             });
 
-            // Inversión Total: Sumamos excluyendo la fila de fondo inicial para evitar duplicación
             let inversionTotal = 0;
             if (Array.isArray(inversionLista)) {
                 inversionLista.forEach(inv => {
