@@ -49,6 +49,7 @@
             <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
             <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
+            <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
 
@@ -316,6 +317,33 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: LOG DE ACTIVIDAD -->
+        <div id="tab-log" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">📋 Log de Actividad (Últimas 72 Horas)</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Registro compacto de acciones, ventas, retiros y cambios realizados por los usuarios.</p>
+                </div>
+                <button onclick="cargarLogActividad()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    🔄 Actualizar Log
+                </button>
+            </div>
+
+            <div class="overflow-x-auto max-h-[550px] border dark:border-gray-700 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                            <th class="py-2 px-3">Fecha / Hora</th>
+                            <th class="py-2 px-3">Usuario</th>
+                            <th class="py-2 px-3">Acción</th>
+                            <th class="py-2 px-3">Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-log-actividad" class="divide-y divide-gray-100 dark:divide-gray-700/60 text-xs"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
         <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -563,18 +591,14 @@
         }
 
         function actualizarVisibilidadTabs() {
-            const btnAnalisis = document.getElementById('btn-tab-analisis');
-            const btnInversion = document.getElementById('btn-tab-inversion');
-            const btnVentasPasadas = document.getElementById('btn-tab-ventasPasadas');
-            if (tienePermisoAnalisis) {
-                btnAnalisis.classList.remove('hidden');
-                btnInversion.classList.remove('hidden');
-                btnVentasPasadas.classList.remove('hidden');
-            } else {
-                btnAnalisis.classList.add('hidden');
-                btnInversion.classList.add('hidden');
-                btnVentasPasadas.classList.add('hidden');
-            }
+            const tabsRestringidas = ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log'];
+            tabsRestringidas.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (tienePermisoAnalisis) el.classList.remove('hidden');
+                    else el.classList.add('hidden');
+                }
+            });
         }
 
         function cerrarSesion() {
@@ -583,16 +607,17 @@
         }
 
         function cambiarTab(tab) {
-            if ((tab === 'analisis' || tab === 'inversion' || tab === 'ventasPasadas') && !tienePermisoAnalisis) {
+            const restringidas = ['analisis', 'inversion', 'ventasPasadas', 'log'];
+            if (restringidas.includes(tab) && !tienePermisoAnalisis) {
                 Swal.fire('Acceso Denegado', 'No tienes permisos para ver esta sección.', 'warning');
                 return;
             }
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'analisis'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis'].forEach(t => {
                 const elTab = document.getElementById(`tab-${t}`);
                 const btnTab = document.getElementById(`btn-tab-${t}`);
                 if(elTab) elTab.classList.add('hidden');
-                if(btnTab && (['analisis', 'inversion', 'ventasPasadas'].indexOf(t) === -1 || tienePermisoAnalisis)) {
+                if(btnTab && (!restringidas.includes(t) || tienePermisoAnalisis)) {
                     btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
                 }
             });
@@ -607,6 +632,7 @@
             if(tab === 'inversion') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
+            if(tab === 'log') cargarLogActividad();
             if(tab === 'analisis') cargarDatosAnalisis();
         }
 
@@ -632,13 +658,87 @@
             }
         }
 
+        // --- MÓDULO DE LOG DE ACTIVIDAD (ÚLTIMAS 72H) ---
+        async function cargarLogActividad() {
+            Swal.fire({ title: 'Cargando log...', text: 'Obteniendo actividad reciente...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                let resp = await fetch(URL_APPS_SCRIPT + "?action=getAuditoria");
+                let logs = await resp.json();
+                Swal.close();
+
+                const tbody = document.getElementById('tabla-log-actividad');
+                if (!tbody) return;
+                tbody.innerHTML = "";
+
+                if (!Array.isArray(logs) || logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Sin registros de actividad</td></tr>`;
+                    return;
+                }
+
+                let ahora = new Date().getTime();
+                let limite72h = ahora - (72 * 60 * 60 * 1000);
+
+                let logsFiltrados = logs.filter(log => {
+                    let timestamp = parsearFechaAuditoria(log.fechaHora);
+                    return timestamp >= limite72h;
+                }).reverse(); // Más recientes primero
+
+                if (logsFiltrados.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">No hay actividad registrada en las últimas 72 horas</td></tr>`;
+                    return;
+                }
+
+                logsFiltrados.forEach(log => {
+                    let badgeAccion = colorBadgeAccion(log.accion);
+                    let fechaCorta = log.fechaHora; // O formato compacto
+
+                    tbody.innerHTML += `
+                        <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs">
+                            <td class="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">${fechaCorta}</td>
+                            <td class="py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">${log.usuario}</td>
+                            <td class="py-2 px-3">${badgeAccion}</td>
+                            <td class="py-2 px-3 text-gray-600 dark:text-gray-300">${log.detalles}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                Swal.close();
+                console.error(err);
+                Swal.fire('Error', 'No se pudo cargar el log de actividad.', 'error');
+            }
+        }
+
+        function parsearFechaAuditoria(str) {
+            if (!str) return 0;
+            let partes = str.split(' ');
+            if (partes.length < 2) return new Date(str).getTime() || 0;
+            let fechaPartes = partes[0].split('/');
+            let horaPartes = partes[1].split(':');
+            if (fechaPartes.length === 3 && horaPartes.length === 3) {
+                let d = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0], horaPartes[0], horaPartes[1], horaPartes[2]);
+                return d.getTime();
+            }
+            return new Date(str).getTime() || 0;
+        }
+
+        function colorBadgeAccion(accion) {
+            let colorClass = "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+            let act = accion.toUpperCase();
+            if (act.includes("VENTA")) colorClass = "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300";
+            else if (act.includes("RETIRO")) colorClass = "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300";
+            else if (act.includes("CORTE")) colorClass = "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300";
+            else if (act.includes("SURTIR") || act.includes("ALTA")) colorClass = "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300";
+            else if (act.includes("INVERSIÓN") || act.includes("GASTO") || act.includes("ESTADO")) colorClass = "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300";
+            
+            return `<span class="px-2 py-0.5 rounded font-bold text-xs ${colorClass}">${accion}</span>`;
+        }
+
         // --- MÓDULO DE VENTAS PASADAS / HISTÓRICAS ---
         function renderVentasPasadas() {
             const tbody = document.getElementById('tabla-ventas-pasadas');
             if(!tbody) return;
             tbody.innerHTML = "";
 
-            // Establecer fecha por defecto a hoy si está vacío
             const inputFecha = document.getElementById('vp-fecha');
             if(inputFecha && !inputFecha.value) {
                 inputFecha.value = new Date().toISOString().slice(0, 10);
@@ -723,7 +823,6 @@
                 alterarInventario: alterarInv
             });
 
-            // Si se alteró el inventario localmente, lo actualizamos también en memoria
             if (alterarInv) {
                 productosVendidos.forEach(item => {
                     let p = inventario.find(prod => prod.codigo === item.codigo);
@@ -735,7 +834,6 @@
             Swal.fire('¡Registrado!', 'La venta pasada se ha incorporado correctamente al historial financiero y ROI.', 'success');
         }
 
-        // Formateador de fecha simple
         function formatearFechaSimple(fechaStr) {
             if (!fechaStr) return '';
             let d = new Date(fechaStr);
