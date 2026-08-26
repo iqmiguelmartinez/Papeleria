@@ -100,10 +100,10 @@
 
         <!-- SECCIÓN: INVENTARIO -->
         <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <h2 class="text-lg font-semibold text-gray-800">Control de Inventario</h2>
                 <div class="flex gap-2">
-                    <button onclick="abrirModalSurtir()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">📦 Surtir Inventario</button>
+                    <button onclick="confirmarSurtidoInventario()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔒 Surtir Inventario Ingresado</button>
                     <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
                 </div>
             </div>
@@ -115,7 +115,7 @@
                             <th class="p-3">Producto</th>
                             <th class="p-3">Precio ($)</th>
                             <th class="p-3">Stock Restante</th>
-                            <th class="p-3 text-center">Acción</th>
+                            <th class="p-3 text-center bg-emerald-50 text-emerald-800">Surtir Cantidad</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-inventario-completo" class="divide-y divide-gray-100 text-sm"></tbody>
@@ -441,57 +441,68 @@
                         <td class="p-3 font-medium text-gray-800">${p.nombre}</td>
                         <td class="p-3 text-gray-600">$${p.precio.toFixed(2)}</td>
                         <td class="p-3"><span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">${p.stock} un.</span></td>
-                        <td class="p-3 text-center text-xs text-gray-400">Actualizado por ventas</td>
+                        <td class="p-3 text-center">
+                            <input type="number" id="surtir-${p.codigo}" min="0" placeholder="0" class="w-24 px-2 py-1 border border-emerald-300 rounded-lg text-center text-sm focus:outline-emerald-500 bg-emerald-50/50">
+                        </td>
                     </tr>
                 `;
             });
         }
 
-        // NUEVO: Función protegida por contraseña para surtir inventario
-        async function abrirModalSurtir() {
-            const { value: formValues } = await Swal.fire({
-                title: '🔒 Surtir / Agregar Inventario',
-                html:
-                    '<input id="sw-pass" type="password" class="swal2-input" placeholder="Contraseña de administrador">' +
-                    '<input id="sw-cod" class="swal2-input" placeholder="Código del producto (Ej: PP0001)">' +
-                    '<input id="sw-cant" type="number" class="swal2-input" placeholder="Cantidad a sumar">',
-                focusConfirm: false,
-                preConfirm: () => {
-                    const pass = document.getElementById('sw-pass').value;
-                    const codigo = document.getElementById('sw-cod').value.trim();
-                    const cantidad = parseInt(document.getElementById('sw-cant').value);
+        // Función para confirmar el surtido por lote con contraseña
+        async function confirmarSurtidoInventario() {
+            const { value: password } = await Swal.fire({
+                title: '🔒 Autorizar Surtido de Inventario',
+                input: 'password',
+                inputPlaceholder: 'Ingresa la contraseña de administrador',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar y Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#059669'
+            });
 
-                    if (pass !== "1234") { // Contraseña por defecto (puedes cambiarla aquí)
-                        Swal.showValidationMessage('Contraseña incorrecta');
-                        return false;
+            if (password === undefined) return; // Canceló
+
+            if (password !== "1234") { // Contraseña por defecto (puedes cambiarla aquí)
+                Swal.fire('Error', 'Contraseña incorrecta.', 'error');
+                return;
+            }
+
+            // Recopilar entradas de los inputs
+            let entradas = {};
+            let hayCambios = false;
+
+            inventario.forEach(p => {
+                const input = document.getElementById(`surtir-${p.codigo}`);
+                if (input) {
+                    const cant = parseInt(input.value) || 0;
+                    if (cant > 0) {
+                        entradas[p.codigo] = cant;
+                        p.stock += cant; // Actualiza localmente
+                        hayCambios = true;
                     }
-                    if (!codigo || isNaN(cantidad) || cantidad <= 0) {
-                        Swal.showValidationMessage('Ingresa un código válido y una cantidad mayor a 0');
-                        return false;
-                    }
-                    return { codigo, cantidad };
                 }
             });
 
-            if (formValues) {
-                const prod = inventario.find(p => p.codigo.toLowerCase() === formValues.codigo.toLowerCase());
-                if (!prod) {
-                    Swal.fire('Error', 'El código de producto no existe en el inventario.', 'error');
-                    return;
-                }
-
-                prod.stock += formValues.cantidad;
-                renderInventario();
-                renderProductos();
-
-                await enviarDatosAGoogleSheets({
-                    tipo: 'surtir',
-                    codigo: formValues.codigo,
-                    cantidad: formValues.cantidad
-                });
-
-                Swal.fire('¡Inventario Actualizado!', `Se sumaron ${formValues.cantidad} unidades a ${prod.nombre}.`, 'success');
+            if (!hayCambios) {
+                Swal.fire('Sin cambios', 'No ingresaste ninguna cantidad para surtir en los productos.', 'info');
+                return;
             }
+
+            Swal.fire({ title: 'Actualizando...', text: 'Guardando entradas en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            await enviarDatosAGoogleSheets({
+                tipo: 'surtirLote',
+                entradas: entradas
+            });
+
+            renderInventario();
+            renderProductos();
+            Swal.fire('¡Inventario Surtido!', 'Las entradas de mercancía se han registrado correctamente en Google Sheets.', 'success');
         }
 
         function agregarProductoPrompt() {
