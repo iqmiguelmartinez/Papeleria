@@ -58,7 +58,6 @@
                     <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full mb-4 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-blue-500">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Tabla Izquierda -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
@@ -73,7 +72,6 @@
                                 <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                             </table>
                         </div>
-                        <!-- Tabla Derecha -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
@@ -217,11 +215,18 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS (NUEVA) -->
+        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
         <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
-            <div class="flex justify-between items-center">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis de Ventas e Inventario Inteligente</h2>
-                <button onclick="cargarDatosAnalisis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔄 Actualizar Análisis</button>
+                <div class="flex gap-2">
+                    <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
+                        📥 Descargar Lista para Surtir
+                    </button>
+                    <button onclick="cargarDatosAnalisis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                        🔄 Actualizar
+                    </button>
+                </div>
             </div>
 
             <!-- Tarjetas de Métricas Clave -->
@@ -239,7 +244,7 @@
                     <p id="ana-ventas-totales" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
                 </div>
                 <div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
-                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Productos en Stock Crítico</p>
+                    <p class="text-xs text-red-600 dark:text-red-400 font-medium">Productos en Stock Crítico / Faltantes</p>
                     <p id="ana-stock-critico" class="text-2xl font-bold text-red-800 dark:text-red-200">0</p>
                 </div>
             </div>
@@ -253,9 +258,34 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales (Con Promedio y Tickets)</h3>
                     <div style="height: 280px; position: relative;">
                         <canvas id="chartVentasMes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horas Pico de Venta y Top Productos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⏰ Horas de Mayor Venta (Horas Pico)</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chartHorasPico"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top 5 Productos Más Vendidos</h3>
+                    <div class="overflow-x-auto max-h-[280px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                                    <th class="p-2.5">Producto</th>
+                                    <th class="p-2.5 text-center">Unidades</th>
+                                    <th class="p-2.5 text-right">Recaudado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-top-productos" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -263,8 +293,8 @@
             <!-- Recomendación Inteligente de Compra -->
             <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                 <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo y Sugerencia de Compra</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Calculado en base al stock actual y la rotación de ventas históricas.</p>
-                <div class="overflow-x-auto">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Productos que se están acabando o requieren reabastecimiento.</p>
+                <div class="overflow-x-auto max-h-60">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
@@ -272,13 +302,36 @@
                                 <th class="p-3">Producto</th>
                                 <th class="p-3 text-center">Stock Actual</th>
                                 <th class="p-3 text-center">Unid. Vendidas (Hist.)</th>
-                                <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerencia de Compra (Reabastecer)</th>
+                                <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerencia de Compra</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Contenedor oculto para generar la imagen de la lista de surtido -->
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="print-lista-surtido" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 650px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
+            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #059669; padding-bottom: 12px;">
+                <h2 style="font-size: 20px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
+                <p style="font-size: 14px; font-weight: 600; color: #059669; margin: 0;">Lista de Productos Faltantes para Surtir</p>
+                <p id="print-fecha-surtido" style="font-size: 11px; color: #6b7280; margin: 6px 0 0 0;"></p>
+            </div>
+            <table style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 16px;">
+                <thead>
+                    <tr style="background-color: #f3f4f6; font-size: 11px; text-transform: uppercase; color: #4b5563;">
+                        <th style="padding: 10px; border-bottom: 1px solid #d1d5db;">Código</th>
+                        <th style="padding: 10px; border-bottom: 1px solid #d1d5db;">Producto</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #d1d5db;">Stock Actual</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #d1d5db; color: #059669;">Sugerido a Comprar</th>
+                    </tr>
+                </thead>
+                <tbody id="print-tbody-surtido"></tbody>
+            </table>
+            <p style="font-size: 11px; text-align: center; color: #9ca3af; margin: 0;">Generado automáticamente por el Sistema Interno Pixel y Papel</p>
         </div>
     </div>
 
@@ -294,8 +347,11 @@
         let ventasActivas = [];
         let retirosActivos = [];
         let cortesRealizados = [];
+        let cacheUltimoAnalisis = { ventas: [], inventario: [] };
+
         let chartSemanaInstance = null;
         let chartMesInstance = null;
+        let chartHorasPicoInstance = null;
 
         // Inicializar Tema
         function initTheme() {
@@ -474,6 +530,7 @@
                 let data = await resp.json();
                 Swal.close();
 
+                cacheUltimoAnalisis = data;
                 procesarMetricasAnalisis(data.ventas, data.inventario);
             } catch (err) {
                 Swal.close();
@@ -493,14 +550,17 @@
             document.getElementById('ana-ventas-totales').innerText = `$${ventasTotales.toFixed(2)}`;
             document.getElementById('ana-promedio-ticket').innerText = `$${promedioTicket.toFixed(2)}`;
 
-            // 3. Ventas por semana (Lunes a Viernes) y por mes
+            // 3. Agrupaciones de análisis
             let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
-            let ventasPorMes = {};
+            let ventasPorMesObj = {}; // { "2026-08": { total: X, tickets: Y } }
             let unidadesVendidasPorProducto = {};
+            let topProductosMap = {};
+            let horasPicoMap = {};
+            for(let h=8; h<=20; h++) horasPicoMap[h] = 0; // Horas operativas habituales (8am a 8pm)
 
             ventas.forEach(v => {
                 let d = new Date(v.fecha);
-                let diaSemana = d.getDay(); // 1: Lun, 2: Mar, 3: Mie, 4: Jue, 5: Vie
+                let diaSemana = d.getDay(); 
                 let nombresDias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
                 let nombreDia = nombresDias[diaSemana];
 
@@ -509,23 +569,53 @@
                 }
 
                 let mesAno = v.fecha.substring(0, 7); // "YYYY-MM"
-                ventasPorMes[mesAno] = (ventasPorMes[mesAno] || 0) + v.total;
+                if (!ventasPorMesObj[mesAno]) {
+                    ventasPorMesObj[mesAno] = { total: 0, tickets: 0 };
+                }
+                ventasPorMesObj[mesAno].total += v.total;
+                ventasPorMesObj[mesAno].tickets += 1;
+
+                let hora = d.getHours();
+                if (horasPicoMap[hora] !== undefined) {
+                    horasPicoMap[hora] += v.total;
+                } else {
+                    horasPicoMap[hora] = (horasPicoMap[hora] || 0) + v.total;
+                }
 
                 if (v.productos && Array.isArray(v.productos)) {
                     v.productos.forEach(p => {
                         unidadesVendidasPorProducto[p.codigo] = (unidadesVendidasPorProducto[p.codigo] || 0) + p.cantidad;
+
+                        if (!topProductosMap[p.codigo]) {
+                            topProductosMap[p.codigo] = { nombre: p.nombre, cantidad: 0, recaudado: 0 };
+                        }
+                        topProductosMap[p.codigo].cantidad += p.cantidad;
+                        topProductosMap[p.codigo].recaudado += (p.precio * p.cantidad);
                     });
                 }
             });
 
-            // 4. Stock crítico y sugerencia de compra
+            // 4. Renderizar Top 5 Productos
+            let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.cantidad - a.cantidad).slice(0, 5);
+            const tbodyTop = document.getElementById('tabla-top-productos');
+            tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="3" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
+            topProductosArray.forEach(tp => {
+                tbodyTop.innerHTML += `
+                    <tr class="border-b border-gray-100 dark:border-gray-700 text-sm">
+                        <td class="p-2.5 font-medium text-gray-800 dark:text-gray-200">${tp.nombre}</td>
+                        <td class="p-2.5 text-center font-bold text-blue-600 dark:text-blue-400">${tp.cantidad} un.</td>
+                        <td class="p-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${tp.recaudado.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            // 5. Stock crítico y sugerencia de compra
             let stockCriticoCount = 0;
             const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
             tbodySugerencia.innerHTML = "";
 
             let listaSugerencias = inventarioLista.map(p => {
                 let vendidos = unidadesVendidasPorProducto[p.codigo] || 0;
-                // Sugerencia de compra inteligente: si el stock es menor a 5 o menor a la mitad de lo vendido históricamente
                 let sugerido = p.stock <= 5 ? Math.max(10, vendidos - p.stock) : 0;
                 if (p.stock <= 5) stockCriticoCount++;
                 return { ...p, vendidos, sugerido };
@@ -544,14 +634,15 @@
                         <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
                         <td class="p-3 text-center">${badgeStock}</td>
                         <td class="p-3 text-center text-blue-600 dark:text-blue-400 font-semibold">${p.vendidos} un.</td>
-                        <td class="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400">${p.sugerido > 0 ? '+' + p.sugerido + ' un.' : 'Stock suficiente'}</td>
+                        <td class="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400">${p.sugerido > 0 ? '+' + p.sugerido + ' un.' : 'Suficiente'}</td>
                     </tr>
                 `;
             });
 
-            // Renderizar Gráficas con Chart.js
+            // 6. Renderizar Gráficas con Chart.js
             renderGraficaSemana(ventasPorDiaSemana);
-            renderGraficaMes(ventasPorMes);
+            renderGraficaMes(ventasPorMesObj);
+            renderGraficaHorasPico(horasPicoMap);
         }
 
         function renderGraficaSemana(datosDias) {
@@ -583,25 +674,79 @@
             });
         }
 
-        function renderGraficaMes(datosMeses) {
+        function renderGraficaMes(datosMesesObj) {
             const ctx = document.getElementById('chartVentasMes').getContext('2d');
             if (chartMesInstance) chartMesInstance.destroy();
 
-            let mesesOrdenados = Object.keys(datosMeses).sort();
-            let valoresMeses = mesesOrdenados.map(m => datosMeses[m]);
+            let mesesOrdenados = Object.keys(datosMesesObj).sort();
+            let totalesMes = mesesOrdenados.map(m => datosMesesObj[m].total);
+            let promedioVentaMes = mesesOrdenados.map(m => datosMesesObj[m].tickets > 0 ? datosMesesObj[m].total / datosMesesObj[m].tickets : 0);
+            let promedioSemanalTicket = mesesOrdenados.map(m => (datosMesesObj[m].tickets / 4.33).toFixed(1)); // Promedio semanal de tickets
 
             chartMesInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: mesesOrdenados.length > 0 ? mesesOrdenados : ['Sin datos'],
+                    datasets: [
+                        {
+                            label: 'Ventas Totales ($)',
+                            data: totalesMes.length > 0 ? totalesMes : [0],
+                            borderColor: 'rgb(5, 150, 105)',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Promedio Ticket ($)',
+                            data: promedioVentaMes.length > 0 ? promedioVentaMes : [0],
+                            borderColor: 'rgb(217, 119, 6)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                footer: function(tooltipItems) {
+                                    let idx = tooltipItems[0].dataIndex;
+                                    let semTickets = promedioSemanalTicket[idx] || 0;
+                                    return `Prom. Tickets Semanales: ${semTickets}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.1)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderGraficaHorasPico(horasMap) {
+            const ctx = document.getElementById('chartHorasPico').getContext('2d');
+            if (chartHorasPicoInstance) chartHorasPicoInstance.destroy();
+
+            let horasLabels = Object.keys(horasMap).map(h => `${h}:00 hrs`);
+            let horasValores = Object.values(horasMap);
+
+            chartHorasPicoInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: horasLabels,
                     datasets: [{
-                        label: 'Ventas Mensuales ($)',
-                        data: valoresMeses.length > 0 ? valoresMeses : [0],
-                        borderColor: 'rgb(5, 150, 105)',
-                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 2
+                        label: 'Ventas por Hora ($)',
+                        data: horasValores,
+                        backgroundColor: 'rgba(147, 51, 234, 0.7)',
+                        borderColor: 'rgb(147, 51, 234)',
+                        borderWidth: 1,
+                        borderRadius: 6
                     }]
                 },
                 options: {
@@ -614,6 +759,53 @@
                     }
                 }
             });
+        }
+
+        // DESCARGAR IMAGEN CON LISTA DE FALTANTES PARA SURTIR
+        async function descargarListaSurtidoImagen() {
+            if (!cacheUltimoAnalisis || !cacheUltimoAnalisis.inventario) {
+                Swal.fire('Sin datos', 'Actualiza primero la sección de análisis.', 'warning');
+                return;
+            }
+
+            let fechaStr = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('print-fecha-surtido').innerText = `Fecha de emisión: ${fechaStr}`;
+
+            let tbodyPrint = document.getElementById('print-tbody-surtido');
+            tbodyPrint.innerHTML = "";
+
+            // Filtrar productos con stock crítico (<= 5 o 0)
+            let criticos = cacheUltimoAnalisis.inventario.filter(p => p.stock <= 5);
+
+            if (criticos.length === 0) {
+                Swal.fire('Todo en orden', 'No hay productos con stock crítico en este momento.', 'success');
+                return;
+            }
+
+            criticos.forEach(p => {
+                let sugerido = Math.max(10, 15 - p.stock);
+                tbodyPrint.innerHTML += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 12px; color: #4b5563;">${p.codigo}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 500; font-size: 12px; color: #1f2937;">${p.nombre}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: bold; font-size: 12px; color: #dc2626;">${p.stock} un.</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: bold; font-size: 12px; color: #059669;">+${sugerido} un.</td>
+                    </tr>
+                `;
+            });
+
+            const el = document.getElementById('print-lista-surtido');
+            try {
+                Swal.fire({ title: 'Generando imagen...', text: 'Preparando lista para surtir...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+                const link = document.createElement('a');
+                link.download = `lista-surtido-pixel-papel-${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                Swal.fire('¡Descargado!', 'La lista de faltantes se ha guardado como imagen correctamente.', 'success');
+            } catch(err) {
+                Swal.fire('Error', `No se pudo generar la imagen: ${err}`, 'error');
+            }
         }
 
         function renderProductos(filtro = "") {
