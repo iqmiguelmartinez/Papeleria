@@ -45,6 +45,7 @@
         <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">
             <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
             <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
+            <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
             <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
@@ -135,6 +136,54 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: INVERSIONES Y CRÉDITOS -->
+        <div id="tab-inversion" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos (Cuentas por Pagar)</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago de No a Sí para actualizar el balance.</p>
+                </div>
+                <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                    + Registrar Gasto / Inversión
+                </button>
+            </div>
+
+            <!-- Resumen de Créditos Pendientes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Total en Créditos (Por Pagar - "No")</p>
+                        <p id="inv-total-credito" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+                    </div>
+                    <span class="text-3xl">⏳</span>
+                </div>
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Total Inversión Liquidada ("Sí")</p>
+                        <p id="inv-total-pagado" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
+                    </div>
+                    <span class="text-3xl">✅</span>
+                </div>
+            </div>
+
+            <!-- Tabla de Inversiones e Historial -->
+            <div class="overflow-x-auto max-h-[500px] border dark:border-gray-700 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                            <th class="p-3">Concepto</th>
+                            <th class="p-3 text-right">Cantidad ($)</th>
+                            <th class="p-3">Observaciones</th>
+                            <th class="p-3 text-center">Pagado?</th>
+                            <th class="p-3">Fecha</th>
+                            <th class="p-3">Persona</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- SECCIÓN: RETIROS / GASTOS -->
         <div id="tab-retiros" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Registrar Retiro o Gasto de Caja</h2>
@@ -215,7 +264,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (CON INVERSIÓN Y ROI) -->
+        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
         <div id="tab-analisis" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
@@ -229,10 +278,10 @@
                 </div>
             </div>
 
-            <!-- Tarjetas de Métricas Clave (Inversión, ROI y Ganancias) -->
+            <!-- Tarjetas de Métricas Clave -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
-                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión y Gastos Totales</p>
+                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión Total (Gastos)</p>
                     <p id="ana-inversion-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
                 </div>
                 <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
@@ -463,10 +512,13 @@
 
         function actualizarVisibilidadTabs() {
             const btnAnalisis = document.getElementById('btn-tab-analisis');
+            const btnInversion = document.getElementById('btn-tab-inversion');
             if (tienePermisoAnalisis) {
                 btnAnalisis.classList.remove('hidden');
+                btnInversion.classList.remove('hidden');
             } else {
                 btnAnalisis.classList.add('hidden');
+                btnInversion.classList.add('hidden');
             }
         }
 
@@ -476,16 +528,16 @@
         }
 
         function cambiarTab(tab) {
-            if (tab === 'analisis' && !tienePermisoAnalisis) {
-                Swal.fire('Acceso Denegado', 'No tienes permisos para ver la sección de Análisis.', 'warning');
+            if ((tab === 'analisis' || tab === 'inversion') && !tienePermisoAnalisis) {
+                Swal.fire('Acceso Denegado', 'No tienes permisos para ver esta sección.', 'warning');
                 return;
             }
 
-            ['ventas', 'inventario', 'retiros', 'corte', 'analisis'].forEach(t => {
+            ['ventas', 'inventario', 'inversion', 'retiros', 'corte', 'analisis'].forEach(t => {
                 const elTab = document.getElementById(`tab-${t}`);
                 const btnTab = document.getElementById(`btn-tab-${t}`);
                 if(elTab) elTab.classList.add('hidden');
-                if(btnTab && (t !== 'analisis' || tienePermisoAnalisis)) {
+                if(btnTab && (t !== 'analisis' && t !== 'inversion' || tienePermisoAnalisis)) {
                     btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
                 }
             });
@@ -496,6 +548,7 @@
             if(targetBtn) targetBtn.className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
             
             if(tab === 'inventario') renderInventario();
+            if(tab === 'inversion') cargarDatosAnalisis(); // Carga inversiones también
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
             if(tab === 'analisis') cargarDatosAnalisis();
@@ -523,20 +576,120 @@
             }
         }
 
-        // CARGAR Y PROCESAR DATOS DE ANÁLISIS (INVERSIÓN Y ROI)
+        // CARGAR Y PROCESAR DATOS DE ANÁLISIS E INVERSIONES
         async function cargarDatosAnalisis() {
-            Swal.fire({ title: 'Analizando datos...', text: 'Procesando inversiones, ROI y ganancias...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'Cargando datos...', text: 'Sincronizando inversiones y finanzas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 let resp = await fetch(URL_APPS_SCRIPT + "?action=getDataAnalisis");
                 let data = await resp.json();
                 Swal.close();
 
                 cacheUltimoAnalisis = data;
+                renderizarTablaInversiones(data.inversion);
                 procesarMetricasAnalisis(data.ventas, data.inventario, data.inversion);
             } catch (err) {
                 Swal.close();
                 console.error(err);
-                Swal.fire('Error', 'No se pudieron cargar los datos de análisis.', 'error');
+                Swal.fire('Error', 'No se pudieron cargar los datos.', 'error');
+            }
+        }
+
+        function renderizarTablaInversiones(inversionLista) {
+            const tbody = document.getElementById('tabla-inversiones-completa');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            let totalCredito = 0;
+            let totalPagado = 0;
+
+            if (!Array.isArray(inversionLista) || inversionLista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Sin registros de inversión</td></tr>`;
+                document.getElementById('inv-total-credito').innerText = "$0.00";
+                document.getElementById('inv-total-pagado').innerText = "$0.00";
+                return;
+            }
+
+            inversionLista.forEach(inv => {
+                let montoAbs = Math.abs(inv.cantidad);
+                let esPagado = inv.pagado.toString().toUpperCase() === "SI";
+
+                if (esPagado) {
+                    totalPagado += montoAbs;
+                } else {
+                    totalCredito += montoAbs;
+                }
+
+                let badgePagado = esPagado 
+                    ? `<span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-bold text-xs">Sí</span>`
+                    : `<span class="px-2.5 py-1 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded font-bold text-xs">No (Crédito)</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm">
+                        <td class="p-3 font-medium text-gray-800 dark:text-gray-200">${inv.concepto}</td>
+                        <td class="p-3 text-right font-semibold text-gray-700 dark:text-gray-300">$${inv.cantidad.toFixed(2)}</td>
+                        <td class="p-3 text-gray-500 dark:text-gray-400 text-xs">${inv.observaciones}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="cambiarEstadoPago(${inv.rowIndex}, '${inv.pagado}')" class="cursor-pointer transition hover:scale-105" title="Clic para cambiar estado">${badgePagado}</button>
+                        </td>
+                        <td class="p-3 text-xs text-gray-500 dark:text-gray-400">${inv.fecha}</td>
+                        <td class="p-3 text-xs text-gray-600 dark:text-gray-300">${inv.persona}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('inv-total-credito').innerText = `$${totalCredito.toFixed(2)}`;
+            document.getElementById('inv-total-pagado').innerText = `$${totalPagado.toFixed(2)}`;
+        }
+
+        async function cambiarEstadoPago(rowIndex, estadoActual) {
+            let nuevoEstado = estadoActual.toUpperCase() === "SI" ? "NO" : "SI";
+            
+            Swal.fire({ title: 'Actualizando...', text: 'Guardando estado en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            await enviarDatosAGoogleSheets({
+                tipo: 'actualizarPagoInversion',
+                rowIndex: rowIndex,
+                pagado: nuevoEstado
+            });
+
+            await cargarDatosAnalisis();
+            Swal.fire('¡Actualizado!', `El estado de pago cambió a: ${nuevoEstado}`, 'success');
+        }
+
+        async function agregarInversionPrompt() {
+            let fechaHoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+            const { value: formValues } = await Swal.fire({
+                title: 'Registrar Gasto o Inversión',
+                html: 
+                    '<input id="sw-con" class="swal2-input" placeholder="Concepto (Ej: Material, Vitrina)">' +
+                    '<input id="sw-can" type="number" class="swal2-input" placeholder="Cantidad (Ej: -500 o 500)">' +
+                    '<input id="sw-obs" class="swal2-input" placeholder="Observaciones">' +
+                    '<select id="sw-pag" class="swal2-input"><option value="NO">No (Crédito)</option><option value="SI">Sí (Pagado)</option></select>' +
+                    '<input id="sw-fec" class="swal2-input" value="' + fechaHoy + '" placeholder="Fecha">' +
+                    '<input id="sw-per" class="swal2-input" placeholder="Persona o Proveedor">',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        concepto: document.getElementById('sw-con').value.trim(),
+                        cantidad: parseFloat(document.getElementById('sw-can').value) || 0,
+                        observaciones: document.getElementById('sw-obs').value.trim(),
+                        pagado: document.getElementById('sw-pag').value,
+                        fecha: document.getElementById('sw-fec').value.trim(),
+                        persona: document.getElementById('sw-per').value.trim()
+                    }
+                }
+            });
+
+            if (formValues && formValues.concepto && !isNaN(formValues.cantidad)) {
+                Swal.fire({ title: 'Guardando...', text: 'Registrando en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                await enviarDatosAGoogleSheets({
+                    tipo: 'nuevaInversion',
+                    ...formValues
+                });
+
+                await cargarDatosAnalisis();
+                Swal.fire('¡Registrado!', 'El gasto o inversión se guardó correctamente.', 'success');
             }
         }
 
@@ -546,17 +699,15 @@
                 costoPorCodigo[p.codigo] = p.costo || 0;
             });
 
-            // 1. Calcular Inversión Total (sumando los montos de la pestaña Inversión)
+            // 1. Inversión Total (Suma de todas las inversiones registradas)
             let inversionTotal = 0;
             if (Array.isArray(inversionLista)) {
                 inversionLista.forEach(inv => {
-                    // Como en tu hoja los gastos son negativos (ej. -$3,731.00), los convertimos a positivo para sumar la inversión total
-                    let monto = Math.abs(inv.cantidad);
-                    inversionTotal += monto;
+                    inversionTotal += Math.abs(inv.cantidad);
                 });
             }
 
-            // 2. Calcular Ganancia Neta Histórica
+            // 2. Ganancia Neta Histórica
             let gananciaTotalHistorica = 0;
             let ventasPorDiaSemana = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0 };
             let ventasPorMesObj = {}; 
@@ -610,8 +761,6 @@
                 }
             });
 
-            // 3. Calcular ROI (Retorno de Inversión) y Balance Neto
-            // ROI = (Ganancia Neta / Inversión Total) * 100
             let roi = inversionTotal > 0 ? ((gananciaTotalHistorica / inversionTotal) * 100) : 0;
             let balanceNeto = gananciaTotalHistorica - inversionTotal;
 
@@ -620,7 +769,7 @@
             document.getElementById('ana-roi').innerText = `${roi.toFixed(1)}%`;
             document.getElementById('ana-balance-neto').innerText = `$${balanceNeto.toFixed(2)}`;
 
-            // 4. Renderizar Top 5 Productos
+            // 3. Renderizar Top 5 Productos
             let topProductosArray = Object.values(topProductosMap).sort((a,b) => b.ganancia - a.ganancia).slice(0, 5);
             const tbodyTop = document.getElementById('tabla-top-productos');
             tbodyTop.innerHTML = topProductosArray.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin ventas registradas</td></tr>` : "";
@@ -635,7 +784,7 @@
                 `;
             });
 
-            // 5. Stock crítico y sugerencia de compra
+            // 4. Stock crítico y sugerencia de compra
             let stockCriticoCount = 0;
             const tbodySugerencia = document.getElementById('tabla-sugerencia-compra');
             tbodySugerencia.innerHTML = "";
@@ -663,7 +812,7 @@
                 `;
             });
 
-            // 6. Renderizar Gráficas
+            // 5. Renderizar Gráficas
             renderGraficaSemana(ventasPorDiaSemana);
             renderGraficaMes(ventasPorMesObj);
             renderGraficaHorasPico(horasPicoMap);
