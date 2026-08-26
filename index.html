@@ -23,15 +23,18 @@
                 <img src="logo.jpeg" alt="Pixel y Papel" class="w-14 h-14 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Control de ventas, gastos y stock conectado a Google Sheets</p>
+                    <p id="label-sesion" class="text-sm text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
             </div>
             <div class="mt-4 md:mt-0 flex gap-2 items-center">
                 <button onclick="toggleTheme()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3.5 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
-                    <span id="icono-tema">🌙</span> <span class="hidden sm:inline">Tema</span>
+                    <span id="icono-tema">🌙</span>
+                </button>
+                <button onclick="cerrarSesion()" class="bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-300 px-3 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    🚪 Salir
                 </button>
                 <button onclick="sincronizarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
-                    🔄 Sincronizar Sheets
+                    🔄 Sincronizar
                 </button>
             </div>
         </header>
@@ -251,13 +254,90 @@
 
         initTheme();
 
+        // CONTROL DE ACCESO MEDIANTE GOOGLE SHEETS
+        async function verificarSesion() {
+            let usuarioGuardado = sessionStorage.getItem('usuario_activo');
+            if (usuarioGuardado) {
+                document.getElementById('label-sesion').innerText = `Usuario: ${usuarioGuardado}`;
+                cargarDatosIniciales();
+                return;
+            }
+
+            const { value: formValues } = await Swal.fire({
+                title: '🔐 Iniciar Sesión',
+                html:
+                    '<input id="sw-user" class="swal2-input" placeholder="Usuario">' +
+                    '<input id="sw-pass" type="password" class="swal2-input" placeholder="Contraseña">',
+                focusConfirm: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'Entrar',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    return {
+                        usuario: document.getElementById('sw-user').value.trim(),
+                        password: document.getElementById('sw-pass').value.trim()
+                    }
+                }
+            });
+
+            if (!formValues || !formValues.usuario || !formValues.password) {
+                verificarSesion();
+                return;
+            }
+
+            Swal.fire({ title: 'Verificando...', text: 'Validando credenciales...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                let respuesta = await fetch(URL_APPS_SCRIPT + "?action=getUsuarios");
+                let usuariosValidos = await respuesta.json();
+
+                let usuarioEncontrado = usuariosValidos.find(u => u.usuario.toLowerCase() === formValues.usuario.toLowerCase() && u.password === formValues.password);
+
+                if (usuarioEncontrado) {
+                    sessionStorage.setItem('usuario_activo', usuarioEncontrado.usuario);
+                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioEncontrado.usuario}`;
+                    Swal.fire('¡Bienvenido!', `Has iniciado sesión correctamente.`, 'success');
+                    cargarDatosIniciales();
+                } else {
+                    Swal.fire({
+                        title: 'Datos incorrectos',
+                        text: 'El usuario o la contraseña no coinciden.',
+                        icon: 'error',
+                        confirmButtonText: 'Reintentar'
+                    }).then(() => {
+                        verificarSesion();
+                    });
+                }
+            } catch (err) {
+                Swal.fire({
+                    title: 'Error de conexión',
+                    text: 'No se pudo verificar con Google Sheets. Intenta de nuevo.',
+                    icon: 'warning',
+                    confirmButtonText: 'Reintentar'
+                }).then(() => {
+                    verificarSesion();
+                });
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.removeItem('usuario_activo');
+            location.reload();
+        }
+
         function cambiarTab(tab) {
             ['ventas', 'inventario', 'retiros', 'corte'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`btn-tab-${t}`).className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
+                const elTab = document.getElementById(`tab-${t}`);
+                const btnTab = document.getElementById(`btn-tab-${t}`);
+                if(elTab) elTab.classList.add('hidden');
+                if(btnTab) btnTab.className = "px-4 py-2 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
             });
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-tab-${tab}`).className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
+            
+            const targetTab = document.getElementById(`tab-${tab}`);
+            const targetBtn = document.getElementById(`btn-tab-${tab}`);
+            if(targetTab) targetTab.classList.remove('hidden');
+            if(targetBtn) targetBtn.className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white cursor-pointer transition";
             
             if(tab === 'inventario') renderInventario();
             if(tab === 'retiros') renderRetiros();
@@ -289,6 +369,7 @@
         function renderProductos(filtro = "") {
             const tbody1 = document.getElementById('tabla-productos-venta-1');
             const tbody2 = document.getElementById('tabla-productos-venta-2');
+            if(!tbody1 || !tbody2) return;
             tbody1.innerHTML = "";
             tbody2.innerHTML = "";
 
@@ -354,6 +435,7 @@
 
         function renderCarrito() {
             const contenedor = document.getElementById('lista-carrito');
+            if(!contenedor) return;
             if (carrito.length === 0) {
                 contenedor.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">El carrito está vacío</p>`;
                 document.getElementById('total-venta').innerText = "$0.00";
@@ -452,6 +534,7 @@
 
         function renderRetiros() {
             const tbody = document.getElementById('tabla-retiros-historial');
+            if(!tbody) return;
             if (retirosActivos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400 dark:text-gray-500">No hay retiros en este turno</td></tr>`;
                 return;
@@ -470,6 +553,7 @@
 
         function renderInventario() {
             const tbody = document.getElementById('tabla-inventario-completo');
+            if(!tbody) return;
             tbody.innerHTML = "";
             inventario.forEach(p => {
                 tbody.innerHTML += `
@@ -487,27 +571,6 @@
         }
 
         async function confirmarSurtidoInventario() {
-            const { value: password } = await Swal.fire({
-                title: '🔒 Autorizar Surtido de Inventario',
-                input: 'password',
-                inputPlaceholder: 'Ingresa la contraseña de administrador',
-                inputAttributes: {
-                    autocapitalize: 'off',
-                    autocorrect: 'off'
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Confirmar y Guardar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#059669'
-            });
-
-            if (password === undefined) return;
-
-            if (password !== "1234") {
-                Swal.fire('Error', 'Contraseña incorrecta.', 'error');
-                return;
-            }
-
             let entradas = {};
             let hayCambios = false;
 
@@ -605,6 +668,7 @@
             document.getElementById('corte-efectivo-neto').innerText = `$${efectivoNeto.toFixed(2)}`;
 
             const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
+            if(!tbodyArticulos) return;
             const resumen = calcularResumenArticulos(ventasActivas);
             tbodyArticulos.innerHTML = resumen.length === 0 ? `<tr><td colspan="3" class="p-3 text-gray-400 dark:text-gray-500 text-center">Sin artículos vendidos en este turno</td></tr>` : "";
             resumen.forEach(item => {
@@ -618,6 +682,7 @@
             });
 
             const histContainer = document.getElementById('historial-cortes-container');
+            if(!histContainer) return;
             if (cortesRealizados.length === 0) {
                 histContainer.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>`;
             } else {
@@ -782,8 +847,8 @@
             Swal.fire('¡Sincronizado!', 'El stock, turnos y cortes se han actualizado desde Google Sheets.', 'success');
         }
 
-        // Cargar al iniciar la página
-        cargarDatosIniciales();
+        // Iniciar sesión al cargar la página
+        verificarSesion();
     </script>
 </body>
 </html>
