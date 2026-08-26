@@ -179,7 +179,7 @@
                             <th class="py-2 px-3">Persona</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700 text-xs"></tbody>
+                    <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700/60 text-xs"></tbody>
                 </table>
             </div>
         </div>
@@ -583,7 +583,7 @@
             if (!isNaN(d.getTime())) {
                 return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
             }
-            return fechaStr; // Devuelve la original si ya es un texto simple (ej: "01-agosto-2026")
+            return fechaStr; 
         }
 
         async function cargarDatosAnalisis() {
@@ -710,10 +710,14 @@
                 costoPorCodigo[p.codigo] = p.costo || 0;
             });
 
+            // Inversión Total: Sumamos excluyendo la fila de fondo inicial para evitar duplicación
             let inversionTotal = 0;
             if (Array.isArray(inversionLista)) {
                 inversionLista.forEach(inv => {
-                    inversionTotal += Math.abs(inv.cantidad);
+                    let conceptoLower = inv.concepto.toLowerCase();
+                    if (!conceptoLower.includes("inversion inicial") && !conceptoLower.includes("inicio")) {
+                        inversionTotal += Math.abs(inv.cantidad);
+                    }
                 });
             }
 
