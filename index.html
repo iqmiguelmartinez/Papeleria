@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Punto de Venta - Pixel y Papel</title>
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
-    <!-- Usamos Tailwind v3 para evitar conflictos de oklch con html2canvas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -103,7 +102,10 @@
         <div id="tab-inventario" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-800">Control de Inventario</h2>
-                <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
+                <div class="flex gap-2">
+                    <button onclick="abrirModalSurtir()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">📦 Surtir Inventario</button>
+                    <button onclick="agregarProductoPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">+ Nuevo Producto</button>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -443,6 +445,53 @@
                     </tr>
                 `;
             });
+        }
+
+        // NUEVO: Función protegida por contraseña para surtir inventario
+        async function abrirModalSurtir() {
+            const { value: formValues } = await Swal.fire({
+                title: '🔒 Surtir / Agregar Inventario',
+                html:
+                    '<input id="sw-pass" type="password" class="swal2-input" placeholder="Contraseña de administrador">' +
+                    '<input id="sw-cod" class="swal2-input" placeholder="Código del producto (Ej: PP0001)">' +
+                    '<input id="sw-cant" type="number" class="swal2-input" placeholder="Cantidad a sumar">',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const pass = document.getElementById('sw-pass').value;
+                    const codigo = document.getElementById('sw-cod').value.trim();
+                    const cantidad = parseInt(document.getElementById('sw-cant').value);
+
+                    if (pass !== "1234") { // Contraseña por defecto (puedes cambiarla aquí)
+                        Swal.showValidationMessage('Contraseña incorrecta');
+                        return false;
+                    }
+                    if (!codigo || isNaN(cantidad) || cantidad <= 0) {
+                        Swal.showValidationMessage('Ingresa un código válido y una cantidad mayor a 0');
+                        return false;
+                    }
+                    return { codigo, cantidad };
+                }
+            });
+
+            if (formValues) {
+                const prod = inventario.find(p => p.codigo.toLowerCase() === formValues.codigo.toLowerCase());
+                if (!prod) {
+                    Swal.fire('Error', 'El código de producto no existe en el inventario.', 'error');
+                    return;
+                }
+
+                prod.stock += formValues.cantidad;
+                renderInventario();
+                renderProductos();
+
+                await enviarDatosAGoogleSheets({
+                    tipo: 'surtir',
+                    codigo: formValues.codigo,
+                    cantidad: formValues.cantidad
+                });
+
+                Swal.fire('¡Inventario Actualizado!', `Se sumaron ${formValues.cantidad} unidades a ${prod.nombre}.`, 'success');
+            }
         }
 
         function agregarProductoPrompt() {
