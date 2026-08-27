@@ -47,7 +47,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v1.9.0</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.0.0</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -1330,7 +1330,6 @@
             link.click();
         }
 
-        // Descargar imagen de un corte pasado
         async function descargarImagenCorte(index) {
             let corte = cortesRealizados[index];
             if (!corte) return;
@@ -1366,7 +1365,6 @@
             link.click();
         }
 
-        // Ver detalle flotante de un corte pasado
         function verDetalleCorte(index) {
             let corte = cortesRealizados[index];
             if (!corte) return;
@@ -1425,7 +1423,6 @@
             });
         }
 
-        // Renderizar productos divididos en 3 columnas verticales (sin código, ancho completo para nombre)
         function renderProductos(filtro = "") {
             const tbody1 = document.getElementById('tabla-productos-venta-1');
             const tbody2 = document.getElementById('tabla-productos-venta-2');
