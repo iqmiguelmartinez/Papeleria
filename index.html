@@ -47,7 +47,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v1.6.0</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v1.9.0</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -156,6 +156,7 @@
                 </div>
                 <div class="flex gap-2 flex-wrap items-center">
                     <button id="btn-modificar-productos" onclick="toggleModificarInventario()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✏️ Modificar Productos</button>
+                    <button id="btn-re-codificar" onclick="abrirModalClasificacionExistentes()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🏷️ Reasignar Códigos</button>
                     <button id="btn-guardar-modificacion" onclick="guardarModificacionInventario()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">💾 Finalizado (Guardar)</button>
                     <button id="btn-cancelar-modificacion" onclick="cancelarModificacionInventario()" class="hidden bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">❌ Cancelar</button>
                     
@@ -719,6 +720,12 @@
             if (btnModInv) {
                 if (tienePermisoAnalisis) btnModInv.classList.remove('hidden');
                 else btnModInv.classList.add('hidden');
+            }
+
+            const btnReCod = document.getElementById('btn-re-codificar');
+            if (btnReCod) {
+                if (tienePermisoAnalisis) btnReCod.classList.remove('hidden');
+                else btnReCod.classList.add('hidden');
             }
         }
 
@@ -1661,7 +1668,6 @@
             const targetIndex = parseInt(trTarget.getAttribute('data-index'));
             if (isNaN(draggedIndex) || isNaN(targetIndex) || draggedIndex === targetIndex) return;
 
-            // Reorganizar arreglo local de inventario
             let movedItem = inventario.splice(draggedIndex, 1)[0];
             inventario.splice(targetIndex, 0, movedItem);
 
@@ -1686,6 +1692,7 @@
             }
             editandoInventario = true;
             document.getElementById('btn-modificar-productos').classList.add('hidden');
+            document.getElementById('btn-re-codificar').classList.add('hidden');
             document.getElementById('btn-guardar-modificacion').classList.remove('hidden');
             document.getElementById('btn-cancelar-modificacion').classList.remove('hidden');
             document.getElementById('btn-surtir-inv').classList.add('hidden');
@@ -1696,6 +1703,7 @@
         function cancelarModificacionInventario() {
             editandoInventario = false;
             document.getElementById('btn-modificar-productos').classList.remove('hidden');
+            document.getElementById('btn-re-codificar').classList.remove('hidden');
             document.getElementById('btn-guardar-modificacion').classList.add('hidden');
             document.getElementById('btn-cancelar-modificacion').classList.add('hidden');
             document.getElementById('btn-surtir-inv').classList.remove('hidden');
@@ -1743,6 +1751,7 @@
             inventario = inventarioActualizado;
             editandoInventario = false;
             document.getElementById('btn-modificar-productos').classList.remove('hidden');
+            document.getElementById('btn-re-codificar').classList.remove('hidden');
             document.getElementById('btn-guardar-modificacion').classList.add('hidden');
             document.getElementById('btn-cancelar-modificacion').classList.add('hidden');
             document.getElementById('btn-surtir-inv').classList.remove('hidden');
@@ -1767,18 +1776,157 @@
             Swal.fire('¡Inventario Surtido!', 'Entradas registradas correctamente.', 'success');
         }
 
+        function generarCodigoAutomatico(prefijo) {
+            let maxNum = 0;
+            inventario.forEach(p => {
+                if (p.codigo && p.codigo.startsWith(prefijo)) {
+                    let numStr = p.codigo.replace(prefijo, '');
+                    let num = parseInt(numStr, 10);
+                    if (!isNaN(num) && num > maxNum) {
+                        maxNum = num;
+                    }
+                }
+            });
+            let siguienteNum = maxNum + 1;
+            let numeroStr = String(siguienteNum).padStart(3, '0');
+            return prefijo + numeroStr;
+        }
+
+        function sugerirPrefijoPorNombre(nombre) {
+            let n = nombre.toLowerCase();
+            if (n.includes('impres') || n.includes('copia') || n.includes('print') || n.includes('color') || n.includes('foto') || n.includes('scan') || n.includes('mica') || n.includes('plastif')) {
+                return 'IMP';
+            } else if (n.includes('hoja') || n.includes('opalina') || n.includes('cartulina')) {
+                return 'HOJ';
+            } else if (n.includes('lapicero') || n.includes('lapiz') || n.includes('lápiz') || n.includes('puntilla') || n.includes('portaminas')) {
+                return 'LAP';
+            } else if (n.includes('papel') || n.includes('libreta') || n.includes('cuaderno') || n.includes('pluma') || n.includes('carpeta') || n.includes('tijera') || n.includes('goma') || n.includes('corrector') || n.includes('marcador') || n.includes('marcatexto') || n.includes('sobre') || n.includes('broche') || n.includes('clip') || n.includes('diurex') || n.includes('engrapadora') || n.includes('espiral') || n.includes('folder') || n.includes('perforadora') || n.includes('regla') || n.includes('masking') || n.includes('contact') || n.includes('pqt')) {
+                return 'PAP';
+            } else {
+                return 'MS';
+            }
+        }
+
+        async function abrirModalClasificacionExistentes() {
+            if (inventario.length === 0) {
+                Swal.fire('Inventario vacío', 'No hay productos para clasificar.', 'info');
+                return;
+            }
+
+            let htmlRows = '';
+            inventario.forEach((p, idx) => {
+                let sugerido = sugerirPrefijoPorNombre(p.nombre);
+                htmlRows += `
+                    <tr class="border-b dark:border-gray-700 text-xs">
+                        <td class="p-2 font-mono text-gray-500 dark:text-gray-400">${p.codigo}</td>
+                        <td class="p-2 font-medium text-gray-800 dark:text-gray-200">${p.nombre}</td>
+                        <td class="p-2 text-center">
+                            <select id="sel-cat-${idx}" class="px-2 py-1 border rounded bg-white dark:bg-gray-700 text-xs font-semibold text-gray-800 dark:text-gray-100">
+                                <option value="IMP" ${sugerido === 'IMP' ? 'selected' : ''}>Impresión (IMP)</option>
+                                <option value="HOJ" ${sugerido === 'HOJ' ? 'selected' : ''}>Hojas (HOJ)</option>
+                                <option value="LAP" ${sugerido === 'LAP' ? 'selected' : ''}>Lápiz / Lapiceros (LAP)</option>
+                                <option value="PAP" ${sugerido === 'PAP' ? 'selected' : ''}>Papelería (PAP)</option>
+                                <option value="MS" ${sugerido === 'MS' ? 'selected' : ''}>Misceláneo (MS)</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const { value: confirmar } = await Swal.fire({
+                title: '🏷️ Reasignación Masiva de Códigos',
+                html: `
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Revisa y ajusta la categoría de cada producto existente. El sistema asignará automáticamente los consecutivos.</p>
+                    <div class="max-h-[350px] overflow-y-auto border dark:border-gray-700 rounded-lg text-left">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700 text-[10px] uppercase text-gray-600 dark:text-gray-300">
+                                    <th class="p-2">Código Actual</th>
+                                    <th class="p-2">Producto</th>
+                                    <th class="p-2 text-center">Nueva Categoría</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlRows}</tbody>
+                        </table>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Aplicar Nuevos Códigos',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#4f46e5',
+                width: '700px',
+                focusConfirm: false
+            });
+
+            if (!confirmar) return;
+
+            let contadores = { IMP: 0, HOJ: 0, LAP: 0, PAP: 0, MS: 0 };
+            let nuevoInventario = JSON.parse(JSON.stringify(inventario));
+
+            nuevoInventario.forEach((p, idx) => {
+                let selectEl = document.getElementById(`sel-cat-${idx}`);
+                let prefijo = selectEl ? selectEl.value : 'MS';
+                contadores[prefijo]++;
+                let numStr = String(contadores[prefijo]).padStart(3, '0');
+                p.codigo = prefijo + numStr;
+            });
+
+            Swal.fire({ title: 'Actualizando...', text: 'Guardando nuevos códigos en Google Sheets...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            await enviarDatosAGoogleSheets({
+                tipo: 'actualizarInventario',
+                inventario: nuevoInventario
+            });
+
+            inventario = nuevoInventario;
+            renderInventario();
+            renderProductos();
+
+            Swal.fire('¡Códigos Actualizados!', 'Todos los productos existentes han sido reclasificados y recodificados correctamente.', 'success');
+        }
+
         async function agregarProductoPrompt() {
             const { value: formValues } = await Swal.fire({
-                title: 'Nuevo Producto',
-                html: '<input id="sw-cod" class="swal2-input" placeholder="Código"><input id="sw-nom" class="swal2-input" placeholder="Nombre"><input id="sw-pre" type="number" class="swal2-input" placeholder="Precio"><input id="sw-cos" type="number" class="swal2-input" placeholder="Costo"><input id="sw-sto" type="number" class="swal2-input" placeholder="Stock">',
+                title: '➕ Nuevo Producto (Código Automático)',
+                html: 
+                    '<div style="text-align: left; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #4b5563;">Clasificación / Categoría:</div>' +
+                    '<select id="sw-cat" class="swal2-input" style="margin-top: 0; margin-bottom: 12px;">' +
+                        '<option value="IMP">Impresión (IMP00X)</option>' +
+                        '<option value="HOJ">Hojas (HOJ00X)</option>' +
+                        '<option value="LAP">Lápiz / Lapiceros (LAP00X)</option>' +
+                        '<option value="PAP">Papelería / General (PAP00X)</option>' +
+                        '<option value="MS">Misceláneo / Único (MS00X)</option>' +
+                    '</select>' +
+                    '<div style="text-align: left; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #4b5563;">Nombre del Producto:</div>' +
+                    '<input id="sw-nom" class="swal2-input" style="margin-top: 0; margin-bottom: 12px;" placeholder="Ej: Libreta profesional">' +
+                    '<div style="text-align: left; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #4b5563;">Precio de Venta ($):</div>' +
+                    '<input id="sw-pre" type="number" step="0.01" class="swal2-input" style="margin-top: 0; margin-bottom: 12px;" placeholder="0.00">' +
+                    '<div style="text-align: left; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #4b5563;">Costo ($):</div>' +
+                    '<input id="sw-cos" type="number" step="0.01" class="swal2-input" style="margin-top: 0; margin-bottom: 12px;" placeholder="0.00">' +
+                    '<div style="text-align: left; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #4b5563;">Stock Inicial:</div>' +
+                    '<input id="sw-sto" type="number" class="swal2-input" style="margin-top: 0;" placeholder="0">',
                 focusConfirm: false,
-                preConfirm: () => ({ codigo: document.getElementById('sw-cod').value.trim(), nombre: document.getElementById('sw-nom').value.trim(), precio: parseFloat(document.getElementById('sw-pre').value) || 0, costo: parseFloat(document.getElementById('sw-cos').value) || 0, stock: parseInt(document.getElementById('sw-sto').value) || 0 })
+                confirmButtonText: 'Guardar Producto',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    let prefijo = document.getElementById('sw-cat').value;
+                    let codigoGenerado = generarCodigoAutomatico(prefijo);
+                    return {
+                        codigo: codigoGenerado,
+                        nombre: document.getElementById('sw-nom').value.trim(),
+                        precio: parseFloat(document.getElementById('sw-pre').value) || 0,
+                        costo: parseFloat(document.getElementById('sw-cos').value) || 0,
+                        stock: parseInt(document.getElementById('sw-sto').value) || 0
+                    }
+                }
             });
-            if (formValues && formValues.codigo) {
+
+            if (formValues && formValues.nombre) {
                 inventario.push(formValues);
-                renderInventario(); renderProductos();
+                renderInventario(); 
+                renderProductos();
                 await enviarDatosAGoogleSheets({ tipo: 'nuevoProducto', ...formValues });
-                Swal.fire('¡Agregado!', 'Producto registrado.', 'success');
+                Swal.fire('¡Agregado!', `Producto registrado con código automático: <b>${formValues.codigo}</b>`, 'success');
             }
         }
 
@@ -1796,7 +1944,6 @@
             document.getElementById('corte-promedio-venta').innerText = `$${(ventasActivas.length > 0 ? totalVentas / ventasActivas.length : 0).toFixed(2)}`;
             document.getElementById('corte-efectivo-neto').innerText = `$${(totalVentas - totalRetiros).toFixed(2)}`;
 
-            // Renderizar resumen de artículos vendidos en el turno actual
             const tbodyArticulos = document.getElementById('tabla-resumen-articulos');
             if (tbodyArticulos) {
                 let resumen = calcularResumenArticulos(ventasActivas);
@@ -1816,7 +1963,6 @@
                 }
             }
 
-            // Renderizar historial de cortes realizados hoy
             const containerCortes = document.getElementById('historial-cortes-container');
             if (containerCortes) {
                 if (!Array.isArray(cortesRealizados) || cortesRealizados.length === 0) {
