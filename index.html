@@ -53,9 +53,9 @@
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
 
-        <!-- SECCIÓN: VENTAS (3 COLUMNAS VERTICALES + TICKET) -->
-        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-start flex-1 overflow-hidden pb-3">
-            <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full transition-colors duration-200 overflow-hidden">
+        <!-- SECCIÓN: VENTAS (CATÁLOGO ANCHO + TICKET REDUCIDO) -->
+        <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-start flex-1 overflow-hidden pb-3">
+            <div class="lg:col-span-4 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full transition-colors duration-200 overflow-hidden">
                 <div class="shrink-0 mb-2">
                     <h2 class="text-sm font-semibold text-gray-800 dark:text-white mb-2">Catálogo de Productos</h2>
                     <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500">
@@ -105,7 +105,7 @@
                 </div>
             </div>
 
-            <!-- Carrito / Ticket Actual -->
+            <!-- Carrito / Ticket Actual (Ancho Reducido) -->
             <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-3.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full transition-colors duration-200 overflow-hidden">
                 <h2 class="text-sm font-semibold text-gray-800 dark:text-white mb-2 shrink-0">Ticket Actual</h2>
                 <div id="lista-carrito" class="space-y-2 mb-3 pr-1 flex-1 overflow-y-auto">
