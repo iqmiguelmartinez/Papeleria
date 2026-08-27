@@ -1310,7 +1310,15 @@
             [filtrados.slice(0, tercio), filtrados.slice(tercio, tercio*2), filtrados.slice(tercio*2)].forEach((parte, i) => {
                 let target = i === 0 ? tb1 : (i === 1 ? tb2 : tb3);
                 parte.forEach(p => {
-                    target.innerHTML += `<tr class="border-b dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="py-1.5 px-2 font-medium truncate max-w-[120px]" title="${p.nombre}">${p.nombre}</td><td class="py-1.5 px-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td><td class="py-1.5 px-2"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${p.stock}</span></td><td class="py-1.5 px-2 text-center"><button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2.5 py-0.5 rounded text-xs font-bold cursor-pointer">+</button></td></tr>`;
+                    target.innerHTML += `
+                        <tr class="border-b dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <td class="py-1.5 px-2 font-medium truncate max-w-[120px]" title="${p.nombre}">${p.nombre}</td>
+                            <td class="py-1.5 px-2 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>
+                            <td class="py-1.5 px-2"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${p.stock}</span></td>
+                            <td class="py-1.5 px-2 text-center">
+                                <button onclick="agregarAlCarrito('${p.codigo}')" class="bg-blue-50 dark:bg-gray-900 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-gray-700 px-2.5 py-0.5 rounded text-xs font-bold cursor-pointer transition-colors">+</button>
+                            </td>
+                        </tr>`;
                 });
             });
         }
