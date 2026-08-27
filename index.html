@@ -15,16 +15,40 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Chart.js para gráficas interactivas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Barras de desplazamiento personalizadas para modo oscuro */
+        .dark * {
+            scrollbar-width: thin;
+            scrollbar-color: #374151 #1f2937;
+        }
+        .dark ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
 
     <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col h-full">
-        <!-- Título y Logotipo -->
+        <!-- Título, Logotipo y Versión -->
         <header class="mb-3 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 shrink-0">
             <div class="flex items-center gap-3">
                 <img src="logo.jpeg" alt="Pixel y Papel" class="w-10 h-10 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v1.6.0</span>
+                    </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
             </div>
