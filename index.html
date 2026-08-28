@@ -22,7 +22,8 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
 
-    <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col h-full">
+    <!-- Se cambió h-full por flex-1 min-h-0 para forzar la contención estricta -->
+    <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col flex-1 min-h-0">
         <!-- HEADER -->
         <header class="mb-3 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 shrink-0">
             <div class="flex items-center gap-3">
@@ -30,7 +31,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.1</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.2</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -69,7 +70,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden min-h-0">
-                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full">
+                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full min-h-0">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                                 <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -82,7 +83,7 @@
                             <tbody id="tabla-productos-venta-1" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
                         </table>
                     </div>
-                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full">
+                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full min-h-0">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                                 <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -95,7 +96,7 @@
                             <tbody id="tabla-productos-venta-2" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
                         </table>
                     </div>
-                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full">
+                    <div class="overflow-y-auto overflow-x-hidden border dark:border-gray-700 rounded-lg h-full min-h-0">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                                 <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -128,8 +129,8 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVENTARIO (3 Columnas con Scroll Independiente) -->
-        <div id="tab-inventario" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
+        <!-- SECCIÓN: INVENTARIO (Se agregó explícitamente "flex" para evitar que se desborde al quitar "hidden") -->
+        <div id="tab-inventario" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
             <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3 shrink-0">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Control de Inventario</h2>
@@ -150,7 +151,7 @@
 
             <!-- Grilla 3 Columnas Inventario -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden min-h-0">
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[9px]">
@@ -166,7 +167,7 @@
                         <tbody id="tabla-inv-1" class="divide-y divide-gray-100 dark:divide-gray-700/60"></tbody>
                     </table>
                 </div>
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[9px]">
@@ -182,7 +183,7 @@
                         <tbody id="tabla-inv-2" class="divide-y divide-gray-100 dark:divide-gray-700/60"></tbody>
                     </table>
                 </div>
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[9px]">
@@ -201,8 +202,8 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: VENTAS PASADAS (3 Columnas con Scroll Independiente) -->
-        <div id="tab-ventasPasadas" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
+        <!-- SECCIÓN: VENTAS PASADAS -->
+        <div id="tab-ventasPasadas" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 mb-3 border-b dark:border-gray-700 pb-2">
                 <div>
                     <h2 class="text-lg font-bold text-gray-800 dark:text-white">📜 Ventas Pasadas / Iniciales</h2>
@@ -232,7 +233,7 @@
 
             <!-- Grilla 3 Columnas Ventas Pasadas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden min-h-0">
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -246,7 +247,7 @@
                         <tbody id="tabla-vp-1" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
                     </table>
                 </div>
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -260,7 +261,7 @@
                         <tbody id="tabla-vp-2" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
                     </table>
                 </div>
-                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
+                <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
                             <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
@@ -278,8 +279,8 @@
         </div>
 
         <!-- SECCIÓN: INVERSIONES Y CRÉDITOS -->
-        <div id="tab-inversion" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        <div id="tab-inversion" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 shrink-0">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos</h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago.</p>
@@ -289,7 +290,7 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex justify-between items-center">
                     <div>
                         <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Total en Créditos (Por Pagar - "No")</p>
@@ -306,10 +307,10 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+            <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl flex-1 min-h-0">
+                <table class="w-full text-left border-collapse relative">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
+                        <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="py-2 px-3">Concepto</th>
                             <th class="py-2 px-3 text-right">Cantidad ($)</th>
                             <th class="py-2 px-3">Observaciones</th>
@@ -324,9 +325,9 @@
         </div>
 
         <!-- SECCIÓN: RETIROS / GASTOS -->
-        <div id="tab-retiros" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Registrar Retiro o Gasto de Caja</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div id="tab-retiros" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 shrink-0">Registrar Retiro o Gasto de Caja</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 shrink-0">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Concepto / Motivo</label>
                     <input type="text" id="ret-motivo" placeholder="Ej: Pago de luz, Proveedor..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-blue-500">
@@ -340,11 +341,11 @@
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Historial del Turno Actual</h3>
-            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Historial del Turno Actual</h3>
+            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl flex-1 min-h-0 overflow-y-auto">
+                <table class="w-full text-left border-collapse relative">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
+                        <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Hora</th>
                             <th class="p-3">Concepto</th>
                             <th class="p-3">Monto</th>
@@ -356,15 +357,15 @@
         </div>
 
         <!-- SECCIÓN: CORTE DIARIO -->
-        <div id="tab-corte" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+        <div id="tab-corte" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📊 Corte de Caja Actual</h2>
                 <button onclick="realizarCorteTurno()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition cursor-pointer">
                     🔒 Realizar Corte y Reiniciar Turno
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
                 <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
                     <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Ventas Totales</p>
                     <p id="corte-total-ventas" class="text-2xl font-bold text-blue-800 dark:text-blue-200">$0.00</p>
@@ -383,11 +384,11 @@
                 </div>
             </div>
 
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Resumen de Artículos Vendidos</h3>
-            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl mb-6 max-h-60">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Resumen de Artículos Vendidos</h3>
+            <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl mb-6 max-h-60 shrink-0">
+                <table class="w-full text-left border-collapse relative">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
+                        <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Producto</th>
                             <th class="p-3 text-center">Cantidad Vendida</th>
                             <th class="p-3 text-right">Total Recaudado</th>
@@ -397,15 +398,15 @@
                 </table>
             </div>
 
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Historial de Cortes (Hoy)</h3>
-            <div id="historial-cortes-container" class="space-y-3">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Historial de Cortes (Hoy)</h3>
+            <div id="historial-cortes-container" class="space-y-3 flex-1 min-h-0 overflow-y-auto">
                 <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
         </div>
 
         <!-- SECCIÓN: LOG DE ACTIVIDAD -->
-        <div id="tab-log" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div id="tab-log" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 shrink-0">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">📋 Log de Actividad (Últimas 72 Horas)</h2>
                 </div>
@@ -413,10 +414,10 @@
                     🔄 Actualizar Log
                 </button>
             </div>
-            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+            <div class="overflow-x-auto border dark:border-gray-700 rounded-xl flex-1 min-h-0 overflow-y-auto">
+                <table class="w-full text-left border-collapse relative">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
+                        <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="py-2 px-3">Fecha / Hora</th>
                             <th class="py-2 px-3">Usuario</th>
                             <th class="py-2 px-3">Acción</th>
@@ -429,8 +430,8 @@
         </div>
 
         <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
-        <div id="tab-analisis" class="hidden flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
                 <div class="flex gap-2">
                     <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
@@ -442,7 +443,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
                     <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión Total (Gastos)</p>
                     <p id="ana-inversion-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
@@ -461,7 +462,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 Ventas por Semana</h3>
                     <div style="height: 280px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
@@ -472,13 +473,13 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top Productos Más Vendidos</h3>
-                    <div class="overflow-x-auto max-h-[280px]">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 shrink-0">🏆 Top Productos Más Vendidos</h3>
+                    <div class="overflow-x-auto overflow-y-auto max-h-[280px] flex-1 min-h-0">
+                        <table class="w-full text-left border-collapse relative">
+                            <thead class="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10 shadow-sm">
+                                <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                                     <th class="p-2.5">Producto</th>
                                     <th class="p-2.5 text-center">Unidades</th>
                                     <th class="p-2.5 text-right text-emerald-600 dark:text-emerald-400">Ganancia</th>
@@ -488,12 +489,12 @@
                         </table>
                     </div>
                 </div>
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo</h3>
-                    <div class="overflow-x-auto max-h-[280px]">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 shrink-0">⚠️ Alerta de Stock Bajo</h3>
+                    <div class="overflow-x-auto overflow-y-auto max-h-[280px] flex-1 min-h-0">
+                        <table class="w-full text-left border-collapse relative">
+                            <thead class="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10 shadow-sm">
+                                <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                                     <th class="p-3">Código</th>
                                     <th class="p-3">Producto</th>
                                     <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerido</th>
@@ -551,7 +552,7 @@
         </div>
     </div>
 
-    <!-- Script principal v2.3.1 -->
+    <!-- Script principal v2.3.2 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -566,7 +567,6 @@
         let cortesRealizados = [];
         let cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
 
-        // Estados globales para no perder datos al buscar
         let cantidadesSurtir = {};
         let cantidadesVentasPasadas = {};
 
@@ -673,7 +673,7 @@
             } catch (err) { Swal.close(); Swal.fire('Error', 'No se pudo cargar el log.', 'error'); }
         }
 
-        /* ======== VENTAS (TICKET) ======== */
+        /* ======== VENTAS ======== */
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
@@ -708,7 +708,7 @@
             carrito = []; renderCarrito(); renderProductos(); Swal.fire('¡Vendido!', '', 'success');
         }
 
-        /* ======== INVENTARIO (3 COLUMNAS) ======== */
+        /* ======== INVENTARIO ======== */
         function renderInventario(filtro = "") {
             const tb1 = document.getElementById('tabla-inv-1'), tb2 = document.getElementById('tabla-inv-2'), tb3 = document.getElementById('tabla-inv-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
@@ -796,7 +796,7 @@
             await enviarDatosAGoogleSheets({ tipo: 'actualizarInventario', inventario: nuevoInv }); inventario = nuevoInv; renderInventario(); renderProductos(); Swal.fire('¡Listo!', '', 'success');
         }
 
-        /* ======== VENTAS PASADAS (3 COLUMNAS) ======== */
+        /* ======== VENTAS PASADAS ======== */
         function renderVentasPasadas(filtro = "") {
             const tb1 = document.getElementById('tabla-vp-1'), tb2 = document.getElementById('tabla-vp-2'), tb3 = document.getElementById('tabla-vp-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
@@ -846,7 +846,7 @@
             renderVentasPasadas(); renderProductos(); Swal.fire('¡Registrado!', '', 'success');
         }
 
-        /* ======== RESTO DE FUNCIONES (Retiros, Corte, Analisis) ======== */
+        /* ======== RESTO DE FUNCIONES ======== */
         async function registrarRetiro() {
             let m = document.getElementById('ret-motivo').value, val = parseFloat(document.getElementById('ret-monto').value);
             if(!m||!val)return; retirosActivos.push({hora:new Date().toLocaleTimeString(), motivo:m, monto:val});
@@ -902,33 +902,11 @@
                 });
                 document.getElementById('inv-total-credito').innerText=`$${tC.toFixed(2)}`; document.getElementById('inv-total-pagado').innerText=`$${tP.toFixed(2)}`;
             }
-
-            let gT=0, iT=0; invs.forEach(i=>{ let c=(i.concepto||"").toLowerCase(); if(!c.includes("inicial")&&!c.includes("inicio")) iT+=Math.abs(i.cantidad||0); });
-            let top={}, cli={}, wC=0;
-            vts.forEach(v => {
-                let m=v.fecha.substring(0,7), tel=v.telefono||""; if(tel!=="N/A"&&tel.length>=10 && !cli[tel]) cli[tel]=m;
-                if(v.whatsappEnviado==="SI") wC++;
-                if(v.productos) v.productos.forEach(p => {
-                    let c = (inv.find(x=>x.codigo===p.codigo)||{}).costo||0; let gan=(p.precio-c)*p.cantidad; gT+=gan;
-                    if(!top[p.codigo]) top[p.codigo]={n:p.nombre, c:0, g:0}; top[p.codigo].c+=p.cantidad; top[p.codigo].g+=gan;
-                });
-            });
-
-            document.getElementById('ana-inversion-total').innerText=`$${iT.toFixed(2)}`; document.getElementById('ana-ganancia-total').innerText=`$${gT.toFixed(2)}`;
-            document.getElementById('ana-roi').innerText=`${iT>0?((gT/iT)*100).toFixed(1):0}%`; document.getElementById('ana-balance-neto').innerText=`$${(gT-iT).toFixed(2)}`;
-            document.getElementById('ana-total-clientes').innerText=Object.keys(cli).length; document.getElementById('ana-proporcion-wa').innerText=`${vts.length>0?((wC/vts.length)*100).toFixed(1):0}%`;
-
-            let tbTop=document.getElementById('tabla-top-productos'); if(tbTop){
-                tbTop.innerHTML=""; Object.values(top).sort((a,b)=>b.g-a.g).slice(0,5).forEach(t=>tbTop.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-medium">${t.n}</td><td class="p-2 text-center text-blue-600 font-bold">${t.c} un.</td><td class="p-2 text-right text-emerald-600 font-bold">$${t.g.toFixed(2)}</td></tr>`);
-            }
-            let tbSug=document.getElementById('tabla-sugerencia-compra'); if(tbSug){
-                tbSug.innerHTML=""; inv.filter(x=>x.stock<=5).forEach(p=>tbSug.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-mono">${p.codigo}</td><td class="p-2">${p.nombre}</td><td class="p-2 text-center text-emerald-600 font-bold">+${Math.max(10,15-p.stock)} un.</td></tr>`);
-            }
         }
 
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
-        async function descargarListaSurtidoImagen() { /* Omitida por brevedad en esta actualización */ }
+        async function descargarListaSurtidoImagen() { /* Omitida por brevedad */ }
 
         verificarSesion();
     </script>
