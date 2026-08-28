@@ -30,7 +30,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.3</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.4</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -428,7 +428,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (Recuperadas todas las tarjetas y gráficas) -->
+        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
         <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
@@ -535,7 +535,7 @@
         </div>
     </div>
 
-    <!-- Script principal v2.3.3 -->
+    <!-- Script principal v2.3.4 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -684,9 +684,19 @@
             const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
             if (tel === undefined) return;
             let t = carrito.reduce((acc, i) => acc + (i.precio*i.cantidad), 0); let wa = tel.replace(/\D/g, '').length >= 10;
+            
             carrito.forEach(i => { let p = inventario.find(x => x.codigo===i.codigo); if(p) p.stock-=i.cantidad; });
             ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t });
-            await enviarDatosAGoogleSheets({ tipo: 'venta', productos: [...carrito], total: t, telefono: tel||"N/A", whatsappEnviado: wa });
+            
+            // CORRECCIÓN ESTRICTA DEL ORDEN DE COLUMNAS PARA GOOGLE SHEETS
+            await enviarDatosAGoogleSheets({ 
+                tipo: 'venta', 
+                productos: [...carrito], 
+                total: t, 
+                telefono: tel||"N/A", 
+                whatsappEnviado: wa ? "SI" : "NO" 
+            });
+
             if (wa) window.open(`https://wa.me/${tel.replace(/\D/g, '')}?text=` + encodeURIComponent(`*PIXEL Y PAPEL*\nTicket de Venta\nTotal: $${t.toFixed(2)}\n¡Gracias!`), '_blank');
             carrito = []; renderCarrito(); renderProductos(); Swal.fire('¡Vendido!', '', 'success');
         }
@@ -908,7 +918,6 @@
                 tbSug.innerHTML=""; inv.filter(x=>x.stock<=5).forEach(p=>tbSug.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-mono">${p.codigo}</td><td class="p-2">${p.nombre}</td><td class="p-2 text-center text-emerald-600 font-bold">+${Math.max(10,15-p.stock)} un.</td></tr>`);
             }
 
-            // Renderizado de Gráficas Chart.js
             let semMap = {}, mesMap = {};
             vts.forEach(v => {
                 if(!v.fecha) return;
