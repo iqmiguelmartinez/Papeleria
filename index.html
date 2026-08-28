@@ -30,7 +30,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.4</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.5</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -535,7 +535,7 @@
         </div>
     </div>
 
-    <!-- Script principal v2.3.4 -->
+    <!-- Script principal v2.3.5 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -656,7 +656,7 @@
             } catch (err) { Swal.close(); Swal.fire('Error', 'No se pudo cargar el log.', 'error'); }
         }
 
-        /* ======== VENTAS (CORREGIDO PARA PAYLOAD EXACTO Y WHATSAPP) ======== */
+        /* ======== VENTAS ======== */
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
@@ -685,11 +685,11 @@
             const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
             if (tel === undefined) return;
             
-            let t = carrito.reduce((acc, i) => acc + (i.precio * i.cantidad), 0); 
+            let t = carrito.reduce((acc, i) => acc + (i.precio*i.cantidad), 0); 
             let numeroLimpio = tel.replace(/\D/g, '');
             let wa = numeroLimpio.length >= 10;
             
-            // Generar string de detalle EXACTAMENTE como lo espera el backend y el ticket de WA
+            // Generar string de detalle y configurar envio
             let detalleStr = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
             let waStr = wa ? "SI" : "NO";
             let telStr = wa ? numeroLimpio : (tel || "N/A");
@@ -697,20 +697,19 @@
             carrito.forEach(i => { let p = inventario.find(x => x.codigo===i.codigo); if(p) p.stock-=i.cantidad; });
             ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
             
-            // Enviamos el payload en el ORDEN exacto y con los NOMBRES que usa la tabla.
+            // Mandamos los datos con la estructura exacta de 6 columnas
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
                 detalle: detalleStr,
+                productos: [...carrito], 
                 total: t, 
-                json: JSON.stringify(carrito), 
                 telefono: telStr, 
                 whatsappEnviado: waStr 
             });
             
             if (wa) {
-                // Agregar lada 52 automáticamente si el usuario tecleó exactamente 10 dígitos (Formato MX)
+                // Agregar lada 52 a Mexico si solo puso 10 dígitos
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
-                
                 let textoWA = `*PIXEL Y PAPEL*\nTicket de Venta\n\n${detalleStr}\n\n*Total: $${t.toFixed(2)}*\n\n¡Gracias por tu compra!`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
@@ -848,8 +847,12 @@
             const { value: conf } = await Swal.fire({ title: 'Confirmar Lote', text: `¿Registrar $${tot.toFixed(2)}?`, icon: 'question', showCancelButton: true, confirmButtonColor: '#059669' });
             if(!conf) return;
 
+            // Enviamos el string del detalle también
+            let detalleStr = prods.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
+
             Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            await enviarDatosAGoogleSheets({ tipo: 'ventaPasada', fecha: f, productos: prods, total: tot, alterarInventario: alt });
+            await enviarDatosAGoogleSheets({ tipo: 'ventaPasada', fecha: f, detalle: detalleStr, productos: prods, total: tot, alterarInventario: alt });
+            
             if(alt) { prods.forEach(i => { let p=inventario.find(x=>x.codigo===i.codigo); if(p) p.stock-=i.cantidad; }); }
             
             cantidadesVentasPasadas = {}; document.getElementById('buscar-vp').value = "";
