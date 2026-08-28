@@ -16,7 +16,6 @@
     <!-- Chart.js para gráficas interactivas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Barras de desplazamiento personalizadas para modo oscuro */
         .dark * {
             scrollbar-width: thin;
             scrollbar-color: #374151 #1f2937;
@@ -47,7 +46,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.2.0</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.2.1</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -77,7 +76,7 @@
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
         </div>
 
-        <!-- SECCIÓN: VENTAS (CATÁLOGO ANCHO + TICKET REDUCIDO) -->
+        <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-start flex-1 overflow-hidden pb-3">
             <div class="lg:col-span-4 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full transition-colors duration-200 overflow-hidden">
                 <div class="shrink-0 mb-2">
@@ -85,7 +84,6 @@
                     <input type="text" id="buscar-producto" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarProductos()" class="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500">
                 </div>
                 
-                <!-- 3 Secciones Verticales que llegan hasta el fondo -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden">
                     <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full">
                         <table class="w-full text-left border-collapse text-xs">
@@ -129,7 +127,6 @@
                 </div>
             </div>
 
-            <!-- Carrito / Ticket Actual (Ancho Reducido) -->
             <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-3.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full transition-colors duration-200 overflow-hidden">
                 <h2 class="text-sm font-semibold text-gray-800 dark:text-white mb-2 shrink-0">Ticket Actual</h2>
                 <div id="lista-carrito" class="space-y-2 mb-3 pr-1 flex-1 overflow-y-auto">
@@ -152,7 +149,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Control de Inventario</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">💡 Arrastra las filas desde el icono <span class="font-bold">⋮⋮</span> para reorganizar los productos a tu gusto.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">💡 Arrastra las filas desde el icono <span class="font-bold">⋮⋮</span> para reorganizar los productos.</p>
                 </div>
                 <div class="flex gap-2 flex-wrap items-center">
                     <button id="btn-modificar-productos" onclick="toggleModificarInventario()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✏️ Modificar Productos</button>
@@ -182,22 +179,19 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: VENTAS PASADAS / HISTÓRICAS -->
+        <!-- SECCIÓN: VENTAS PASADAS -->
         <div id="tab-ventasPasadas" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6 flex-1 overflow-y-auto">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b dark:border-gray-700 pb-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">📜 Registro de Ventas Pasadas / Fase Inicial</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Ingresa las cantidades vendidas en periodos anteriores para que contabilicen en tus ganancias y ROI.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Ingresa las cantidades vendidas en periodos anteriores.</p>
                 </div>
-                <div class="flex flex-col md:flex-row items-center gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha de la Venta Histórica</label>
-                        <input type="date" id="vp-fecha" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100">
-                    </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha de la Venta Histórica</label>
+                    <input type="date" id="vp-fecha" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100">
                 </div>
             </div>
 
-            <!-- Opciones y Totales -->
             <div class="flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 gap-4">
                 <div class="flex items-center gap-3">
                     <input type="checkbox" id="vp-alterar-inv" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
@@ -211,12 +205,11 @@
                         <p id="vp-total-calculado" class="text-xl font-bold text-emerald-600 dark:text-emerald-400">$0.00</p>
                     </div>
                     <button onclick="registrarVentaPasada()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition cursor-pointer shadow-sm">
-                        💾 Registrar Lote de Ventas Pasadas
+                        💾 Registrar Lote
                     </button>
                 </div>
             </div>
 
-            <!-- Tabla de Lote de Ventas -->
             <div class="overflow-x-auto max-h-[450px] border dark:border-gray-700 rounded-xl">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -225,7 +218,7 @@
                             <th class="py-2 px-3">Producto</th>
                             <th class="py-2 px-3">Precio Venta ($)</th>
                             <th class="py-2 px-3">Stock Actual</th>
-                            <th class="py-2 px-3 text-center bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">Cantidad Vendida en el Periodo</th>
+                            <th class="py-2 px-3 text-center bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">Cantidad Vendida</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-ventas-pasadas" class="divide-y divide-gray-100 dark:divide-gray-700 text-xs"></tbody>
@@ -237,15 +230,14 @@
         <div id="tab-inversion" class="hidden bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 space-y-6 flex-1 overflow-y-auto">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos (Cuentas por Pagar)</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago de No a Sí para actualizar el balance.</p>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago.</p>
                 </div>
                 <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
                     + Registrar Gasto / Inversión
                 </button>
             </div>
 
-            <!-- Resumen de Créditos Pendientes -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex justify-between items-center">
                     <div>
@@ -263,7 +255,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de Inversiones -->
             <div class="overflow-x-auto max-h-[500px] border dark:border-gray-700 rounded-xl">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -366,7 +357,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">📋 Log de Actividad (Últimas 72 Horas)</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Registro compacto de acciones, ventas, retiros y cambios realizados por los usuarios.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Registro compacto de acciones recientes.</p>
                 </div>
                 <button onclick="cargarLogActividad()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
                     🔄 Actualizar Log
@@ -402,7 +393,6 @@
                 </div>
             </div>
 
-            <!-- Tarjetas de Métricas Clave -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
                     <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión Total (Gastos)</p>
@@ -417,30 +407,28 @@
                     <p id="ana-roi" class="text-2xl font-bold text-blue-800 dark:text-blue-200">0%</p>
                 </div>
                 <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Balance Neto (Ganancia - Inversión)</p>
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Balance Neto</p>
                     <p id="ana-balance-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
             </div>
 
-            <!-- Nuevas Métricas: Clientes y WhatsApp -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 flex justify-between items-center">
                     <div>
-                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Clientes Únicos Registrados (Total)</p>
+                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Clientes Únicos Registrados</p>
                         <p id="ana-total-clientes" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
                     </div>
                     <span class="text-3xl">👥</span>
                 </div>
                 <div class="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50 flex justify-between items-center">
                     <div>
-                        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">% de Ventas con Ticket WhatsApp (Enviadas / Total)</p>
+                        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">% de Ventas con Ticket WhatsApp</p>
                         <p id="ana-proporcion-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">0% (0 / 0)</p>
                     </div>
                     <span class="text-3xl">📱</span>
                 </div>
             </div>
 
-            <!-- Gráficas Interactivas -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 Ventas por Semana (Lunes a Viernes)</h3>
@@ -449,30 +437,28 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales (Con Promedio y Tickets)</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales</h3>
                     <div style="height: 280px; position: relative;">
                         <canvas id="chartVentasMes"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráfica de Clientes Nuevos en el Tiempo y Horas Pico -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📈 Nuevos Clientes Registrados en el Tiempo (Por Mes)</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📈 Nuevos Clientes en el Tiempo</h3>
                     <div style="height: 280px; position: relative;">
                         <canvas id="chartClientesMes"></canvas>
                     </div>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⏰ Horas de Mayor Venta (Horas Pico)</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⏰ Horas de Mayor Venta</h3>
                     <div style="height: 280px; position: relative;">
                         <canvas id="chartHorasPico"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Top Productos Más Vendidos y Ganancia -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🏆 Top Productos Más Vendidos y Ganancia</h3>
@@ -491,10 +477,9 @@
                     </div>
                 </div>
 
-                <!-- Recomendación Inteligente de Compra -->
                 <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">⚠️ Alerta de Stock Bajo y Sugerencia de Compra</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Productos que se están acabando o requieren reabastecimiento.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Productos que requieren reabastecimiento.</p>
                     <div class="overflow-x-auto max-h-[220px]">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -513,7 +498,7 @@
         </div>
     </div>
 
-    <!-- Contenedor oculto para generar la imagen de la lista de surtido -->
+    <!-- Contenedores ocultos para impresión/imágenes -->
     <div style="position: absolute; left: -9999px; top: -9999px;">
         <div id="print-lista-surtido" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 650px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
             <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #059669; padding-bottom: 12px;">
@@ -532,11 +517,9 @@
                 </thead>
                 <tbody id="print-tbody-surtido"></tbody>
             </table>
-            <p style="font-size: 11px; text-align: center; color: #9ca3af; margin: 0;">Generado automáticamente por el Sistema Interno Pixel y Papel</p>
         </div>
     </div>
 
-    <!-- Contenedor oculto para generar la imagen del ticket de corte -->
     <div style="position: absolute; left: -9999px; top: -9999px;">
         <div id="print-corte-ticket" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 600px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
             <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4f46e5; padding-bottom: 12px;">
@@ -562,22 +545,20 @@
                     <p id="print-corte-neto" style="font-size: 18px; font-weight: bold; color: #059669; margin: 4px 0 0 0;">$0.00</p>
                 </div>
             </div>
-            <h3 style="font-size: 14px; font-weight: bold; color: #374151; margin: 0 0 8px 0;">Artículos Vendidos en el Turno</h3>
             <table style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 16px;">
                 <thead>
                     <tr style="background-color: #f3f4f6; font-size: 11px; text-transform: uppercase; color: #4b5563;">
                         <th style="padding: 8px; border-bottom: 1px solid #d1d5db;">Producto</th>
                         <th style="padding: 8px; text-align: center; border-bottom: 1px solid #d1d5db;">Cantidad</th>
-                        <th style="padding: 8px; text-align: right; border-bottom: 1px solid #d1d5db;">Total Recaudado</th>
+                        <th style="padding: 8px; text-align: right; border-bottom: 1px solid #d1d5db;">Total</th>
                     </tr>
                 </thead>
                 <tbody id="print-corte-tbody-articulos"></tbody>
             </table>
-            <p style="font-size: 11px; text-align: center; color: #9ca3af; margin: 0;">Generado automáticamente por el Sistema Interno Pixel y Papel</p>
         </div>
     </div>
 
-    <!-- Script de lógica v2.2.0 -->
+    <!-- Script principal v2.2.1 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -1014,26 +995,27 @@
             }
 
             inversionLista.forEach(inv => {
-                let montoAbs = Math.abs(inv.cantidad);
-                let esPagado = inv.pagado.toString().toUpperCase() === "SI";
+                let montoAbs = Math.abs(inv.cantidad || 0);
+                let pagadoStr = (inv.pagado || "").toString().toUpperCase().trim(); 
+                let esPagado = (pagadoStr === "SI" || pagadoStr === "TRUE");
 
                 if (esPagado) totalPagado += montoAbs;
                 else totalCredito += montoAbs;
 
                 let badgePagado = esPagado 
-                    ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold text-xs">Sí</span>`
-                    : `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold text-xs">No (Crédito)</span>`;
+                    ? `<span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-bold text-xs">Sí</span>`
+                    : `<span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded font-bold text-xs">No (Crédito)</span>`;
 
                 tbody.innerHTML += `
                     <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs">
-                        <td class="py-1.5 px-3 font-medium">${inv.concepto}</td>
-                        <td class="py-1.5 px-3 text-right font-semibold">$${inv.cantidad.toFixed(2)}</td>
-                        <td class="py-1.5 px-3 text-gray-500 truncate max-w-xs">${inv.observaciones}</td>
+                        <td class="py-1.5 px-3 font-medium">${inv.concepto || ""}</td>
+                        <td class="py-1.5 px-3 text-right font-semibold">$${(inv.cantidad || 0).toFixed(2)}</td>
+                        <td class="py-1.5 px-3 text-gray-500 truncate max-w-xs">${inv.observaciones || ""}</td>
                         <td class="py-1.5 px-3 text-center">
-                            <button onclick="cambiarEstadoPago(${inv.rowIndex}, '${inv.pagado}')" class="cursor-pointer transition hover:scale-105">${badgePagado}</button>
+                            <button onclick="cambiarEstadoPago(${inv.rowIndex}, '${pagadoStr}')" class="cursor-pointer transition hover:scale-105">${badgePagado}</button>
                         </td>
                         <td class="py-1.5 px-3 text-gray-500">${formatearFechaSimple(inv.fecha)}</td>
-                        <td class="py-1.5 px-3 text-gray-600">${inv.persona}</td>
+                        <td class="py-1.5 px-3 text-gray-600">${inv.persona || ""}</td>
                     </tr>
                 `;
             });
@@ -1091,8 +1073,8 @@
             let inversionTotal = 0;
             if (Array.isArray(inversionLista)) {
                 inversionLista.forEach(inv => {
-                    let c = inv.concepto.toLowerCase();
-                    if (!c.includes("inversion inicial") && !c.includes("inicio")) inversionTotal += Math.abs(inv.cantidad);
+                    let c = (inv.concepto || "").toString().toLowerCase();
+                    if (!c.includes("inversion inicial") && !c.includes("inicio")) inversionTotal += Math.abs(inv.cantidad || 0);
                 });
             }
 
@@ -1291,7 +1273,7 @@
 
             Swal.fire({
                 title: `📋 Detalle Corte #${index + 1} (${corte.hora})`,
-                html: `<div class="mb-3 text-xs grid grid-cols-3 gap-2 text-center"><div class="bg-blue-50 p-2 rounded">Ventas: $${corte.totalVentas.toFixed(2)}</div><div class="bg-red-50 p-2 rounded">Retiros: $${corte.totalRetiros.toFixed(2)}</div><div class="bg-emerald-50 p-2 rounded">Neto: $${corte.efectivoNeto.toFixed(2)}</div></div>${htmlTabla}`,
+                html: `<div class="mb-3 text-xs grid grid-cols-3 gap-2 text-center"><div class="bg-blue-50 dark:bg-blue-950 p-2 rounded">Ventas: $${corte.totalVentas.toFixed(2)}</div><div class="bg-red-50 dark:bg-red-950 p-2 rounded">Retiros: $${corte.totalRetiros.toFixed(2)}</div><div class="bg-emerald-50 dark:bg-emerald-950 p-2 rounded">Neto: $${corte.efectivoNeto.toFixed(2)}</div></div>${htmlTabla}`,
                 confirmButtonText: 'Cerrar',
                 width: '550px'
             });
