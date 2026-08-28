@@ -656,7 +656,7 @@
             } catch (err) { Swal.close(); Swal.fire('Error', 'No se pudo cargar el log.', 'error'); }
         }
 
-        /* ======== VENTAS ======== */
+        /* ======== VENTAS (CORREGIDO PARA PAYLOAD EXACTO Y WHATSAPP) ======== */
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
@@ -679,25 +679,42 @@
             carrito.forEach((i, idx) => { let s = i.precio*i.cantidad; t+=s; c.innerHTML += `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg text-xs border dark:border-gray-700 gap-2"><div class="flex-1 truncate"><p class="font-medium truncate">${i.nombre}</p><p class="text-[10px] text-gray-500">$${i.precio.toFixed(2)} c/u</p></div><div class="flex items-center gap-1.5"><input type="number" min="1" value="${i.cantidad}" onchange="actualizarCantidadCarrito(${idx}, this.value)" class="w-12 px-1 py-0.5 border rounded text-center dark:bg-gray-800 font-bold"><span class="font-semibold text-emerald-600 w-14 text-right">$${s.toFixed(2)}</span><button onclick="quitarDelCarrito(${idx})" class="text-red-500 font-bold px-1 text-sm">×</button></div></div>`; });
             document.getElementById('total-venta').innerText = `$${t.toFixed(2)}`;
         }
+
         async function procesarVenta() {
             if (carrito.length === 0) return;
             const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
             if (tel === undefined) return;
-            let t = carrito.reduce((acc, i) => acc + (i.precio*i.cantidad), 0); let wa = tel.replace(/\D/g, '').length >= 10;
+            
+            let t = carrito.reduce((acc, i) => acc + (i.precio * i.cantidad), 0); 
+            let numeroLimpio = tel.replace(/\D/g, '');
+            let wa = numeroLimpio.length >= 10;
+            
+            // Generar string de detalle EXACTAMENTE como lo espera el backend y el ticket de WA
+            let detalleStr = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
+            let waStr = wa ? "SI" : "NO";
+            let telStr = wa ? numeroLimpio : (tel || "N/A");
             
             carrito.forEach(i => { let p = inventario.find(x => x.codigo===i.codigo); if(p) p.stock-=i.cantidad; });
-            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
             
-            // CORRECCIÓN ESTRICTA DEL ORDEN DE COLUMNAS PARA GOOGLE SHEETS
+            // Enviamos el payload en el ORDEN exacto y con los NOMBRES que usa la tabla.
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
-                productos: [...carrito], 
+                detalle: detalleStr,
                 total: t, 
-                telefono: tel||"N/A", 
-                whatsappEnviado: wa ? "SI" : "NO" 
+                json: JSON.stringify(carrito), 
+                telefono: telStr, 
+                whatsappEnviado: waStr 
             });
-
-            if (wa) window.open(`https://wa.me/${tel.replace(/\D/g, '')}?text=` + encodeURIComponent(`*PIXEL Y PAPEL*\nTicket de Venta\nTotal: $${t.toFixed(2)}\n¡Gracias!`), '_blank');
+            
+            if (wa) {
+                // Agregar lada 52 automáticamente si el usuario tecleó exactamente 10 dígitos (Formato MX)
+                if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
+                
+                let textoWA = `*PIXEL Y PAPEL*\nTicket de Venta\n\n${detalleStr}\n\n*Total: $${t.toFixed(2)}*\n\n¡Gracias por tu compra!`;
+                window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
+            }
+            
             carrito = []; renderCarrito(); renderProductos(); Swal.fire('¡Vendido!', '', 'success');
         }
 
@@ -923,9 +940,9 @@
                 if(!v.fecha) return;
                 let fStr = v.fecha.split('T')[0];
                 let semKey = fStr; 
-                semMap[semKey] = (semMap[semKey] || 0) + v.total;
+                semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
                 let mesKey = fStr.substring(0, 7);
-                mesMap[mesKey] = (mesMap[mesKey] || 0) + v.total;
+                mesMap[mesKey] = (mesMap[mesKey] || 0) + (v.total || 0);
             });
 
             let semLabels = Object.keys(semMap).sort().slice(-7);
