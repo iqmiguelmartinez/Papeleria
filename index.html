@@ -22,7 +22,6 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
 
-    <!-- Se cambió h-full por flex-1 min-h-0 para forzar la contención estricta -->
     <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col flex-1 min-h-0">
         <!-- HEADER -->
         <header class="mb-3 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 shrink-0">
@@ -31,7 +30,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.2</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.3</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -129,7 +128,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: INVENTARIO (Se agregó explícitamente "flex" para evitar que se desborde al quitar "hidden") -->
+        <!-- SECCIÓN: INVENTARIO -->
         <div id="tab-inventario" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
             <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3 shrink-0">
                 <div>
@@ -429,7 +428,7 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
+        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (Recuperadas todas las tarjetas y gráficas) -->
         <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
@@ -443,7 +442,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
                     <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión Total (Gastos)</p>
                     <p id="ana-inversion-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
@@ -459,6 +458,14 @@
                 <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
                     <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Balance Neto</p>
                     <p id="ana-balance-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
+                </div>
+                <div class="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+                    <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Clientes Nuevos (WA)</p>
+                    <p id="ana-total-clientes" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+                </div>
+                <div class="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50">
+                    <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">Tickets con WhatsApp</p>
+                    <p id="ana-proporcion-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">0%</p>
                 </div>
             </div>
 
@@ -528,31 +535,7 @@
         </div>
     </div>
 
-    <div style="position: absolute; left: -9999px; top: -9999px;">
-        <div id="print-corte-ticket" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 600px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
-            <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4f46e5; padding-bottom: 12px;">
-                <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
-                <p style="font-size: 14px; font-weight: 600; color: #4f46e5; margin: 0;" id="print-corte-titulo">Corte de Caja</p>
-                <p id="print-corte-fecha" style="font-size: 11px; margin: 6px 0 0 0;"></p>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
-                    <p style="font-size: 11px; margin: 0;">Ventas Totales</p>
-                    <p id="print-corte-ventas" style="font-size: 18px; font-weight: bold; color: #2563eb; margin: 4px 0 0 0;">$0.00</p>
-                </div>
-                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
-                    <p style="font-size: 11px; margin: 0;">Retiros / Gastos</p>
-                    <p id="print-corte-retiros" style="font-size: 18px; font-weight: bold; color: #dc2626; margin: 4px 0 0 0;">$0.00</p>
-                </div>
-                <div style="background: #f3f4f6; padding: 12px; border-radius: 8px;">
-                    <p style="font-size: 11px; margin: 0;">Efectivo en Caja (Neto)</p>
-                    <p id="print-corte-neto" style="font-size: 18px; font-weight: bold; color: #059669; margin: 4px 0 0 0;">$0.00</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script principal v2.3.2 -->
+    <!-- Script principal v2.3.3 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -902,11 +885,80 @@
                 });
                 document.getElementById('inv-total-credito').innerText=`$${tC.toFixed(2)}`; document.getElementById('inv-total-pagado').innerText=`$${tP.toFixed(2)}`;
             }
+
+            let gT=0, iT=0; invs.forEach(i=>{ let c=(i.concepto||"").toLowerCase(); if(!c.includes("inicial")&&!c.includes("inicio")) iT+=Math.abs(i.cantidad||0); });
+            let top={}, cli={}, wC=0;
+            vts.forEach(v => {
+                let m=v.fecha?v.fecha.substring(0,7):"", tel=v.telefono||""; if(tel!=="N/A"&&tel.length>=10 && !cli[tel]) cli[tel]=m;
+                if(v.whatsappEnviado==="SI") wC++;
+                if(v.productos) v.productos.forEach(p => {
+                    let c = (inv.find(x=>x.codigo===p.codigo)||{}).costo||0; let gan=(p.precio-c)*p.cantidad; gT+=gan;
+                    if(!top[p.codigo]) top[p.codigo]={n:p.nombre, c:0, g:0}; top[p.codigo].c+=p.cantidad; top[p.codigo].g+=gan;
+                });
+            });
+
+            document.getElementById('ana-inversion-total').innerText=`$${iT.toFixed(2)}`; document.getElementById('ana-ganancia-total').innerText=`$${gT.toFixed(2)}`;
+            document.getElementById('ana-roi').innerText=`${iT>0?((gT/iT)*100).toFixed(1):0}%`; document.getElementById('ana-balance-neto').innerText=`$${(gT-iT).toFixed(2)}`;
+            document.getElementById('ana-total-clientes').innerText=Object.keys(cli).length; document.getElementById('ana-proporcion-wa').innerText=`${vts.length>0?((wC/vts.length)*100).toFixed(1):0}%`;
+
+            let tbTop=document.getElementById('tabla-top-productos'); if(tbTop){
+                tbTop.innerHTML=""; Object.values(top).sort((a,b)=>b.g-a.g).slice(0,5).forEach(t=>tbTop.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-medium">${t.n}</td><td class="p-2 text-center text-blue-600 font-bold">${t.c} un.</td><td class="p-2 text-right text-emerald-600 font-bold">$${t.g.toFixed(2)}</td></tr>`);
+            }
+            let tbSug=document.getElementById('tabla-sugerencia-compra'); if(tbSug){
+                tbSug.innerHTML=""; inv.filter(x=>x.stock<=5).forEach(p=>tbSug.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-mono">${p.codigo}</td><td class="p-2">${p.nombre}</td><td class="p-2 text-center text-emerald-600 font-bold">+${Math.max(10,15-p.stock)} un.</td></tr>`);
+            }
+
+            // Renderizado de Gráficas Chart.js
+            let semMap = {}, mesMap = {};
+            vts.forEach(v => {
+                if(!v.fecha) return;
+                let fStr = v.fecha.split('T')[0];
+                let semKey = fStr; 
+                semMap[semKey] = (semMap[semKey] || 0) + v.total;
+                let mesKey = fStr.substring(0, 7);
+                mesMap[mesKey] = (mesMap[mesKey] || 0) + v.total;
+            });
+
+            let semLabels = Object.keys(semMap).sort().slice(-7);
+            let semData = semLabels.map(l => semMap[l]);
+            let mesLabels = Object.keys(mesMap).sort().slice(-6);
+            let mesData = mesLabels.map(l => mesMap[l]);
+
+            if(chartSemanaInstance) chartSemanaInstance.destroy();
+            let ctxSem = document.getElementById('chartVentasSemana');
+            if(ctxSem) {
+                chartSemanaInstance = new Chart(ctxSem, {
+                    type: 'bar',
+                    data: { labels: semLabels, datasets: [{ label: 'Ventas ($)', data: semData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            if(chartMesInstance) chartMesInstance.destroy();
+            let ctxMes = document.getElementById('chartVentasMes');
+            if(ctxMes) {
+                chartMesInstance = new Chart(ctxMes, {
+                    type: 'line',
+                    data: { labels: mesLabels, datasets: [{ label: 'Ventas Mensuales ($)', data: mesData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+            }
+        }
+
+        async function descargarListaSurtidoImagen() {
+            let el = document.getElementById('print-lista-surtido'); if(!el) return;
+            let tbody = document.getElementById('print-tbody-surtido'); tbody.innerHTML = "";
+            inventario.filter(x => x.stock <= 5).forEach(p => {
+                tbody.innerHTML += `<tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${p.codigo}</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${p.nombre}</td><td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #059669;">+${Math.max(10, 15 - p.stock)} un.</td></tr>`;
+            });
+            el.style.left = "0px";
+            let canvas = await html2canvas(el);
+            el.style.left = "-9999px";
+            let link = document.createElement('a'); link.download = 'lista-para-surtir.png'; link.href = canvas.toDataURL(); link.click();
         }
 
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
-        async function descargarListaSurtidoImagen() { /* Omitida por brevedad */ }
 
         verificarSesion();
     </script>
