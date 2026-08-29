@@ -18,6 +18,12 @@
         .dark ::-webkit-scrollbar-track { background: #1f2937; }
         .dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+        /* Adaptación automática de modales SweetAlert al Modo Oscuro */
+        html.dark .swal2-popup { background-color: #1f2937 !important; color: #f9fafb !important; }
+        html.dark .swal2-title, html.dark .swal2-html-container { color: #f9fafb !important; }
+        html.dark .swal2-input, html.dark .swal2-select { background-color: #374151 !important; color: #f9fafb !important; border-color: #4b5563 !important; }
+        html.dark .swal2-input::placeholder { color: #9ca3af !important; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
@@ -30,7 +36,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.5</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.6</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -535,7 +541,7 @@
         </div>
     </div>
 
-    <!-- Script principal v2.3.5 -->
+    <!-- Script principal v2.3.6 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -689,7 +695,6 @@
             let numeroLimpio = tel.replace(/\D/g, '');
             let wa = numeroLimpio.length >= 10;
             
-            // Generar string de detalle y configurar envio
             let detalleStr = carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
             let waStr = wa ? "SI" : "NO";
             let telStr = wa ? numeroLimpio : (tel || "N/A");
@@ -697,7 +702,6 @@
             carrito.forEach(i => { let p = inventario.find(x => x.codigo===i.codigo); if(p) p.stock-=i.cantidad; });
             ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
             
-            // Mandamos los datos con la estructura exacta de 6 columnas
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
                 detalle: detalleStr,
@@ -708,7 +712,6 @@
             });
             
             if (wa) {
-                // Agregar lada 52 a Mexico si solo puso 10 dígitos
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
                 let textoWA = `*PIXEL Y PAPEL*\nTicket de Venta\n\n${detalleStr}\n\n*Total: $${t.toFixed(2)}*\n\n¡Gracias por tu compra!`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
@@ -783,10 +786,52 @@
             renderInventario(); renderProductos(); Swal.fire('¡Surtido!', '', 'success');
         }
 
+        // --- FUNCIÓN DE NUEVO PRODUCTO ACTUALIZADA ---
         async function agregarProductoPrompt() {
-            const { value: v } = await Swal.fire({ title: '➕ Nuevo Producto', html: '<select id="sw-cat" class="swal2-input"><option value="IMP">Impresión</option><option value="HOJ">Hojas</option><option value="PAP">Papelería</option><option value="MS">Misceláneo</option></select><input id="sw-nom" class="swal2-input" placeholder="Nombre"><input id="sw-pre" type="number" class="swal2-input" placeholder="Precio"><input id="sw-sto" type="number" class="swal2-input" placeholder="Stock">', focusConfirm: false, preConfirm: () => ({ codigo: generarCodigoAutomatico(document.getElementById('sw-cat').value), nombre: document.getElementById('sw-nom').value, precio: parseFloat(document.getElementById('sw-pre').value)||0, costo:0, stock: parseInt(document.getElementById('sw-sto').value)||0 }) });
-            if(v && v.nombre) { inventario.push(v); renderInventario(); renderProductos(); await enviarDatosAGoogleSheets({tipo:'nuevoProducto', ...v}); }
+            const { value: v } = await Swal.fire({ 
+                title: '➕ Nuevo Producto', 
+                html: `
+                    <select id="sw-cat" class="swal2-input">
+                        <option value="IMP">Impresión</option>
+                        <option value="HOJ">Hojas</option>
+                        <option value="PAP">Papelería</option>
+                        <option value="MS">Misceláneo</option>
+                    </select>
+                    <input id="sw-nom" class="swal2-input" placeholder="Nombre del Producto">
+                    <input id="sw-pre" type="number" step="0.01" class="swal2-input" placeholder="Precio Venta ($)">
+                    <input id="sw-cos" type="number" step="0.01" class="swal2-input" placeholder="Costo Unitario ($)">
+                    <input id="sw-sto" type="number" class="swal2-input" placeholder="Stock Inicial">
+                `, 
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    let nombre = document.getElementById('sw-nom').value.trim();
+                    if (!nombre) {
+                        Swal.showValidationMessage('El nombre es obligatorio');
+                        return false;
+                    }
+                    return { 
+                        codigo: generarCodigoAutomatico(document.getElementById('sw-cat').value), 
+                        nombre: nombre, 
+                        precio: parseFloat(document.getElementById('sw-pre').value) || 0, 
+                        costo: parseFloat(document.getElementById('sw-cos').value) || 0, 
+                        stock: parseInt(document.getElementById('sw-sto').value) || 0 
+                    };
+                }
+            });
+
+            if(v) { 
+                inventario.push(v); 
+                renderInventario(); 
+                renderProductos(); 
+                Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                await enviarDatosAGoogleSheets({tipo:'nuevoProducto', ...v}); 
+                Swal.fire('¡Agregado!', 'El producto ha sido guardado exitosamente.', 'success');
+            }
         }
+        
         function generarCodigoAutomatico(pref) { let m=0; inventario.forEach(p=>{if(p.codigo.startsWith(pref)){ let n=parseInt(p.codigo.replace(pref,'')); if(!isNaN(n)&&n>m)m=n; }}); return pref+String(m+1).padStart(3,'0'); }
 
         async function abrirModalClasificacionExistentes() {
@@ -847,7 +892,6 @@
             const { value: conf } = await Swal.fire({ title: 'Confirmar Lote', text: `¿Registrar $${tot.toFixed(2)}?`, icon: 'question', showCancelButton: true, confirmButtonColor: '#059669' });
             if(!conf) return;
 
-            // Enviamos el string del detalle también
             let detalleStr = prods.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
 
             Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
