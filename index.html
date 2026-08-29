@@ -539,6 +539,31 @@
                 <tbody id="print-tbody-surtido"></tbody>
             </table>
         </div>
+        
+        <!-- Novedad: Plantilla para el ticket de Corte de Caja -->
+        <div id="print-corte-caja" style="background-color: #ffffff; padding: 24px; border-radius: 12px; width: 350px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
+            <div style="text-align: center; margin-bottom: 16px; border-bottom: 2px dashed #9ca3af; padding-bottom: 12px;">
+                <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
+                <p style="font-size: 14px; font-weight: 600; color: #4b5563; margin: 0;">Reporte de Corte de Caja</p>
+                <p id="print-corte-fecha" style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0;"></p>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Ventas Totales:</span><span id="print-corte-v" style="font-size: 12px; color: #2563eb; font-weight: bold;">$0.00</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Retiros/Gastos:</span><span id="print-corte-r" style="font-size: 12px; color: #dc2626; font-weight: bold;">$0.00</span></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px;"><span style="font-size: 14px; font-weight: bold;">Efectivo en Caja:</span><span id="print-corte-n" style="font-size: 14px; color: #059669; font-weight: bold;">$0.00</span></div>
+            </div>
+            <h3 style="font-size: 12px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">Artículos Vendidos</h3>
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                    <tr style="background-color: #f3f4f6; text-transform: uppercase;">
+                        <th style="padding: 4px; border-bottom: 1px solid #d1d5db; width: 40px;">Cant</th>
+                        <th style="padding: 4px; border-bottom: 1px solid #d1d5db;">Producto</th>
+                        <th style="padding: 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="print-tbody-corte"></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Script principal v2.3.6 -->
@@ -718,15 +743,15 @@
                 let fechaActual = new Date().toLocaleString('es-MX');
                 let lineasDetalle = carrito.map(i => `▪️ ${i.cantidad}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
 
-                let textoWA = ` *PIXEL Y PAPEL* \n` +
+                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n` +
                               `-----------------------------------\n` +
-                              ` *TICKET DE COMPRA*\n` +
-                              ` ${fechaActual}\n\n` +
-                              ` *Detalle:*\n${lineasDetalle}\n\n` +
+                              `🛒 *TICKET DE COMPRA*\n` +
+                              `📅 ${fechaActual}\n\n` +
+                              `📝 *Detalle:*\n${lineasDetalle}\n\n` +
                               `-----------------------------------\n` +
-                              ` *TOTAL: $${t.toFixed(2)}*\n` +
+                              `💰 *TOTAL: $${t.toFixed(2)}*\n` +
                               `-----------------------------------\n` +
-                              `¡Gracias por tu preferencia!`;
+                              `¡Gracias por tu preferencia! ✨`;
 
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
@@ -800,7 +825,6 @@
             renderInventario(); renderProductos(); Swal.fire('¡Surtido!', '', 'success');
         }
 
-        // --- FUNCIÓN DE NUEVO PRODUCTO ACTUALIZADA ---
         async function agregarProductoPrompt() {
             const { value: v } = await Swal.fire({ 
                 title: '➕ Nuevo Producto', 
@@ -940,12 +964,73 @@
             if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">Sin cortes hoy.</p>`;return;}
             cortesRealizados.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${c.totalVentas.toFixed(2)}</span><span class="text-emerald-600">Neto: $${c.efectivoNeto.toFixed(2)}</span></div></div></div>`; });
         }
+
+        async function descargarCorteImagen(tV, tR, articulos) {
+            let el = document.getElementById('print-corte-caja'); if(!el) return;
+            
+            document.getElementById('print-corte-fecha').innerText = new Date().toLocaleString('es-MX');
+            document.getElementById('print-corte-v').innerText = `$${tV.toFixed(2)}`;
+            document.getElementById('print-corte-r').innerText = `$${tR.toFixed(2)}`;
+            document.getElementById('print-corte-n').innerText = `$${(tV - tR).toFixed(2)}`;
+            
+            let tbody = document.getElementById('print-tbody-corte'); tbody.innerHTML = "";
+            if (articulos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="padding: 6px; text-align: center; color: #9ca3af;">Sin movimientos</td></tr>`;
+            } else {
+                articulos.forEach(a => {
+                    tbody.innerHTML += `<tr><td style="padding: 4px; border-bottom: 1px solid #e5e7eb; font-weight: bold; text-align: center;">${a.cantidad}</td><td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">${a.nombre}</td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #e5e7eb; color: #059669; font-weight: bold;">$${a.total.toFixed(2)}</td></tr>`;
+                });
+            }
+            
+            el.style.left = "0px";
+            let canvas = await html2canvas(el);
+            el.style.left = "-9999px";
+            
+            let link = document.createElement('a'); 
+            link.download = `corte_caja_${new Date().toISOString().split('T')[0]}.png`; 
+            link.href = canvas.toDataURL(); 
+            link.click();
+        }
+
         async function realizarCorteTurno() {
-            if(ventasActivas.length===0 && retirosActivos.length===0)return;
-            let tV=ventasActivas.reduce((a,v)=>a+v.total,0), tR=retirosActivos.reduce((a,r)=>a+r.monto,0);
-            await enviarDatosAGoogleSheets({tipo:'corte', totalVentas:tV, totalRetiros:tR, efectivoNeto:tV-tR, promedioVenta:0, articulos:[]});
-            cortesRealizados.push({hora:new Date().toLocaleTimeString(), totalVentas:tV, totalRetiros:tR, efectivoNeto:tV-tR, promedioVenta:0, articulos:[]});
-            ventasActivas=[]; retirosActivos=[]; renderCorte(); renderRetiros(); Swal.fire('Corte Realizado', '', 'success');
+            if(ventasActivas.length===0 && retirosActivos.length===0) return;
+            
+            let tV = ventasActivas.reduce((a,v)=>a+v.total, 0);
+            let tR = retirosActivos.reduce((a,r)=>a+r.monto, 0);
+            
+            let mapa = {};
+            ventasActivas.forEach(v => {
+                if(v.productos) v.productos.forEach(p => {
+                    if(!mapa[p.codigo]) mapa[p.codigo] = { nombre: p.nombre, cantidad: 0, total: 0 };
+                    mapa[p.codigo].cantidad += p.cantidad;
+                    mapa[p.codigo].total += (p.precio * p.cantidad);
+                });
+            });
+            let articulosVendidos = Object.keys(mapa).map(k => ({ 
+                codigo: k, nombre: mapa[k].nombre, cantidad: mapa[k].cantidad, total: mapa[k].total 
+            }));
+            
+            Swal.fire({ title: 'Generando corte...', text: 'Guardando datos y descargando imagen', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            await descargarCorteImagen(tV, tR, articulosVendidos);
+
+            let promVenta = ventasActivas.length > 0 ? (tV / ventasActivas.length) : 0;
+            await enviarDatosAGoogleSheets({
+                tipo: 'corte', 
+                totalVentas: tV, 
+                totalRetiros: tR, 
+                efectivoNeto: tV-tR, 
+                promedioVenta: promVenta, 
+                articulos: articulosVendidos 
+            });
+            
+            cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: tV-tR, promedioVenta: promVenta, articulos: articulosVendidos});
+            ventasActivas = []; 
+            retirosActivos = []; 
+            
+            renderCorte(); 
+            renderRetiros(); 
+            Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
         }
 
         async function agregarInversionPrompt() {
