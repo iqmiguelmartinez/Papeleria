@@ -686,7 +686,7 @@
             document.getElementById('total-venta').innerText = `$${t.toFixed(2)}`;
         }
 
-async function procesarVenta() {
+        async function procesarVenta() {
             if (carrito.length === 0) return;
             const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
             if (tel === undefined) return;
