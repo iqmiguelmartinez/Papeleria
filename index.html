@@ -718,7 +718,7 @@
                 let fechaActual = new Date().toLocaleString('es-MX');
                 let lineasDetalle = carrito.map(i => `▪️ ${i.cantidad}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
 
-                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n` +
+                let textoWA = ` *PIXEL Y PAPEL* \n` +
                               `-----------------------------------\n` +
                               ` *TICKET DE COMPRA*\n` +
                               ` ${fechaActual}\n\n` +
