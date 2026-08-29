@@ -686,7 +686,7 @@
             document.getElementById('total-venta').innerText = `$${t.toFixed(2)}`;
         }
 
-        async function procesarVenta() {
+async function procesarVenta() {
             if (carrito.length === 0) return;
             const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
             if (tel === undefined) return;
@@ -711,9 +711,23 @@
                 whatsappEnviado: waStr 
             });
             
+            // --- NUEVO FORMATO DE TICKET PARA WHATSAPP ---
             if (wa) {
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
-                let textoWA = `*PIXEL Y PAPEL*\nTicket de Venta\n\n${detalleStr}\n\n*Total: $${t.toFixed(2)}*\n\n¡Gracias por tu compra!`;
+                
+                let fechaActual = new Date().toLocaleString('es-MX');
+                let lineasDetalle = carrito.map(i => `▪️ ${i.cantidad}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
+
+                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n` +
+                              `-----------------------------------\n` +
+                              ` *TICKET DE COMPRA*\n` +
+                              ` ${fechaActual}\n\n` +
+                              ` *Detalle:*\n${lineasDetalle}\n\n` +
+                              `-----------------------------------\n` +
+                              ` *TOTAL: $${t.toFixed(2)}*\n` +
+                              `-----------------------------------\n` +
+                              `¡Gracias por tu preferencia!`;
+
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
