@@ -36,7 +36,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.6</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.3.7</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -154,7 +154,6 @@
                 <input type="text" id="buscar-inventario" placeholder="Buscar producto por nombre o código..." onkeyup="filtrarInventario()" class="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500">
             </div>
 
-            <!-- Grilla 3 Columnas Inventario -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden min-h-0">
                 <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
@@ -236,7 +235,6 @@
                 <input type="text" id="buscar-vp" placeholder="Buscar producto en ventas pasadas..." onkeyup="filtrarVentasPasadas()" class="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500">
             </div>
 
-            <!-- Grilla 3 Columnas Ventas Pasadas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 overflow-hidden min-h-0">
                 <div class="overflow-y-auto border dark:border-gray-700 rounded-lg h-full min-h-0 relative">
                     <table class="w-full text-left border-collapse text-xs">
@@ -363,14 +361,11 @@
 
         <!-- SECCIÓN: CORTE DIARIO -->
         <div id="tab-corte" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex justify-between items-center mb-2 shrink-0">
-                <h3 class="font-semibold text-gray-700 dark:text-gray-300">Historial de Cortes (Hoy)</h3>
-                <button onclick="verHistorialCortes()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
-                    📅 Ver Cortes Anteriores (30 Días)
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📊 Corte de Caja Actual</h2>
+                <button onclick="realizarCorteTurno()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition cursor-pointer">
+                    🔒 Realizar Corte y Reiniciar Turno
                 </button>
-            </div>
-            <div id="historial-cortes-container" class="space-y-3 flex-1 min-h-0 overflow-y-auto">
-                <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
@@ -406,7 +401,13 @@
                 </table>
             </div>
 
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Historial de Cortes (Hoy)</h3>
+            <!-- MODIFICACIÓN v2.3.7: Encabezado e Historial con botón para ver 30 días -->
+            <div class="flex justify-between items-center mb-2 shrink-0">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-300">Historial de Cortes (Hoy)</h3>
+                <button onclick="verHistorialCortes()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
+                    📅 Ver Cortes Anteriores (30 Días)
+                </button>
+            </div>
             <div id="historial-cortes-container" class="space-y-3 flex-1 min-h-0 overflow-y-auto">
                 <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
@@ -543,7 +544,6 @@
             </table>
         </div>
         
-        <!-- Novedad: Plantilla para el ticket de Corte de Caja -->
         <div id="print-corte-caja" style="background-color: #ffffff; padding: 24px; border-radius: 12px; width: 350px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
             <div style="text-align: center; margin-bottom: 16px; border-bottom: 2px dashed #9ca3af; padding-bottom: 12px;">
                 <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
@@ -569,7 +569,7 @@
         </div>
     </div>
 
-    <!-- Script principal v2.3.6 -->
+    <!-- Script principal v2.3.7 -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -739,23 +739,11 @@
                 whatsappEnviado: waStr 
             });
             
-            // --- NUEVO FORMATO DE TICKET PARA WHATSAPP ---
             if (wa) {
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
-                
                 let fechaActual = new Date().toLocaleString('es-MX');
                 let lineasDetalle = carrito.map(i => `▪️ ${i.cantidad}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
-
-                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n` +
-                              `-----------------------------------\n` +
-                              `🛒 *TICKET DE COMPRA*\n` +
-                              `📅 ${fechaActual}\n\n` +
-                              `📝 *Detalle:*\n${lineasDetalle}\n\n` +
-                              `-----------------------------------\n` +
-                              `💰 *TOTAL: $${t.toFixed(2)}*\n` +
-                              `-----------------------------------\n` +
-                              `¡Gracias por tu preferencia! ✨`;
-
+                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n-----------------------------------\n🛒 *TICKET DE COMPRA*\n📅 ${fechaActual}\n\n📝 *Detalle:*\n${lineasDetalle}\n\n-----------------------------------\n💰 *TOTAL: $${t.toFixed(2)}*\n-----------------------------------\n¡Gracias por tu preferencia! ✨`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
@@ -849,10 +837,7 @@
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
                     let nombre = document.getElementById('sw-nom').value.trim();
-                    if (!nombre) {
-                        Swal.showValidationMessage('El nombre es obligatorio');
-                        return false;
-                    }
+                    if (!nombre) { Swal.showValidationMessage('El nombre es obligatorio'); return false; }
                     return { 
                         codigo: generarCodigoAutomatico(document.getElementById('sw-cat').value), 
                         nombre: nombre, 
@@ -864,9 +849,7 @@
             });
 
             if(v) { 
-                inventario.push(v); 
-                renderInventario(); 
-                renderProductos(); 
+                inventario.push(v); renderInventario(); renderProductos(); 
                 Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 await enviarDatosAGoogleSheets({tipo:'nuevoProducto', ...v}); 
                 Swal.fire('¡Agregado!', 'El producto ha sido guardado exitosamente.', 'success');
@@ -964,7 +947,7 @@
             res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${a.c} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${a.t.toFixed(2)}</td></tr>`);
             
             let cC = document.getElementById('historial-cortes-container'); if(!cC)return; cC.innerHTML="";
-            if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">Sin cortes hoy.</p>`;return;}
+            if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;return;}
             cortesRealizados.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${c.totalVentas.toFixed(2)}</span><span class="text-emerald-600">Neto: $${c.efectivoNeto.toFixed(2)}</span></div></div></div>`; });
         }
 
@@ -1034,6 +1017,78 @@
             renderCorte(); 
             renderRetiros(); 
             Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
+        }
+
+        // --- NUEVO: FUNCIONES PARA HISTORIAL DE CORTES (30 DÍAS) ---
+        async function verHistorialCortes(usarCache = false) {
+            if (!usarCache || !window.cortesHistoricosCache) {
+                Swal.fire({ title: 'Buscando archivos...', text: 'Consultando cortes de los últimos 30 días', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    let r = await fetch(URL_APPS_SCRIPT + "?action=getCortesHistorico");
+                    window.cortesHistoricosCache = await r.json();
+                } catch(e) {
+                    return Swal.fire('Error', 'No se pudo conectar con la base de datos.', 'error');
+                }
+            }
+
+            let cortes = window.cortesHistoricosCache || [];
+            if (cortes.length === 0) return Swal.fire('Historial Vacío', 'No hay cortes registrados en los últimos 30 días.', 'info');
+
+            let html = `<div class="max-h-80 overflow-y-auto text-left rounded-lg"><table class="w-full text-xs border-collapse">
+                    <thead class="bg-gray-200 dark:bg-gray-800 sticky top-0 shadow-sm z-10">
+                        <tr class="text-gray-600 dark:text-gray-300 border-b dark:border-gray-700">
+                            <th class="p-2.5">Fecha</th>
+                            <th class="p-2.5">Cajero</th>
+                            <th class="p-2.5 text-right">Neto ($)</th>
+                            <th class="p-2.5 text-center">Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+            
+            cortes.forEach((c, idx) => {
+                let fStr = new Date(c.fecha).toLocaleString('es-MX', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'});
+                html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="p-2.5 whitespace-nowrap text-gray-700 dark:text-gray-200 font-medium">${fStr}</td>
+                    <td class="p-2.5 text-gray-500 dark:text-gray-400">${c.usuario}</td>
+                    <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">$${c.neto.toFixed(2)}</td>
+                    <td class="p-2.5 text-center"><button onclick="verDetalleCorte(${idx})" class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded shadow-sm font-semibold transition cursor-pointer">Ver</button></td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+
+            Swal.fire({ title: '📅 Cortes Anteriores (30 Días)', html: html, width: '550px', showConfirmButton: false, showCloseButton: true });
+        }
+
+        function verDetalleCorte(idx) {
+            let c = window.cortesHistoricosCache[idx];
+            if (!c) return;
+            
+            let arts = c.articulos || [];
+            let html = `<div class="text-left text-sm space-y-2 mb-4 text-gray-700 dark:text-gray-300">
+                <div class="flex justify-between border-b dark:border-gray-700 pb-2"><span><b>Cajero:</b> ${c.usuario}</span><span><b>Promedio Venta:</b> $${c.promedio.toFixed(2)}</span></div>
+                <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg border border-blue-100 dark:border-blue-800"><p class="text-[10px] uppercase font-bold text-blue-500">Ventas Totales</p><p class="font-bold text-blue-700 dark:text-blue-300">$${c.ventas.toFixed(2)}</p></div>
+                    <div class="bg-red-50 dark:bg-red-900/30 p-2 rounded-lg border border-red-100 dark:border-red-800"><p class="text-[10px] uppercase font-bold text-red-500">Gastos / Retiros</p><p class="font-bold text-red-700 dark:text-red-300">$${c.retiros.toFixed(2)}</p></div>
+                    <div class="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800 shadow-sm"><p class="text-[10px] uppercase font-bold text-emerald-500">Efectivo Neto</p><p class="font-bold text-emerald-700 dark:text-emerald-300">$${c.neto.toFixed(2)}</p></div>
+                </div>
+            </div>`;
+
+            if (arts.length === 0) {
+                html += `<p class="text-gray-500 text-sm text-center italic mt-4">Sin registro individual de productos.</p>`;
+            } else {
+                html += `<div class="max-h-48 overflow-y-auto border dark:border-gray-700 rounded-lg text-xs mt-4">
+                    <table class="w-full border-collapse">
+                        <thead class="bg-gray-100 dark:bg-gray-800 sticky top-0">
+                            <tr class="text-gray-600 dark:text-gray-300 border-b dark:border-gray-700"><th class="p-1.5 text-center">Cant</th><th class="p-1.5 text-left">Producto</th><th class="p-1.5 text-right">Total</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">`;
+                arts.forEach(a => {
+                    html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-1.5 text-center font-bold text-gray-800 dark:text-gray-200">${a.cantidad}</td><td class="p-1.5 text-gray-700 dark:text-gray-300 font-medium">${a.nombre}</td><td class="p-1.5 text-right text-emerald-600 dark:text-emerald-400 font-bold">$${(a.total||0).toFixed(2)}</td></tr>`;
+                });
+                html += `</tbody></table></div>`;
+            }
+
+            Swal.fire({ title: `🧾 Detalles del Corte`, html: html, width: '450px', showConfirmButton: true, confirmButtonText: '⬅️ Volver al Historial', confirmButtonColor: '#3b82f6', customClass: { confirmButton: 'font-semibold text-sm rounded-lg' } }).then(() => verHistorialCortes(true));
         }
 
         async function agregarInversionPrompt() {
@@ -1135,87 +1190,6 @@
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
 
-        // --- FUNCIÓN RECUPERADA: Historial 30 Días ---
-        async function verHistorialCortes(usarCache = false) {
-            if (!usarCache || !window.cortesHistoricosCache) {
-                Swal.fire({ title: 'Buscando archivos...', text: 'Consultando cortes de los últimos 30 días', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                try {
-                    let r = await fetch(URL_APPS_SCRIPT + "?action=getCortesHistorico");
-                    window.cortesHistoricosCache = await r.json();
-                } catch(e) {
-                    return Swal.fire('Error', 'No se pudo conectar con la base de datos.', 'error');
-                }
-            }
-
-            let cortes = window.cortesHistoricosCache || [];
-            if (cortes.length === 0) return Swal.fire('Historial Vacío', 'No hay cortes registrados en los últimos 30 días.', 'info');
-
-            let html = `<div class="max-h-80 overflow-y-auto text-left rounded-lg"><table class="w-full text-xs border-collapse">
-                    <thead class="bg-gray-200 dark:bg-gray-800 sticky top-0 shadow-sm z-10">
-                        <tr class="text-gray-600 dark:text-gray-300 border-b dark:border-gray-700">
-                            <th class="p-2.5">Fecha</th>
-                            <th class="p-2.5">Cajero</th>
-                            <th class="p-2.5 text-right">Neto ($)</th>
-                            <th class="p-2.5 text-center">Detalles</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
-            
-            cortes.forEach((c, idx) => {
-                let fStr = new Date(c.fecha).toLocaleString('es-MX', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'});
-                html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td class="p-2.5 whitespace-nowrap text-gray-700 dark:text-gray-200 font-medium">${fStr}</td>
-                    <td class="p-2.5 text-gray-500 dark:text-gray-400">${c.usuario}</td>
-                    <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">$${c.neto.toFixed(2)}</td>
-                    <td class="p-2.5 text-center"><button onclick="verDetalleCorte(${idx})" class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded shadow-sm font-semibold transition cursor-pointer">Ver</button></td>
-                </tr>`;
-            });
-            html += `</tbody></table></div>`;
-
-            Swal.fire({ title: '📅 Cortes Anteriores (30 Días)', html: html, width: '550px', showConfirmButton: false, showCloseButton: true });
-        }
-
-        function verDetalleCorte(idx) {
-            let c = window.cortesHistoricosCache[idx];
-            if (!c) return;
-            
-            let arts = c.articulos || [];
-            let fStr = new Date(c.fecha).toLocaleString('es-MX');
-            let html = `<div class="text-left text-sm space-y-2 mb-4 text-gray-700 dark:text-gray-300">
-                <div class="flex justify-between border-b dark:border-gray-700 pb-2"><span><b>Cajero:</b> ${c.usuario}</span><span><b>Promedio Venta:</b> $${c.promedio.toFixed(2)}</span></div>
-                <div class="grid grid-cols-3 gap-2 mt-3 text-center">
-                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg border border-blue-100 dark:border-blue-800"><p class="text-[10px] uppercase font-bold text-blue-500">Ventas Totales</p><p class="font-bold text-blue-700 dark:text-blue-300">$${c.ventas.toFixed(2)}</p></div>
-                    <div class="bg-red-50 dark:bg-red-900/30 p-2 rounded-lg border border-red-100 dark:border-red-800"><p class="text-[10px] uppercase font-bold text-red-500">Gastos / Retiros</p><p class="font-bold text-red-700 dark:text-red-300">$${c.retiros.toFixed(2)}</p></div>
-                    <div class="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800 shadow-sm"><p class="text-[10px] uppercase font-bold text-emerald-500">Efectivo Neto</p><p class="font-bold text-emerald-700 dark:text-emerald-300">$${c.neto.toFixed(2)}</p></div>
-                </div>
-            </div>`;
-
-            if (arts.length === 0) {
-                html += `<p class="text-gray-500 text-sm text-center italic mt-4">Sin registro individual de productos.</p>`;
-            } else {
-                html += `<div class="max-h-48 overflow-y-auto border dark:border-gray-700 rounded-lg text-xs mt-4">
-                    <table class="w-full border-collapse">
-                        <thead class="bg-gray-100 dark:bg-gray-800 sticky top-0">
-                            <tr class="text-gray-600 dark:text-gray-300 border-b dark:border-gray-700"><th class="p-1.5 text-center">Cant</th><th class="p-1.5 text-left">Producto</th><th class="p-1.5 text-right">Total</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">`;
-                arts.forEach(a => {
-                    html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-1.5 text-center font-bold text-gray-800 dark:text-gray-200">${a.cantidad}</td><td class="p-1.5 text-gray-700 dark:text-gray-300 font-medium">${a.nombre}</td><td class="p-1.5 text-right text-emerald-600 dark:text-emerald-400 font-bold">$${(a.total||0).toFixed(2)}</td></tr>`;
-                });
-                html += `</tbody></table></div>`;
-            }
-
-            Swal.fire({
-                title: `🧾 Detalles del Corte`,
-                html: html,
-                width: '450px',
-                showConfirmButton: true,
-                confirmButtonText: '⬅️ Volver al Historial',
-                confirmButtonColor: '#3b82f6',
-                customClass: { confirmButton: 'font-semibold text-sm rounded-lg' }
-            }).then(() => verHistorialCortes(true)); // Regresa a la ventana anterior usando la caché local
-        }
-        
         verificarSesion();
     </script>
 </body>
