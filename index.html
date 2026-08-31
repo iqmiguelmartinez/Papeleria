@@ -892,8 +892,8 @@
             if (wa) {
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
                 let fechaActual = new Date().toLocaleString('es-MX');
-                let lineasDetalle = carrito.map(i => `▪️ ${Number(i.cantidad.toFixed(2))}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
-                let textoWA = `🧾 *PIXEL Y PAPEL* 📚\n-----------------------------------\n🛒 *TICKET DE COMPRA*\n📅 ${fechaActual}\n\n📝 *Detalle:*\n${lineasDetalle}\n\n-----------------------------------\n💰 *TOTAL: $${t.toFixed(2)}*\n-----------------------------------\n¡Gracias por tu preferencia! ✨`;
+                let lineasDetalle = carrito.map(i => `- ${Number(i.cantidad.toFixed(2))}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
+                let textoWA = `*PIXEL Y PAPEL*\n-----------------------------------\n*TICKET DE COMPRA*\nFecha: ${fechaActual}\n\n*Detalle:*\n${lineasDetalle}\n\n-----------------------------------\n*TOTAL: $${t.toFixed(2)}*\n-----------------------------------\n¡Gracias por tu preferencia!`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
