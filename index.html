@@ -36,7 +36,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold text-gray-800 dark:text-white">📚 Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.4.0</span>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.5.0</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -163,7 +163,7 @@
                                 <th class="p-1.5">Código</th>
                                 <th class="p-1.5">Producto</th>
                                 <th class="p-1.5">Precio</th>
-                                <th class="p-1.5">Costo</th>
+                                <th class="p-1.5 th-costo hidden">Costo</th>
                                 <th class="p-1.5 text-center">Stock</th>
                                 <th class="p-1.5 text-center th-surtir-header bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Surtir</th>
                             </tr>
@@ -179,7 +179,7 @@
                                 <th class="p-1.5">Código</th>
                                 <th class="p-1.5">Producto</th>
                                 <th class="p-1.5">Precio</th>
-                                <th class="p-1.5">Costo</th>
+                                <th class="p-1.5 th-costo hidden">Costo</th>
                                 <th class="p-1.5 text-center">Stock</th>
                                 <th class="p-1.5 text-center th-surtir-header bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Surtir</th>
                             </tr>
@@ -195,7 +195,7 @@
                                 <th class="p-1.5">Código</th>
                                 <th class="p-1.5">Producto</th>
                                 <th class="p-1.5">Precio</th>
-                                <th class="p-1.5">Costo</th>
+                                <th class="p-1.5 th-costo hidden">Costo</th>
                                 <th class="p-1.5 text-center">Stock</th>
                                 <th class="p-1.5 text-center th-surtir-header bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Surtir</th>
                             </tr>
@@ -565,7 +565,6 @@
         </div>
     </div>
 
-    <!-- Script principal v2.4.0 (con todas las funciones completas) -->
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
         const PASS_SURTIR = "surtir123";
@@ -648,9 +647,15 @@
         }
 
         function actualizarVisibilidadTabs() {
+            // Ocultar botones de pestañas especiales
             ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
+            });
+            
+            // Ocultar cabeceras de la tabla de inventario si no tiene permisos
+            document.querySelectorAll('.th-costo').forEach(th => {
+                tienePermisoAnalisis ? th.classList.remove('hidden') : th.classList.add('hidden');
             });
         }
 
@@ -687,9 +692,6 @@
             } catch (e) { console.error(e); }
         }
 
-        // ==========================================
-        // UTILIDAD: OBTENER STOCK REAL VINCULADO
-        // ==========================================
         function obtenerStockReal(cod) {
             let codReal = VINCULOS_STOCK[cod] || cod;
             let p = inventario.find(x => x.codigo === codReal);
@@ -791,10 +793,77 @@
 
         async function procesarVenta() {
             if (carrito.length === 0) return;
-            const { value: tel } = await Swal.fire({ title: '📲 Ticket por WhatsApp', input: 'text', inputPlaceholder: '10 dígitos (Opcional)', showCancelButton: true, confirmButtonText: 'Cobrar', confirmButtonColor: '#059669' });
-            if (tel === undefined) return;
             
+            // Calculamos el total antes de abrir la ventana modal
             let t = carrito.reduce((acc, i) => acc + (i.precio*i.cantidad), 0); 
+            
+            const { value: formValues } = await Swal.fire({ 
+                title: '💰 Cobrar', 
+                html: `
+                    <div class="text-left mb-4">
+                        <p class="text-lg text-gray-700 dark:text-gray-200 text-center">Total a cobrar: <br><span class="font-bold text-blue-600 text-4xl">$${t.toFixed(2)}</span></p>
+                    </div>
+                    <div class="mb-3 text-left">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Efectivo recibido ($):</label>
+                        <input id="sw-efectivo" type="number" step="0.01" class="swal2-input m-0 w-full" placeholder="Dejar en blanco si es exacto" autocomplete="off">
+                    </div>
+                    <div class="mb-4 text-center border-t border-b border-gray-200 dark:border-gray-700 py-3 bg-gray-50 dark:bg-gray-800 rounded">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Cambio a entregar:</p>
+                        <p id="sw-cambio" class="text-3xl font-bold text-emerald-600">$0.00</p>
+                    </div>
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WhatsApp del cliente (Opcional):</label>
+                        <input id="sw-telefono" type="text" class="swal2-input m-0 w-full" placeholder="10 dígitos">
+                    </div>
+                `,
+                showCancelButton: true, 
+                confirmButtonText: 'Cobrar y Terminar', 
+                confirmButtonColor: '#059669',
+                didOpen: () => {
+                    const inputEfectivo = document.getElementById('sw-efectivo');
+                    const pCambio = document.getElementById('sw-cambio');
+                    
+                    // Evento para calcular el cambio dinámicamente al escribir
+                    inputEfectivo.addEventListener('input', () => {
+                        let ef = parseFloat(inputEfectivo.value);
+                        
+                        if (isNaN(ef) || inputEfectivo.value === '') {
+                            pCambio.innerText = '$0.00';
+                            pCambio.classList.replace('text-red-500', 'text-emerald-600');
+                        } else {
+                            let cambio = ef - t;
+                            if (cambio < 0) {
+                                pCambio.innerText = 'Falta dinero';
+                                pCambio.classList.replace('text-emerald-600', 'text-red-500');
+                            } else {
+                                pCambio.innerText = '$' + cambio.toFixed(2);
+                                pCambio.classList.replace('text-red-500', 'text-emerald-600');
+                            }
+                        }
+                    });
+                    
+                    // Autofocus para que el cajero pueda escribir inmediatamente
+                    inputEfectivo.focus();
+                },
+                preConfirm: () => {
+                    let ef = parseFloat(document.getElementById('sw-efectivo').value);
+                    let tel = document.getElementById('sw-telefono').value.trim();
+                    
+                    // Si el usuario escribió un número y es menor al total, mostramos advertencia.
+                    // Si no escribió nada (NaN), asumimos pago exacto y pasa.
+                    if (!isNaN(ef) && ef < t) {
+                        Swal.showValidationMessage('El efectivo recibido no cubre el total de la venta');
+                        return false;
+                    }
+                    
+                    return { tel: tel };
+                }
+            });
+
+            // Si el cajero canceló el modal
+            if (!formValues) return;
+            
+            let tel = formValues.tel;
             let numeroLimpio = tel.replace(/\D/g, '');
             let wa = numeroLimpio.length >= 10;
             
@@ -802,6 +871,7 @@
             let waStr = wa ? "SI" : "NO";
             let telStr = wa ? numeroLimpio : (tel || "N/A");
             
+            // Reducir stock localmente
             carrito.forEach(i => { 
                 let codReal = VINCULOS_STOCK[i.codigo] || i.codigo;
                 let p = inventario.find(x => x.codigo === codReal); 
@@ -848,11 +918,16 @@
                 let target = i===0?tb1:(i===1?tb2:tb3);
                 parte.forEach(obj => {
                     let p = obj.p, idx = obj.originalIdx;
+                    
+                    // Condicional para mostrar los inputs de costo solo si el usuario tiene permiso (Admin)
+                    let tdCostoEdit = tienePermisoAnalisis ? `<td class="p-1"><input type="number" step="0.01" value="${p.costo||0}" data-index="${idx}" data-field="costo" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>` : ``;
+                    let tdCostoView = tienePermisoAnalisis ? `<td class="p-1 text-gray-600">$${(p.costo||0).toFixed(2)}</td>` : ``;
+
                     if (editandoInventario) {
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.costo||0}" data-index="${idx}" data-field="costo" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td></tr>`;
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>${tdCostoEdit}<td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td></tr>`;
                     } else {
                         let stockMostrar = Number(p.stock.toFixed(2));
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}">${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td><td class="p-1 text-gray-600">$${(p.costo||0).toFixed(2)}</td><td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}">${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>${tdCostoView}<td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
                     }
                 });
             });
@@ -898,6 +973,9 @@
         }
 
         async function agregarProductoPrompt() {
+            // Solo mostramos el input de costo si tiene permisos de análisis (Admin)
+            const inputCostoHTML = tienePermisoAnalisis ? `<input id="sw-cos" type="number" step="0.01" class="swal2-input" placeholder="Costo Unitario ($)">` : ``;
+
             const { value: v } = await Swal.fire({ 
                 title: '➕ Nuevo Producto', 
                 html: `
@@ -909,7 +987,7 @@
                     </select>
                     <input id="sw-nom" class="swal2-input" placeholder="Nombre del Producto">
                     <input id="sw-pre" type="number" step="0.01" class="swal2-input" placeholder="Precio Venta ($)">
-                    <input id="sw-cos" type="number" step="0.01" class="swal2-input" placeholder="Costo Unitario ($)">
+                    ${inputCostoHTML}
                     <input id="sw-sto" type="number" step="0.01" class="swal2-input" placeholder="Stock Inicial">
                 `, 
                 focusConfirm: false,
@@ -919,11 +997,13 @@
                 preConfirm: () => {
                     let nombre = document.getElementById('sw-nom').value.trim();
                     if (!nombre) { Swal.showValidationMessage('El nombre es obligatorio'); return false; }
+                    
                     return { 
                         codigo: generarCodigoAutomatico(document.getElementById('sw-cat').value), 
                         nombre: nombre, 
                         precio: parseFloat(document.getElementById('sw-pre').value) || 0, 
-                        costo: parseFloat(document.getElementById('sw-cos').value) || 0, 
+                        // Si no tiene permisos, simplemente lo guardamos en 0 internamente
+                        costo: tienePermisoAnalisis ? (parseFloat(document.getElementById('sw-cos').value) || 0) : 0, 
                         stock: parseFloat(document.getElementById('sw-sto').value) || 0 
                     };
                 }
