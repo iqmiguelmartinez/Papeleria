@@ -434,93 +434,144 @@
             </div>
         </div>
 
-        <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA -->
-        <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Análisis Financiero, Inversión y Ganancias</h2>
+<!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (V3 - AVANZADA) -->
+        <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-gray-50 dark:bg-gray-800 p-6 rounded-xl transition-colors duration-200 overflow-y-auto space-y-6">
+            
+            <!-- HEADER ANÁLISIS -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">📈 Dashboard de Inteligencia de Negocio</h2>
+                    <p class="text-xs text-gray-500">Métricas en tiempo real, proyecciones y tendencias operativas.</p>
+                </div>
                 <div class="flex gap-2">
-                    <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer flex items-center gap-2">
+                    <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
                         📥 Descargar Lista para Surtir
                     </button>
-                    <button onclick="cargarDatosAnalisis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
-                        🔄 Actualizar
+                    <button onclick="cargarDatosAnalisis()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                        🔄 Actualizar Datos
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
-                <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50">
-                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Inversión Total (Gastos)</p>
-                    <p id="ana-inversion-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+            <!-- ROW 1: KPIs FINANCIEROS Y PROYECCIONES (8 Tarjetas) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 shrink-0">
+                <!-- Finanzas Clásicas -->
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50 shadow-sm">
+                    <p class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Inversión (Gastos)</p>
+                    <p id="ana-inversion-total" class="text-xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
                 </div>
-                <div class="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50">
-                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Ganancia Neta (Histórica)</p>
-                    <p id="ana-ganancia-total" class="text-2xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
+                <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-xl border border-purple-100 dark:border-purple-900/50 shadow-sm">
+                    <p class="text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase">Ganancia Histórica</p>
+                    <p id="ana-ganancia-total" class="text-xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
                 </div>
-                <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
-                    <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Retorno de Inversión (ROI)</p>
-                    <p id="ana-roi" class="text-2xl font-bold text-blue-800 dark:text-blue-200">0%</p>
+                <div class="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">Retorno (ROI)</p>
+                    <p id="ana-roi" class="text-xl font-bold text-blue-800 dark:text-blue-200">0%</p>
                 </div>
-                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Balance Neto</p>
-                    <p id="ana-balance-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm">
+                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">Balance Neto</p>
+                    <p id="ana-balance-neto" class="text-xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
-                <div class="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
-                    <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Clientes Nuevos (WA)</p>
-                    <p id="ana-total-clientes" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+                <!-- Nuevos KPIs de Comportamiento -->
+                <div class="bg-sky-50 dark:bg-sky-950/40 p-3 rounded-xl border border-sky-100 dark:border-sky-900/50 shadow-sm">
+                    <p class="text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase">Proyección Cierre Mes</p>
+                    <p id="ana-forecast-mes" class="text-xl font-bold text-sky-800 dark:text-sky-200">~ $0.00</p>
                 </div>
-                <div class="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50">
-                    <p class="text-xs text-teal-600 dark:text-teal-400 font-medium">Tickets con WhatsApp</p>
-                    <p id="ana-proporcion-wa" class="text-2xl font-bold text-teal-800 dark:text-teal-200">0%</p>
+                <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm">
+                    <p class="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">Tasa de Recompra</p>
+                    <p id="ana-tasa-recompra" class="text-xl font-bold text-rose-800 dark:text-rose-200">0%</p>
+                </div>
+                <div class="bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
+                    <p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase">Clientes Base (WA)</p>
+                    <p id="ana-total-clientes" class="text-xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+                </div>
+                <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-xl border border-teal-100 dark:border-teal-900/50 shadow-sm">
+                    <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase">Retención Datos</p>
+                    <p id="ana-proporcion-wa" class="text-xl font-bold text-teal-800 dark:text-teal-200">0%</p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 Ventas por Semana</h3>
-                    <div style="height: 280px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
+            <!-- ROW 2: GRÁFICOS PRINCIPALES (Tendencias y Distribución) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📊 Ventas Mensuales (Tendencia)</h3>
+                    <div style="height: 220px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
                 </div>
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">📊 Ventas Mensuales</h3>
-                    <div style="height: 280px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Ventas Últimos 7 Días</h3>
+                    <div style="height: 220px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">🕒 Mapa de Calor: Horas Pico</h3>
+                    <div style="height: 220px; position: relative;"><canvas id="chartHorasPico"></canvas></div>
                 </div>
             </div>
 
+            <!-- ROW 3: COMPORTAMIENTO DEL CONSUMIDOR Y RENTABILIDAD -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">💰 Rentabilidad por Categoría</h3>
+                    <div style="height: 200px; position: relative;" class="flex-1"><canvas id="chartRentabilidadCat"></canvas></div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm shrink-0">🏆 Top Productos (Más Rentables)</h3>
+                    <div class="overflow-y-auto max-h-[200px] flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-1">Producto</th><th class="py-1 text-center">Unidades</th><th class="py-1 text-right">Ganancia</th></tr>
+                            </thead>
+                            <tbody id="tabla-top-productos" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm shrink-0">🛒 Análisis de Cesta (Comprados Juntos)</h3>
+                    <div class="overflow-y-auto max-h-[200px] flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-1">Producto Principal</th><th class="py-1">Suele llevarse con...</th></tr>
+                            </thead>
+                            <tbody id="tabla-cruzada-cesta" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs text-gray-600 dark:text-gray-300">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 4: SALUD DE INVENTARIO -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 shrink-0">🏆 Top Productos Más Vendidos</h3>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[280px] flex-1 min-h-0">
-                        <table class="w-full text-left border-collapse relative">
-                            <thead class="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10 shadow-sm">
-                                <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
-                                    <th class="p-2.5">Producto</th>
-                                    <th class="p-2.5 text-center">Unidades</th>
-                                    <th class="p-2.5 text-right text-emerald-600 dark:text-emerald-400">Ganancia</th>
-                                </tr>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 text-sm shrink-0">⚠️ Alerta de Stock Crítico</h3>
+                    <div class="overflow-y-auto max-h-[220px] flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Código</th><th class="py-2">Producto</th><th class="py-2 text-center">Faltante Sugerido</th></tr>
                             </thead>
-                            <tbody id="tabla-top-productos" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
+                            <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs"></tbody>
                         </table>
                     </div>
                 </div>
-                <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 shrink-0">⚠️ Alerta de Stock Bajo</h3>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[280px] flex-1 min-h-0">
-                        <table class="w-full text-left border-collapse relative">
-                            <thead class="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10 shadow-sm">
-                                <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
-                                    <th class="p-3">Código</th>
-                                    <th class="p-3">Producto</th>
-                                    <th class="p-3 text-center text-emerald-600 dark:text-emerald-400">Sugerido</th>
-                                </tr>
+
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 text-sm shrink-0">🔥 Velocidad de Agotamiento (Burn Rate)</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Días estimados antes de agotar stock basado en las últimas ventas.</p>
+                    <div class="overflow-y-auto max-h-[190px] flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Producto</th><th class="py-2 text-center">Tasa (un/día)</th><th class="py-2 text-right">Días Restantes</th></tr>
                             </thead>
-                            <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm"></tbody>
+                            <tbody id="tabla-burn-rate" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+                                <!-- Filas dinámicas -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
+        </div>
     <!-- Contenedores ocultos (Impresión) -->
     <div style="position: absolute; left: -9999px; top: -9999px;">
         <div id="print-lista-surtido" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 650px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
