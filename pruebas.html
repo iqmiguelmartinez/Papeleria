@@ -1435,6 +1435,122 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                         top[p.codigo].g += gan;
                     });
                 }
+                // ==========================================
+            // 5. GRÁFICO DE PROYECCIÓN Y RETORNO DE INVERSIÓN
+            // ==========================================
+            let ctxProyeccion = document.getElementById('chartProyeccionROI');
+            if (ctxProyeccion) {
+                // 1. Obtener días operativos reales (días únicos donde hubo ventas)
+                let diasUnicosSet = new Set();
+                vts.forEach(v => {
+                    if (v.fecha) diasUnicosSet.add(v.fecha.split('T')[0]);
+                });
+                let diasOperativos = diasUnicosSet.size > 0 ? diasUnicosSet.size : 1;
+                
+                // 2. Calcular la ganancia neta promedio diaria
+                let promGananciaDiaria = gT / diasOperativos;
+                
+                // 3. Preparar los arreglos para Chart.js
+                let projLabels = [];
+                let projGanancias = [];
+                let projInversion = [];
+                
+                let currentDate = new Date();
+                let accumulatedProfit = gT;
+                let targetInvestment = iT;
+                
+                // El punto de partida es "Hoy"
+                projLabels.push("Hoy");
+                projGanancias.push(accumulatedProfit);
+                projInversion.push(targetInvestment);
+                
+                let daysToProject = 0;
+                let textLabel = document.getElementById('txt-break-even');
+                
+                if (targetInvestment <= accumulatedProfit && targetInvestment > 0) {
+                    // Si ya superó la inversión
+                    daysToProject = 7;
+                    if(textLabel) textLabel.innerHTML = "<span class='text-emerald-600 font-bold'>¡Inversión Recuperada!</span> El negocio ya opera con utilidades netas puras.";
+                } else if (promGananciaDiaria > 0 && targetInvestment > 0) {
+                    // Calcular cuántos días faltan para cruzar la meta
+                    let daysToBreakEven = Math.ceil((targetInvestment - accumulatedProfit) / promGananciaDiaria);
+                    
+                    // Limitamos el gráfico visual a un máximo de meses si es muy lejano, para que no colapse el navegador
+                    daysToProject = Math.min(daysToBreakEven + 2, 365); 
+                    
+                    if(textLabel) {
+                        let exactDate = new Date();
+                        exactDate.setDate(currentDate.getDate() + daysToBreakEven);
+                        let dateText = exactDate.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                        textLabel.innerHTML = `Manteniendo la ganancia actual ($${promGananciaDiaria.toFixed(2)}/día), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${daysToBreakEven} días).`;
+                    }
+                } else {
+                    // Si la ganancia es 0, negativa o no hay inversión
+                    daysToProject = 14; 
+                    if(textLabel) textLabel.innerHTML = "<span class='text-amber-500 dark:text-amber-400 font-bold'>Datos insuficientes.</span> Se necesita un promedio de ganancia positiva para calcular la fecha de retorno.";
+                }
+                
+                // 4. Generar los puntos en el futuro
+                // Si faltan muchos días, saltamos de semana en semana para que el gráfico se vea limpio
+                let step = daysToProject > 60 ? 7 : (daysToProject > 180 ? 15 : 1); 
+                
+                for (let i = 1; i <= daysToProject; i++) {
+                    if (i === daysToProject || i % step === 0) {
+                        let futureDate = new Date();
+                        futureDate.setDate(currentDate.getDate() + i);
+                        
+                        projLabels.push(futureDate.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }));
+                        projGanancias.push(accumulatedProfit + (promGananciaDiaria * i));
+                        projInversion.push(targetInvestment);
+                    }
+                }
+
+                // 5. Dibujar el gráfico interactivo
+                if(window.chartProyeccionInstance) window.chartProyeccionInstance.destroy();
+                window.chartProyeccionInstance = new Chart(ctxProyeccion, {
+                    type: 'line',
+                    data: { 
+                        labels: projLabels, 
+                        datasets: [
+                            { 
+                                label: 'Ganancia Acumulada Proyectada ($)', 
+                                data: projGanancias, 
+                                borderColor: '#3b82f6', // Azul
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+                                fill: true, 
+                                tension: 0.1 
+                            },
+                            { 
+                                label: 'Meta de Inversión Total ($)', 
+                                data: projInversion, 
+                                borderColor: '#f43f5e', // Rojo
+                                borderDash: [5, 5], // Línea punteada
+                                fill: false,
+                                pointRadius: 0 // Sin círculos en los puntos
+                            }
+                        ] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: false }
+                        }
+                    }
+                });
+            }
+                
             });
 
             // ==========================================
