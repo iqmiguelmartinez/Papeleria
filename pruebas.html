@@ -1324,75 +1324,314 @@
             try { Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() }); let r = await fetch(URL_APPS_SCRIPT+"?action=getDataAnalisis"); let d = await r.json(); cacheUltimoAnalisis = d; procesarMetricasAnalisis(d.ventas, d.inventario, d.inversion); Swal.close(); } catch(e){}
         }
 
-        function procesarMetricasAnalisis(vts, inv, invs) {
-            let tbody = document.getElementById('tabla-inversiones-completa'); if(tbody) {
-                tbody.innerHTML=""; let tC=0, tP=0;
-                invs.forEach(i => {
-                    let m=Math.abs(i.cantidad||0), es=(i.pagado||"").toString().toUpperCase()==="SI"; if(es)tP+=m;else tC+=m;
-                    let b = es?`<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded font-bold text-[10px]">Sí</span>`:`<span class="px-2 py-1 bg-amber-100 text-amber-700 rounded font-bold text-[10px]">No</span>`;
-                    tbody.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2">${i.concepto}</td><td class="p-2 font-bold text-right">$${m.toFixed(2)}</td><td class="p-2 text-gray-500">${i.observaciones}</td><td class="p-2 text-center"><button onclick="cambiarEstadoPago(${i.rowIndex}, '${es?"SI":"NO"}')">${b}</button></td><td class="p-2">${i.fecha}</td><td class="p-2">${i.persona}</td></tr>`;
-                });
-                document.getElementById('inv-total-credito').innerText=`$${tC.toFixed(2)}`; document.getElementById('inv-total-pagado').innerText=`$${tP.toFixed(2)}`;
-            }
-
-            let gT=0, iT=0; invs.forEach(i=>{ let c=(i.concepto||"").toLowerCase(); if(!c.includes("inicial")&&!c.includes("inicio")) iT+=Math.abs(i.cantidad||0); });
-            let top={}, cli={}, wC=0;
-            vts.forEach(v => {
-                let m=v.fecha?v.fecha.substring(0,7):"", tel=v.telefono||""; if(tel!=="N/A"&&tel.length>=10 && !cli[tel]) cli[tel]=m;
-                if(v.whatsappEnviado==="SI") wC++;
-                if(v.productos) v.productos.forEach(p => {
-                    let c = (inv.find(x=>x.codigo===p.codigo)||{}).costo||0; let gan=(p.precio-c)*p.cantidad; gT+=gan;
-                    if(!top[p.codigo]) top[p.codigo]={n:p.nombre, c:0, g:0}; top[p.codigo].c+=p.cantidad; top[p.codigo].g+=gan;
-                });
+function procesarMetricasAnalisis(vts, inv, invs) {
+            // ==========================================
+            // 1. INVERSIÓN Y GANANCIAS HISTÓRICAS
+            // ==========================================
+            let iT = 0; // Inversión Total (Gastos)
+            invs.forEach(i => { 
+                let c = (i.concepto || "").toLowerCase(); 
+                // Excluimos saldos iniciales o movimientos de caja base
+                if (!c.includes("inicial") && !c.includes("inicio")) iT += Math.abs(i.cantidad || 0); 
             });
 
-            document.getElementById('ana-inversion-total').innerText=`$${iT.toFixed(2)}`; document.getElementById('ana-ganancia-total').innerText=`$${gT.toFixed(2)}`;
-            document.getElementById('ana-roi').innerText=`${iT>0?((gT/iT)*100).toFixed(1):0}%`; document.getElementById('ana-balance-neto').innerText=`$${(gT-iT).toFixed(2)}`;
-            document.getElementById('ana-total-clientes').innerText=Object.keys(cli).length; document.getElementById('ana-proporcion-wa').innerText=`${vts.length>0?((wC/vts.length)*100).toFixed(1):0}%`;
+            let gT = 0; // Ganancia Neta Total
+            let top = {}, cli = {}, wC = 0, catGanancias = { 'IMP': 0, 'HOJ': 0, 'PAP': 0, 'MS': 0, 'LAP': 0 };
+            
+            // Variables para Análisis de Cesta y Horas Pico
+            let cestaMatrix = {};
+            let horasPico = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0, 13:0, 14:0, 15:0, 16:0, 17:0, 18:0, 19:0, 20:0, 21:0, 22:0, 23:0 };
+            
+            // Variables para Proyección Mes Actual
+            let mesActual = new Date().toISOString().substring(0, 7);
+            let totalMesActual = 0;
+            let diasConVentaMesActual = new Set();
 
-            let tbTop=document.getElementById('tabla-top-productos'); if(tbTop){
-                tbTop.innerHTML=""; Object.values(top).sort((a,b)=>b.g-a.g).slice(0,5).forEach(t=>tbTop.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-medium">${t.n}</td><td class="p-2 text-center text-blue-600 font-bold">${Number(t.c.toFixed(2))} un.</td><td class="p-2 text-right text-emerald-600 font-bold">$${t.g.toFixed(2)}</td></tr>`);
+            // Variables para Retención (Recompra)
+            let comprasPorCliente = {}; // { "5512345678": 3 }
+
+            vts.forEach(v => {
+                let fechaStr = v.fecha ? v.fecha.split('T')[0] : "";
+                let mesVenta = v.fecha ? v.fecha.substring(0, 7) : "";
+                
+                // Horas Pico
+                if(v.hora) {
+                    let h = parseInt(v.hora.split(':')[0]);
+                    // Ajuste simple por si la hora viene en formato 12h (PM) - Depende de cómo guardes en GSheets
+                    if(v.hora.toLowerCase().includes('pm') && h !== 12) h += 12;
+                    if(v.hora.toLowerCase().includes('am') && h === 12) h = 0;
+                    if(!isNaN(h)) horasPico[h]++;
+                }
+
+                // Análisis Mes Actual
+                if (mesVenta === mesActual) {
+                    totalMesActual += (v.total || 0);
+                    if(fechaStr) diasConVentaMesActual.add(fechaStr);
+                }
+
+                // Clientes (Teléfono)
+                let tel = v.telefono || ""; 
+                if (tel !== "N/A" && tel.length >= 10) {
+                    if (!cli[tel]) cli[tel] = fechaStr; // Primer registro
+                    comprasPorCliente[tel] = (comprasPorCliente[tel] || 0) + 1;
+                }
+                if (v.whatsappEnviado === "SI") wC++;
+
+                // Análisis de Productos en Ticket
+                if (v.productos) {
+                    let prodsEnTicket = v.productos.map(p => p.codigo);
+                    
+                    // Matriz de Cesta (Qué se compró con qué)
+                    for(let i=0; i<prodsEnTicket.length; i++) {
+                        let c1 = prodsEnTicket[i];
+                        if(!cestaMatrix[c1]) cestaMatrix[c1] = {};
+                        for(let j=0; j<prodsEnTicket.length; j++) {
+                            if(i !== j) {
+                                let c2 = prodsEnTicket[j];
+                                cestaMatrix[c1][c2] = (cestaMatrix[c1][c2] || 0) + 1;
+                            }
+                        }
+                    }
+
+                    // Ganancias y Rentabilidad
+                    v.productos.forEach(p => {
+                        let codReal = VINCULOS_STOCK[p.codigo] || p.codigo;
+                        let pInv = inv.find(x => x.codigo === codReal) || {};
+                        let costo = pInv.costo || 0;
+                        let cat = p.codigo.substring(0, 3).toUpperCase();
+                        if (cat === 'LAP') cat = 'PAP'; // Agrupar lápices en papelería si lo deseas
+                        if (!catGanancias[cat]) catGanancias[cat] = 0;
+
+                        let gan = (p.precio - costo) * p.cantidad; 
+                        gT += gan;
+                        catGanancias[cat] += gan;
+
+                        if (!top[p.codigo]) top[p.codigo] = { n: p.nombre, c: 0, g: 0 }; 
+                        top[p.codigo].c += p.cantidad; 
+                        top[p.codigo].g += gan;
+                    });
+                }
+            });
+
+            // ==========================================
+            // 2. ACTUALIZACIÓN DE TARJETAS KPIs
+            // ==========================================
+            document.getElementById('ana-inversion-total').innerText = `$${iT.toFixed(2)}`; 
+            document.getElementById('ana-ganancia-total').innerText = `$${gT.toFixed(2)}`;
+            
+            // Cálculo Corregido del ROI Real
+            let roi = 0;
+            if (iT > 0) {
+                roi = ((gT - iT) / iT) * 100;
             }
-            let tbSug=document.getElementById('tabla-sugerencia-compra'); if(tbSug){
-                tbSug.innerHTML=""; inv.filter(x=>x.stock<=5).forEach(p=>tbSug.innerHTML+=`<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-mono">${p.codigo}</td><td class="p-2">${p.nombre}</td><td class="p-2 text-center text-emerald-600 font-bold">+${Math.max(10,15-p.stock)} un.</td></tr>`);
+            let elRoi = document.getElementById('ana-roi');
+            elRoi.innerText = `${roi.toFixed(1)}%`;
+            elRoi.className = roi >= 0 ? "text-xl font-bold text-emerald-600 dark:text-emerald-400" : "text-xl font-bold text-red-600 dark:text-red-400";
+            
+            // Balance Neto
+            let balance = gT - iT;
+            let elBalance = document.getElementById('ana-balance-neto');
+            elBalance.innerText = `$${balance.toFixed(2)}`;
+            elBalance.className = balance >= 0 ? "text-xl font-bold text-emerald-800 dark:text-emerald-200" : "text-xl font-bold text-red-800 dark:text-red-200";
+
+            // Proyección Cierre Mes (Run-rate)
+            let diasMesActual = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+            let diasTranscurridos = new Date().getDate();
+            let proyeccion = 0;
+            if (diasTranscurridos > 0) {
+                let promDiario = totalMesActual / diasTranscurridos;
+                proyeccion = promDiario * diasMesActual;
+            }
+            document.getElementById('ana-forecast-mes').innerText = `~ $${proyeccion.toFixed(2)}`;
+
+            // Clientes Base y Retención
+            let totalClientesUnicos = Object.keys(cli).length;
+            let clientesRecurrentes = Object.values(comprasPorCliente).filter(compras => compras > 1).length;
+            let tasaRecompra = totalClientesUnicos > 0 ? (clientesRecurrentes / totalClientesUnicos) * 100 : 0;
+            
+            document.getElementById('ana-total-clientes').innerText = totalClientesUnicos;
+            document.getElementById('ana-tasa-recompra').innerText = `${tasaRecompra.toFixed(1)}%`;
+            document.getElementById('ana-proporcion-wa').innerText = `${vts.length > 0 ? ((wC / vts.length) * 100).toFixed(1) : 0}%`;
+
+            // ==========================================
+            // 3. TABLAS DE COMPORTAMIENTO
+            // ==========================================
+            
+            // Top Productos
+            let tbTop = document.getElementById('tabla-top-productos'); 
+            if (tbTop) {
+                tbTop.innerHTML = ""; 
+                Object.values(top).sort((a, b) => b.g - a.g).slice(0, 5).forEach(t => {
+                    tbTop.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"><td class="py-2 text-gray-700 dark:text-gray-200 font-medium truncate max-w-[120px]" title="${t.n}">${t.n}</td><td class="py-2 text-center text-blue-600 font-bold">${Number(t.c.toFixed(2))}</td><td class="py-2 text-right text-emerald-600 font-bold">$${t.g.toFixed(2)}</td></tr>`;
+                });
             }
 
-            let semMap = {}, mesMap = {};
+            // Alerta Stock Crítico
+            let tbSug = document.getElementById('tabla-sugerencia-compra'); 
+            if (tbSug) {
+                tbSug.innerHTML = ""; 
+                inv.filter(x => x.stock <= 5).forEach(p => {
+                    tbSug.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 font-mono text-gray-500">${p.codigo}</td><td class="py-2 text-gray-700 dark:text-gray-200 truncate max-w-[100px]" title="${p.nombre}">${p.nombre}</td><td class="py-2 text-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs">+${Math.max(10, 15 - p.stock)} un.</span></td></tr>`;
+                });
+            }
+
+            // Análisis de Cesta (Comprados Juntos)
+            let tbCesta = document.getElementById('tabla-cruzada-cesta');
+            if (tbCesta) {
+                tbCesta.innerHTML = "";
+                let relaciones = [];
+                for(let codBase in cestaMatrix) {
+                    let pBase = inv.find(x => x.codigo === codBase);
+                    if(!pBase) continue;
+                    let comp = cestaMatrix[codBase];
+                    // Encontrar el producto más asociado
+                    let mejorCod = Object.keys(comp).reduce((a, b) => comp[a] > comp[b] ? a : b, null);
+                    if(mejorCod && comp[mejorCod] > 1) { // Mínimo 2 veces para ser relevante
+                        let pSocio = inv.find(x => x.codigo === mejorCod);
+                        if(pSocio) relaciones.push({ n1: pBase.nombre, n2: pSocio.nombre, freq: comp[mejorCod] });
+                    }
+                }
+                // Ordenar por frecuencia
+                relaciones.sort((a,b) => b.freq - a.freq).slice(0,5).forEach(r => {
+                    tbCesta.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 font-medium text-gray-800 dark:text-gray-200 truncate max-w-[100px]" title="${r.n1}">${r.n1}</td><td class="py-2 text-blue-600 dark:text-blue-400 font-medium truncate max-w-[120px]" title="${r.n2}">+ ${r.n2} <span class="text-[9px] text-gray-400">(${r.freq}x)</span></td></tr>`;
+                });
+                if(relaciones.length === 0) tbCesta.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-gray-400 italic">Insuficientes datos de compra múltiple</td></tr>`;
+            }
+
+            // Velocidad de Agotamiento (Burn Rate)
+            let tbBurn = document.getElementById('tabla-burn-rate');
+            if (tbBurn) {
+                tbBurn.innerHTML = "";
+                // Calculamos consumo en los últimos 30 días
+                let fechaLimite = new Date();
+                fechaLimite.setDate(fechaLimite.getDate() - 30);
+                let limiteTime = fechaLimite.getTime();
+                
+                let consumos30D = {};
+                vts.forEach(v => {
+                    let ts = v.fecha ? new Date(v.fecha).getTime() : 0;
+                    if(ts >= limiteTime && v.productos) {
+                        v.productos.forEach(p => {
+                            consumos30D[p.codigo] = (consumos30D[p.codigo] || 0) + p.cantidad;
+                        });
+                    }
+                });
+
+                let burnData = [];
+                inv.forEach(p => {
+                    let cons = consumos30D[p.codigo] || 0;
+                    if(cons > 0) {
+                        let tasaDiaria = cons / 30;
+                        let diasRest = p.stock / tasaDiaria;
+                        if(diasRest > 0 && diasRest < 60) { // Solo mostrar críticos (< 2 meses)
+                            burnData.push({ cod: p.codigo, nom: p.nombre, tasa: tasaDiaria, dias: diasRest });
+                        }
+                    }
+                });
+
+                burnData.sort((a,b) => a.dias - b.dias).slice(0, 5).forEach(b => {
+                    let colClass = b.dias < 7 ? "text-red-600 font-bold" : (b.dias < 15 ? "text-amber-500 font-bold" : "text-emerald-600 font-bold");
+                    tbBurn.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 text-gray-700 dark:text-gray-200 font-medium truncate max-w-[110px]" title="${b.nom}">${b.nom}</td><td class="py-2 text-center text-gray-500">${b.tasa.toFixed(1)}/d</td><td class="py-2 text-right ${colClass}">${Math.ceil(b.dias)} días</td></tr>`;
+                });
+                if(burnData.length === 0) tbBurn.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-gray-400 italic">Inventario estable (Consumo vs Stock)</td></tr>`;
+            }
+
+            // ==========================================
+            // 4. GRÁFICOS CON CHART.JS
+            // ==========================================
+            
+            // Gráfico 1: Ventas Mes (Línea)
+            let mesMap = {};
             vts.forEach(v => {
                 if(!v.fecha) return;
-                let fStr = v.fecha.split('T')[0];
-                let semKey = fStr; 
-                semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
-                let mesKey = fStr.substring(0, 7);
+                let mesKey = v.fecha.substring(0, 7);
                 mesMap[mesKey] = (mesMap[mesKey] || 0) + (v.total || 0);
             });
-
-            let semLabels = Object.keys(semMap).sort().slice(-7);
-            let semData = semLabels.map(l => semMap[l]);
             let mesLabels = Object.keys(mesMap).sort().slice(-6);
             let mesData = mesLabels.map(l => mesMap[l]);
 
-            if(chartSemanaInstance) chartSemanaInstance.destroy();
-            let ctxSem = document.getElementById('chartVentasSemana');
-            if(ctxSem) {
-                chartSemanaInstance = new Chart(ctxSem, {
-                    type: 'bar',
-                    data: { labels: semLabels, datasets: [{ label: 'Ventas ($)', data: semData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            if(window.chartMesInstance) window.chartMesInstance.destroy();
+            let ctxMes = document.getElementById('chartVentasMes');
+            if(ctxMes) {
+                window.chartMesInstance = new Chart(ctxMes, {
+                    type: 'line',
+                    data: { labels: mesLabels, datasets: [{ label: 'Ingresos ($)', data: mesData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#10b981' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
                 });
             }
 
-            if(chartMesInstance) chartMesInstance.destroy();
-            let ctxMes = document.getElementById('chartVentasMes');
-            if(ctxMes) {
-                chartMesInstance = new Chart(ctxMes, {
-                    type: 'line',
-                    data: { labels: mesLabels, datasets: [{ label: 'Ventas Mensuales ($)', data: mesData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            // Gráfico 2: Ventas 7 Días (Barras)
+            let semMap = {};
+            vts.forEach(v => {
+                if(!v.fecha) return;
+                let semKey = v.fecha.split('T')[0];
+                semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
+            });
+            let semLabels = Object.keys(semMap).sort().slice(-7);
+            let semData = semLabels.map(l => semMap[l]);
+
+            if(window.chartSemanaInstance) window.chartSemanaInstance.destroy();
+            let ctxSem = document.getElementById('chartVentasSemana');
+            if(ctxSem) {
+                window.chartSemanaInstance = new Chart(ctxSem, {
+                    type: 'bar',
+                    data: { labels: semLabels, datasets: [{ label: 'Ventas Diarias ($)', data: semData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            // Gráfico 3: Rentabilidad por Categoría (Doughnut)
+            let catLabels = ['Impresión', 'Hojas', 'Papelería', 'Misceláneo'];
+            let catData = [catGanancias['IMP']||0, catGanancias['HOJ']||0, catGanancias['PAP']||0, catGanancias['MS']||0];
+            
+            if(window.chartRentabilidadInstance) window.chartRentabilidadInstance.destroy();
+            let ctxRent = document.getElementById('chartRentabilidadCat');
+            if(ctxRent && catData.some(v => v > 0)) { // Solo renderiza si hay ganancias
+                window.chartRentabilidadInstance = new Chart(ctxRent, {
+                    type: 'doughnut',
+                    data: { 
+                        labels: catLabels, 
+                        datasets: [{ 
+                            data: catData, 
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                            borderWidth: 0
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { boxWidth: 12, font: {size: 10} } }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            // Gráfico 4: Horas Pico (Barras/Histograma)
+            let horasLabels = ['8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm'];
+            let horasData = horasLabels.map(l => {
+                let h = parseInt(l);
+                if(l.includes('pm') && h !== 12) h += 12;
+                return horasPico[h] || 0;
+            });
+
+            if(window.chartHorasInstance) window.chartHorasInstance.destroy();
+            let ctxHoras = document.getElementById('chartHorasPico');
+            if(ctxHoras) {
+                window.chartHorasInstance = new Chart(ctxHoras, {
+                    type: 'bar',
+                    data: { labels: horasLabels, datasets: [{ label: 'Operaciones', data: horasData, backgroundColor: '#f43f5e', borderRadius: 2 }] },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
                 });
             }
         }
-
+        
         async function descargarListaSurtidoImagen() {
             let el = document.getElementById('print-lista-surtido'); if(!el) return;
             let tbody = document.getElementById('print-tbody-surtido'); tbody.innerHTML = "";
