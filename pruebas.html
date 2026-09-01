@@ -1354,13 +1354,22 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let fechaStr = v.fecha ? v.fecha.split('T')[0] : "";
                 let mesVenta = v.fecha ? v.fecha.substring(0, 7) : "";
                 
-                // Horas Pico
-                if(v.hora) {
-                    let h = parseInt(v.hora.split(':')[0]);
-                    // Ajuste simple por si la hora viene en formato 12h (PM) - Depende de cómo guardes en GSheets
-                    if(v.hora.toLowerCase().includes('pm') && h !== 12) h += 12;
-                    if(v.hora.toLowerCase().includes('am') && h === 12) h = 0;
-                    if(!isNaN(h)) horasPico[h]++;
+            // Horas Pico (Extracción inteligente de fecha/hora)
+                let h = -1;
+                if (v.fecha && v.fecha.includes('T')) {
+                    // Si viene junta (Ej: 2026-09-01T15:30:00Z)
+                    let d = new Date(v.fecha);
+                    if (!isNaN(d.getTime())) h = d.getHours();
+                } else if (v.hora) {
+                    // Si viene separada en texto (Ej: "3:30 PM")
+                    let num = parseInt(v.hora.split(':')[0]);
+                    if (v.hora.toLowerCase().includes('pm') && num !== 12) num += 12;
+                    if (v.hora.toLowerCase().includes('am') && num === 12) num = 0;
+                    if (!isNaN(num)) h = num;
+                }
+                
+                if (h >= 0 && h <= 23) {
+                    horasPico[h] = (horasPico[h] || 0) + 1;
                 }
 
                 // Análisis Mes Actual
