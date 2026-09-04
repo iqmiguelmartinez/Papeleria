@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Punto de Venta - Pixel y Papel</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="logo.jpeg">
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -1727,7 +1732,15 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
 
-        verificarSesion();
+        verificarSesion();z
+        // Activar el Service Worker para instalación de PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Lista!', reg.scope))
+                    .catch(err => console.log('Error PWA: ', err));
+            });
+        }
     </script>
 </body>
 </html>
