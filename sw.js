@@ -1,6 +1,6 @@
 const CACHE_NAME = 'pixel-test-v1';
 const urlsToCache = [
-  './test.html',
+  './pruebas.html',
   './logo.jpeg'
 ];
 
