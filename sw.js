@@ -1,7 +1,7 @@
-const CACHE_NAME = 'pixel-test-v1';
+const CACHE_NAME = 'pixel-test-v2';
 const urlsToCache = [
-  './pruebas.html',
-  './logo.jpeg'
+  'pruebas.html',
+  'logo.jpeg'
 ];
 
 self.addEventListener('install', event => {
