@@ -1,7 +1,7 @@
 {
   "name": "Pixel y Papel Test",
   "short_name": "Pixel Test",
-  "start_url": "./test.html",
+  "start_url": "./pruebas.html",
   "display": "standalone",
   "background_color": "#1f2937",
   "theme_color": "#1f2937",
