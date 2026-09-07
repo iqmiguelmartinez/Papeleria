@@ -32,7 +32,10 @@
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
-
+    <!-- Banner Flotante de Sin Conexión -->
+    <div id="alerta-offline" class="hidden fixed top-0 left-0 w-full bg-red-600 text-white text-center py-2 z-50 shadow-lg font-bold text-sm transition-all duration-300">
+        ⚠️ Sin conexión a Internet. Los cobros no se guardarán en la base de datos.
+    </div>
     <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col flex-1 min-h-0">
         <!-- HEADER -->
         <header class="mb-3 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 shrink-0">
@@ -1740,6 +1743,20 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     .then(reg => console.log('PWA Lista!', reg.scope))
                     .catch(err => console.log('Error PWA: ', err));
             });
+        }
+                // Mostrar el banner cuando se pierde el internet
+        window.addEventListener('offline', () => {
+            document.getElementById('alerta-offline').classList.remove('hidden');
+        });
+        
+        // Ocultar el banner cuando regresa el internet
+        window.addEventListener('online', () => {
+            document.getElementById('alerta-offline').classList.add('hidden');
+        });
+        
+        // Comprobación inicial por si ya entró sin internet
+        if (!navigator.onLine) {
+            document.getElementById('alerta-offline').classList.remove('hidden');
         }
     </script>
 </body>
