@@ -1343,8 +1343,62 @@
             await enviarDatosAGoogleSheets({tipo:'actualizarPagoInversion', rowIndex:r, pagado:n}); await cargarDatosAnalisis(); Swal.fire('¡Actualizado!', '', 'success');
         }
 
-        async function cargarDatosAnalisis() {
-            try { Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() }); let r = await fetch(URL_APPS_SCRIPT+"?action=getDataAnalisis"); let d = await r.json(); cacheUltimoAnalisis = d; procesarMetricasAnalisis(d.ventas, d.inventario, d.inversion); Swal.close(); } catch(e){}
+async function cargarDatosAnalisis() {
+            try { 
+                Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() }); 
+                let r = await fetch(URL_APPS_SCRIPT+"?action=getDataAnalisis"); 
+                let d = await r.json(); 
+                cacheUltimoAnalisis = d; 
+                
+                // Agregamos la llamada a la función que pinta la tabla
+                renderInversiones(d.inversion); 
+                
+                procesarMetricasAnalisis(d.ventas, d.inventario, d.inversion); 
+                Swal.close(); 
+            } catch(e) { console.error(e); }
+        }
+
+        // ==========================================
+        // NUEVA FUNCIÓN: RENDERIZAR INVERSIONES
+        // ==========================================
+        function renderInversiones(invs) {
+            let tC = 0, tP = 0;
+            let tb = document.getElementById('tabla-inversiones-completa');
+            if(!tb) return;
+            tb.innerHTML = "";
+            
+            // Si no hay datos
+            if(!invs || invs.length === 0) {
+                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">No hay registros de inversiones.</td></tr>`;
+                document.getElementById('inv-total-credito').innerText = `$0.00`;
+                document.getElementById('inv-total-pagado').innerText = `$0.00`;
+                return;
+            }
+            
+            // Si hay datos, los procesamos al revés para ver los más recientes arriba
+            invs.slice().reverse().forEach(i => {
+                let p = String(i.pagado).toUpperCase();
+                let v = parseFloat(i.cantidad) || 0;
+                
+                if(p === 'NO' || p === 'FALSE') tC += v; else tP += v;
+                
+                let btnPagado = p === 'NO' ? 
+                    `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'NO')" class="bg-amber-100 text-amber-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-amber-200">NO</button>` : 
+                    `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'SI')" class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-emerald-200">SÍ</button>`;
+                
+                tb.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${i.concepto}</td>
+                    <td class="py-2 px-3 text-right font-bold text-gray-700 dark:text-gray-300">$${v.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-gray-500 dark:text-gray-400">${i.observaciones||'-'}</td>
+                    <td class="py-2 px-3 text-center">${btnPagado}</td>
+                    <td class="py-2 px-3 text-gray-500">${i.fecha||'-'}</td>
+                    <td class="py-2 px-3 text-gray-600 dark:text-gray-300 font-medium">${i.persona||'-'}</td>
+                </tr>`;
+            });
+            
+            // Actualizamos los cuadros de la cabecera
+            document.getElementById('inv-total-credito').innerText = `$${tC.toFixed(2)}`;
+            document.getElementById('inv-total-pagado').innerText = `$${tP.toFixed(2)}`;
         }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
