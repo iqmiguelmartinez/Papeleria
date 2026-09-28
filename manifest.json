@@ -1,7 +1,7 @@
 {
-  "name": "Pixel y Papel Pruebas",
-  "short_name": "Test POS",
-  "start_url": "pruebas.html", 
+  "name": "Pixel y Papel",
+  "short_name": "Pixel y Papel",
+  "start_url": "./index.html", 
   "scope": "./",
   "display": "standalone",
   "background_color": "#1f2937",
