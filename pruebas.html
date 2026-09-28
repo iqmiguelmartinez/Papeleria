@@ -856,7 +856,7 @@
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
-            let filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
+            let filtrados = inventario.filter(p => !p.noActivo && p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
             
             let t = Math.ceil(filtrados.length / 3);
             [filtrados.slice(0, t), filtrados.slice(t, t*2), filtrados.slice(t*2)].forEach((parte, i) => {
@@ -872,7 +872,7 @@
         
         function agregarAlCarrito(cod) { 
             let p = inventario.find(x => x.codigo===cod); 
-            if(!p) return; 
+            if(!p || p.noActivo) return; 
             
             let codReal = VINCULOS_STOCK[cod] || cod;
             let stockMax = obtenerStockReal(codReal);
@@ -1055,11 +1055,12 @@
                     let tdCostoEdit = tienePermisoAnalisis ? `<td class="p-1"><input type="number" step="0.01" value="${p.costo||0}" data-index="${idx}" data-field="costo" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>` : ``;
                     let tdCostoView = tienePermisoAnalisis ? `<td class="p-1 text-gray-600">$${(p.costo||0).toFixed(2)}</td>` : ``;
 
+                    let claseInactivo = p.noActivo ? ' opacity-50' : '';
                     if (editandoInventario) {
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>${tdCostoEdit}<td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td></tr>`;
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>${tdCostoEdit}<td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td></tr>`;
                     } else {
                         let stockMostrar = Number(p.stock.toFixed(2));
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}">${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>${tdCostoView}<td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}${p.noActivo ? ' (producto no activo)' : ''}">${p.noActivo ? '🚫 ' : ''}${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>${tdCostoView}<td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
                     }
                 });
             });
@@ -1624,7 +1625,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let tbSug = document.getElementById('tabla-sugerencia-compra'); 
             if (tbSug) {
                 tbSug.innerHTML = ""; 
-                inv.filter(x => x.stock <= 5).forEach(p => {
+                inv.filter(x => !x.noActivo && x.stock <= 5).forEach(p => {
                     tbSug.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 font-mono text-gray-500">${p.codigo}</td><td class="py-2 text-gray-700 dark:text-gray-200 truncate max-w-[100px]" title="${p.nombre}">${p.nombre}</td><td class="py-2 text-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs">+${Math.max(10, 15 - p.stock)} un.</span></td></tr>`;
                 });
             }
@@ -1843,7 +1844,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         async function descargarListaSurtidoImagen() {
             let el = document.getElementById('print-lista-surtido'); if(!el) return;
             let tbody = document.getElementById('print-tbody-surtido'); tbody.innerHTML = "";
-            inventario.filter(x => x.stock <= 5).forEach(p => {
+            inventario.filter(x => !x.noActivo && x.stock <= 5).forEach(p => {
                 tbody.innerHTML += `<tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${p.codigo}</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${p.nombre}</td><td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #059669;">+${Math.max(10, 15 - p.stock)} un.</td></tr>`;
             });
             el.style.left = "0px";
