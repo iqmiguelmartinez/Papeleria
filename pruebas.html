@@ -72,6 +72,7 @@
             <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
             <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
+            <button onclick="cambiarTab('caja')" id="btn-tab-caja" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💵 Control de Caja</button>
         </div>
 
         <!-- SECCIÓN: VENTAS -->
@@ -442,6 +443,58 @@
             </div>
         </div>
 
+                <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
+        <div id="tab-caja" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-4">
+        
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-3 shrink-0 border-b dark:border-gray-700 pb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white">💵 Control de Efectivo en Caja</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Gestión de fondo fijo, ingresos, egresos y desglose de billetes/monedas.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="abrirModalMovimientoCaja('INGRESO')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">
+                        ➕ Registrar Ingreso
+                    </button>
+                    <button onclick="abrirModalMovimientoCaja('EGRESO')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">
+                        ➖ Registrar Egreso
+                    </button>
+                    <button onclick="cargarDatosCaja()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">
+                        🔄 Actualizar
+                    </button>
+                </div>
+            </div>
+        
+            <!-- Tarjeta de Saldo Total Actual -->
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 rounded-xl shadow-sm flex justify-between items-center shrink-0">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wider text-emerald-100">Efectivo Total Físico en Caja</p>
+                    <p id="caja-saldo-total" class="text-3xl font-extrabold">$0.00</p>
+                </div>
+                <span class="text-4xl">🏦</span>
+            </div>
+        
+            <!-- Historial de Movimientos de Caja -->
+            <div class="flex-1 min-h-0 flex flex-col">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 text-sm">Historial de Entradas y Salidas de Caja</h3>
+                <div class="overflow-x-auto border dark:border-gray-700 rounded-xl flex-1 min-h-0 overflow-y-auto">
+                    <table class="w-full text-left border-collapse relative">
+                        <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm text-xs">
+                            <tr class="text-gray-600 dark:text-gray-300 uppercase border-b dark:border-gray-600 text-[10px]">
+                                <th class="p-2.5">Fecha / Hora</th>
+                                <th class="p-2.5">Tipo</th>
+                                <th class="p-2.5">Concepto</th>
+                                <th class="p-2.5 text-right">Monto ($)</th>
+                                <th class="p-2.5">Usuario</th>
+                                <th class="p-2.5 text-center">Desglose Billetes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-caja-historial" class="divide-y divide-gray-100 dark:divide-gray-700/60 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
 <!-- SECCIÓN: ANÁLISIS E INTELIGENCIA (V3 - AVANZADA) -->
         <div id="tab-analisis" class="hidden flex flex-col flex-1 min-h-0 bg-gray-50 dark:bg-gray-800 p-6 rounded-xl transition-colors duration-200 overflow-y-auto space-y-6">
             
@@ -724,7 +777,7 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar'].forEach(id => {
+            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
@@ -738,10 +791,10 @@
         function cerrarSesion() { sessionStorage.clear(); location.reload(); }
 
         function cambiarTab(tab) {
-            if (['analisis', 'inversion', 'ventasPasadas', 'log'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
+            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`), eBtn = document.getElementById(`btn-tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
                 if(eBtn && eBtn.classList.contains('bg-blue-600')) eBtn.className = "px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
@@ -756,6 +809,7 @@
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
             if(tab === 'log') cargarLogActividad();
+            if(tab === 'caja') cargarDatosCaja();
         }
 
         async function cargarDatosIniciales() {
@@ -1252,6 +1306,13 @@
                 efectivoNeto: tV-tR, 
                 promedioVenta: promVenta, 
                 articulos: articulosVendidos 
+            });
+            await enviarDatosAGoogleSheets({
+                tipo: 'movimientoCaja',
+                tipoMov: 'INGRESO',
+                concepto: 'Recepción de Corte de Caja',
+                monto: tV - tR,
+                desglose: "{}" 
             });
             
             cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: tV-tR, promedioVenta: promVenta, articulos: articulosVendidos});
@@ -1813,6 +1874,158 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         // Comprobación inicial por si ya entró sin internet
         if (!navigator.onLine) {
             document.getElementById('alerta-offline').classList.remove('hidden');
+        }
+        // ==========================================
+        // MÓDULO CONTROL DE CAJA CHICA Y ARQUEO
+        // ==========================================
+        let cacheMovimientosCaja = [];
+        
+        async function cargarDatosCaja() {
+            try {
+                Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                let resp = await fetch(URL_APPS_SCRIPT + "?action=getMovimientosCaja");
+                cacheMovimientosCaja = await resp.json();
+                Swal.close();
+                renderCaja();
+            } catch (e) {
+                Swal.close();
+                Swal.fire('Error', 'No se pudieron obtener los datos de la caja.', 'error');
+            }
+        }
+        
+        function renderCaja() {
+            let tb = document.getElementById('tabla-caja-historial');
+            if (!tb) return;
+            tb.innerHTML = "";
+        
+            let saldo = 0;
+            if (!cacheMovimientosCaja || cacheMovimientosCaja.length === 0) {
+                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Sin movimientos registrados.</td></tr>`;
+                document.getElementById('caja-saldo-total').innerText = "$0.00";
+                return;
+            }
+        
+            cacheMovimientosCaja.slice().reverse().forEach((m, idx) => {
+                let isIngreso = m.tipoMov === 'INGRESO';
+                let monto = parseFloat(m.monto) || 0;
+                saldo += isIngreso ? monto : -monto;
+        
+                let badgeClass = isIngreso ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800";
+                let signo = isIngreso ? "+" : "-";
+        
+                tb.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="py-2 px-3 text-gray-500">${m.fechaHora}</td>
+                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badgeClass}">${m.tipoMov}</span></td>
+                    <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${m.concepto}</td>
+                    <td class="py-2 px-3 text-right font-bold ${isIngreso ? 'text-emerald-600' : 'text-red-600'}">${signo}$${monto.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-gray-600 dark:text-gray-300">${m.usuario}</td>
+                    <td class="py-2 px-3 text-center">
+                        <button onclick="verDesgloseCaja('${encodeURIComponent(m.desglose)}')" class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-2 py-1 rounded text-[10px] font-bold">🔍 Ver Billetes</button>
+                    </td>
+                </tr>`;
+            });
+        
+            // Calcular el saldo real respetando el orden cronológico
+            let saldoTotalCalculado = cacheMovimientosCaja.reduce((acc, curr) => {
+                let m = parseFloat(curr.monto) || 0;
+                return curr.tipoMov === 'INGRESO' ? acc + m : acc - m;
+            }, 0);
+        
+            document.getElementById('caja-saldo-total').innerText = `$${saldoTotalCalculado.toFixed(2)}`;
+        }
+        
+        async function abrirModalMovimientoCaja(tipoMov) {
+            const denominaciones = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+        
+            let gridHTML = denominaciones.map(d => `
+                <div class="flex items-center justify-between gap-2 border-b dark:border-gray-700 py-1">
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 w-16">$${d}:</span>
+                    <input type="number" min="0" step="1" id="sw-den-${d}" oninput="calcularTotalArqueoModal()" class="swal2-input m-0 w-20 px-2 py-1 text-center text-xs input-denominacion" placeholder="0">
+                    <span id="sw-sub-${d}" class="text-xs font-semibold text-emerald-600 w-20 text-right">$0.00</span>
+                </div>
+            `).join('');
+        
+            const { value: formValues } = await Swal.fire({
+                title: `${tipoMov === 'INGRESO' ? '➕ Registrar Ingreso' : '➖ Registrar Egreso'} de Caja`,
+                html: `
+                    <div class="text-left space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Concepto / Motivo:</label>
+                            <input id="sw-caja-concepto" class="swal2-input m-0 w-full text-xs" placeholder="Ej: Fondo Inicial, Depósito a Banco...">
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Desglose por Monedas / Billetes (Opcional):</p>
+                            <div class="max-h-48 overflow-y-auto border dark:border-gray-700 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                ${gridHTML}
+                            </div>
+                        </div>
+                        <div class="bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/50 flex justify-between items-center">
+                            <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300">Total a ${tipoMov}:</span>
+                            <input id="sw-caja-monto-manual" type="number" step="0.01" class="font-bold text-lg text-emerald-600 bg-transparent text-right w-32 outline-none" placeholder="0.00">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar Movimiento',
+                confirmButtonColor: tipoMov === 'INGRESO' ? '#059669' : '#dc2626',
+                preConfirm: () => {
+                    let conc = document.getElementById('sw-caja-concepto').value.trim();
+                    let monto = parseFloat(document.getElementById('sw-caja-monto-manual').value) || 0;
+                    if (!conc) { Swal.showValidationMessage('Ingresa un concepto'); return false; }
+                    if (monto <= 0) { Swal.showValidationMessage('El monto debe ser mayor a $0.00'); return false; }
+        
+                    let desglose = {};
+                    denominaciones.forEach(d => {
+                        let cant = parseInt(document.getElementById(`sw-den-${d}`).value) || 0;
+                        if (cant > 0) desglose[d] = cant;
+                    });
+        
+                    return { concepto: conc, monto: monto, desglose: JSON.stringify(desglose) };
+                }
+            });
+        
+            if (formValues) {
+                Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                await enviarDatosAGoogleSheets({
+                    tipo: 'movimientoCaja',
+                    tipoMov: tipoMov,
+                    concepto: formValues.concepto,
+                    monto: formValues.monto,
+                    desglose: formValues.desglose
+                });
+                await cargarDatosCaja();
+                Swal.fire('¡Registrado!', '', 'success');
+            }
+        }
+        
+        function calcularTotalArqueoModal() {
+            const denominaciones = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+            let total = 0;
+            denominaciones.forEach(d => {
+                let el = document.getElementById(`sw-den-${d}`);
+                let cant = parseInt(el ? el.value : 0) || 0;
+                let sub = cant * d;
+                total += sub;
+                let subEl = document.getElementById(`sw-sub-${d}`);
+                if (subEl) subEl.innerText = `$${sub.toFixed(2)}`;
+            });
+            let inpMonto = document.getElementById('sw-caja-monto-manual');
+            if (inpMonto && total > 0) inpMonto.value = total.toFixed(2);
+        }
+        
+        function verDesgloseCaja(desgloseURLEncoded) {
+            let desg = {};
+            try { desg = JSON.parse(decodeURIComponent(desgloseURLEncoded)); } catch (e) {}
+            let keys = Object.keys(desg);
+            if (keys.length === 0) return Swal.fire('Sin Desglose', 'No se capturó conteo físico de billetes en este movimiento.', 'info');
+        
+            let rows = keys.map(k => `<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-bold">$${k}</td><td class="p-2 text-center">${desg[k]} piezas</td><td class="p-2 text-right font-semibold text-emerald-600">$${(parseInt(k) * parseInt(desg[k])).toFixed(2)}</td></tr>`).join('');
+        
+            Swal.fire({
+                title: '💵 Desglose de Monedas / Billetes',
+                html: `<div class="max-h-60 overflow-y-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 dark:bg-gray-800 text-[10px] uppercase"><tr><th class="p-2">Denominación</th><th class="p-2 text-center">Cantidad</th><th class="p-2 text-right">Subtotal</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+                showConfirmButton: true
+            });
         }
     </script>
 </body>
