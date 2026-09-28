@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pixel-test-v2';
+const CACHE_NAME = 'pixel-test-v3';
 const urlsToCache = [
   'pruebas.html',
   'logo.jpeg'
