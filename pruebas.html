@@ -470,6 +470,7 @@
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wider text-emerald-100">Efectivo Total Físico en Caja</p>
                     <p id="caja-saldo-total" class="text-3xl font-extrabold">$0.00</p>
+                    <p id="caja-pendiente-total" class="text-[11px] text-emerald-100 mt-1"></p>
                 </div>
                 <span class="text-4xl">🏦</span>
             </div>
@@ -485,6 +486,7 @@
                                 <th class="p-2.5">Tipo</th>
                                 <th class="p-2.5">Concepto</th>
                                 <th class="p-2.5 text-right">Monto ($)</th>
+                                <th class="p-2.5 text-center">Recibido</th>
                                 <th class="p-2.5">Usuario</th>
                                 <th class="p-2.5 text-center">Desglose Billetes</th>
                             </tr>
@@ -1312,7 +1314,8 @@
                 tipoMov: 'INGRESO',
                 concepto: 'Recepción de Corte de Caja',
                 monto: tV - tR,
-                desglose: "{}" 
+                desglose: "{}",
+                recibido: 'NO' 
             });
             
             cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: tV-tR, promedioVenta: promVenta, articulos: articulosVendidos});
@@ -1905,27 +1908,39 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let tb = document.getElementById('tabla-caja-historial');
             if (!tb) return;
             tb.innerHTML = "";
+            let elSaldo = document.getElementById('caja-saldo-total');
+            let elPend = document.getElementById('caja-pendiente-total');
         
-            let saldo = 0;
             if (!cacheMovimientosCaja || cacheMovimientosCaja.length === 0) {
-                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Sin movimientos registrados.</td></tr>`;
-                document.getElementById('caja-saldo-total').innerText = "$0.00";
+                tb.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">Sin movimientos registrados.</td></tr>`;
+                elSaldo.innerText = "$0.00";
+                if (elPend) elPend.innerText = "";
                 return;
             }
         
-            cacheMovimientosCaja.slice().reverse().forEach((m, idx) => {
+            let saldo = 0, pendiente = 0, nPend = 0;
+        
+            cacheMovimientosCaja.slice().reverse().forEach((m) => {
                 let isIngreso = m.tipoMov === 'INGRESO';
                 let monto = parseFloat(m.monto) || 0;
-                saldo += isIngreso ? monto : -monto;
+                let recibido = String(m.recibido || 'SI').toUpperCase() !== 'NO';
+                let efecto = isIngreso ? monto : -monto;
+        
+                if (recibido) { saldo += efecto; } else { pendiente += efecto; nPend++; }
         
                 let badgeClass = isIngreso ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800";
                 let signo = isIngreso ? "+" : "-";
         
-                tb.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                let celdaRecibido = recibido
+                    ? `<span class="px-2 py-0.5 rounded font-bold text-[10px] bg-emerald-100 text-emerald-800">SÍ</span>`
+                    : `<button onclick="marcarRecibidoCaja(${m.rowIndex})" title="Clic para confirmar que el dinero físico ya se recibió" class="px-2 py-1 rounded font-bold text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer">NO · Confirmar</button>`;
+        
+                tb.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${recibido ? '' : 'opacity-70'}">
                     <td class="py-2 px-3 text-gray-500">${m.fechaHora}</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badgeClass}">${m.tipoMov}</span></td>
                     <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${m.concepto}</td>
                     <td class="py-2 px-3 text-right font-bold ${isIngreso ? 'text-emerald-600' : 'text-red-600'}">${signo}$${monto.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-center">${celdaRecibido}</td>
                     <td class="py-2 px-3 text-gray-600 dark:text-gray-300">${m.usuario}</td>
                     <td class="py-2 px-3 text-center">
                         <button onclick="verDesgloseCaja('${encodeURIComponent(m.desglose)}')" class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-2 py-1 rounded text-[10px] font-bold">🔍 Ver Billetes</button>
@@ -1933,13 +1948,29 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 </tr>`;
             });
         
-            // Calcular el saldo real respetando el orden cronológico
-            let saldoTotalCalculado = cacheMovimientosCaja.reduce((acc, curr) => {
-                let m = parseFloat(curr.monto) || 0;
-                return curr.tipoMov === 'INGRESO' ? acc + m : acc - m;
-            }, 0);
+            // Solo los movimientos con Recibido = SÍ cuentan en el efectivo físico
+            elSaldo.innerText = `$${saldo.toFixed(2)}`;
+            if (elPend) {
+                elPend.innerText = nPend > 0
+                    ? `⏳ ${nPend} movimiento(s) pendiente(s) de recibir por $${pendiente.toFixed(2)} (no incluidos)`
+                    : "";
+            }
+        }
         
-            document.getElementById('caja-saldo-total').innerText = `$${saldoTotalCalculado.toFixed(2)}`;
+        async function marcarRecibidoCaja(rowIndex) {
+            let conf = await Swal.fire({
+                title: '¿Ya recibiste el dinero físico?',
+                text: 'El movimiento se marcará como recibido y se sumará al efectivo total en caja.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, ya lo recibí',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#059669'
+            });
+            if (!conf.isConfirmed) return;
+            Swal.fire({ title: 'Actualizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            await enviarDatosAGoogleSheets({ tipo: 'actualizarRecibidoCaja', rowIndex: rowIndex, recibido: 'SI' });
+            await cargarDatosCaja();
         }
         
         async function abrirModalMovimientoCaja(tipoMov) {
@@ -1999,7 +2030,8 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     tipoMov: tipoMov,
                     concepto: formValues.concepto,
                     monto: formValues.monto,
-                    desglose: formValues.desglose
+                    desglose: formValues.desglose,
+                    recibido: 'SI'
                 });
                 await cargarDatosCaja();
                 Swal.fire('¡Registrado!', '', 'success');
