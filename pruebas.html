@@ -475,7 +475,7 @@
             </div>
         
             <!-- Historial de Movimientos de Caja -->
-            <div class="flex-1 min-h-0 flex flex-col">
+            <div class="flex-1 min-h-[250px] flex flex-col">
                 <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 text-sm">Historial de Entradas y Salidas de Caja</h3>
                 <div class="overflow-x-auto border dark:border-gray-700 rounded-xl flex-1 min-h-0 overflow-y-auto">
                     <table class="w-full text-left border-collapse relative">
@@ -1883,13 +1883,21 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         async function cargarDatosCaja() {
             try {
                 Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                let resp = await fetch(URL_APPS_SCRIPT + "?action=getMovimientosCaja");
-                cacheMovimientosCaja = await resp.json();
+                let resp = await fetch(URL_APPS_SCRIPT + "?action=getMovimientosCaja&_=" + Date.now());
+                let texto = await resp.text();
+                let datos;
+                try { datos = JSON.parse(texto); }
+                catch (pe) { throw new Error("El servidor no devolvió JSON (¿implementación desactualizada o sin permisos?): " + texto.substring(0, 120)); }
+                if (!Array.isArray(datos)) {
+                    throw new Error("Respuesta inesperada: " + JSON.stringify(datos).substring(0, 150) + " — Falta publicar una NUEVA VERSIÓN del Apps Script.");
+                }
+                cacheMovimientosCaja = datos;
                 Swal.close();
                 renderCaja();
             } catch (e) {
+                console.error("Error caja:", e);
                 Swal.close();
-                Swal.fire('Error', 'No se pudieron obtener los datos de la caja.', 'error');
+                Swal.fire('Error', 'No se pudieron obtener los datos de la caja.<br><small>' + (e.message || e) + '</small>', 'error');
             }
         }
         
