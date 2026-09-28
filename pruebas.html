@@ -400,6 +400,7 @@
                         <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
                             <th class="p-3">Producto</th>
                             <th class="p-3 text-center">Cantidad Vendida</th>
+                            <th class="p-3 text-center" title="Stock actual del producto (se actualiza con cada venta)">Existencia Actual</th>
                             <th class="p-3 text-right">Total Recaudado</th>
                         </tr>
                     </thead>
@@ -1244,9 +1245,9 @@
             let tV=ventasActivas.reduce((a,v)=>a+v.total,0), tR=retirosActivos.reduce((a,r)=>a+r.monto,0);
             document.getElementById('corte-total-ventas').innerText=`$${tV.toFixed(2)}`; document.getElementById('corte-total-retiros').innerText=`$${tR.toFixed(2)}`; document.getElementById('corte-efectivo-neto').innerText=`$${(tV-tR).toFixed(2)}`;
             let tb = document.getElementById('tabla-resumen-articulos'); if(!tb)return; let mapa={}; 
-            ventasActivas.forEach(v=>{if(v.productos)v.productos.forEach(p=>{if(!mapa[p.codigo])mapa[p.codigo]={n:p.nombre,c:0,t:0}; mapa[p.codigo].c+=p.cantidad; mapa[p.codigo].t+=(p.precio*p.cantidad);})});
-            let res=Object.values(mapa); tb.innerHTML=res.length===0?`<tr><td colspan="3" class="p-3 text-center text-gray-400">Sin artículos</td></tr>`:"";
-            res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${a.t.toFixed(2)}</td></tr>`);
+            ventasActivas.forEach(v=>{if(v.productos)v.productos.forEach(p=>{if(!mapa[p.codigo])mapa[p.codigo]={k:p.codigo,n:p.nombre,c:0,t:0}; mapa[p.codigo].c+=p.cantidad; mapa[p.codigo].t+=(p.precio*p.cantidad);})});
+            let res=Object.values(mapa); tb.innerHTML=res.length===0?`<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin artículos</td></tr>`:"";
+            res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-center font-semibold ${obtenerStockReal(a.k) <= 5 ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">${Number(obtenerStockReal(a.k).toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${a.t.toFixed(2)}</td></tr>`);
             
             let cC = document.getElementById('historial-cortes-container'); if(!cC)return; cC.innerHTML="";
             if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;return;}
