@@ -562,7 +562,7 @@
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Ventas Últimos 7 Días</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Histórico de Ventas Diarias</h3>
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -1724,7 +1724,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let semKey = v.fecha.split('T')[0];
                 semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
             });
-            let semLabels = Object.keys(semMap).sort().slice(-7);
+            let semLabels = Object.keys(semMap).sort();
             let semData = semLabels.map(l => semMap[l]);
 
             if(window.chartSemanaInstance) window.chartSemanaInstance.destroy();
