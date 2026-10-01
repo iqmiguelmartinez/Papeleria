@@ -43,8 +43,8 @@
                 <img src="logo.jpeg" alt="Pixel y Papel" class="w-10 h-10 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold text-orange-600 dark:text-orange-400">🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.6.0</span>
+                        <h1 id="titulo-app" class="text-lg font-bold"></h1>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.5.0</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -697,7 +697,15 @@
     </div>
 
     <script>
-        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
+        // ===== CONFIGURACIÓN POR AMBIENTE =====
+        // Producción = raíz del sitio o index.html. Cualquier otra ruta (pruebas.html, archivo local) = pruebas.
+        // Así el mismo archivo sirve en los dos ambientes y un error de ruta nunca toca datos reales.
+        const ES_PROD = /(^|\/)(index\.html)?$/.test(location.pathname);
+        const CONFIG = ES_PROD
+            ? { url: "TU_URL_PRODUCCION", titulo: "Pixel y Papel", clase: "text-lg font-bold text-gray-800 dark:text-white" }
+            : { url: "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec", titulo: "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]", clase: "text-lg font-bold text-orange-600 dark:text-orange-400" };
+        const URL_APPS_SCRIPT = CONFIG.url;
+        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = CONFIG.titulo; h.className = CONFIG.clase; } })();
         const PASS_SURTIR = "surtir123";
 
         // ==========================================
@@ -1861,6 +1869,106 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
+
+        /* ======== FILTROS DE TABLAS (Inversiones, Retiros, Corte, Log, Caja) ======== */
+        // Se agrega una barra de filtros encima de cada tabla. No modifica las funciones que dibujan las tablas:
+        // un observador vuelve a aplicar el filtro cada vez que la tabla se vuelve a dibujar.
+        // col = índice de columna (empieza en 0) | skipCols = columnas que no entran a la búsqueda de texto
+        // sumCol = columna de monto para mostrar "Suma" de lo filtrado | selects: estáticos (opciones fijas) o dinámicos (valores de la columna)
+        const FILTROS_TABLAS = [
+            { tbody: 'tabla-inversiones-completa', sumCol: 1, skipCols: [3], selects: [
+                { col: 3, label: 'Pagado', opciones: [['si', 'Pagado: Sí'], ['no', 'Pagado: No (crédito)']] },
+                { col: 5, label: 'Persona', dinamico: true } ] },
+            { tbody: 'tabla-retiros-historial', sumCol: 2 },
+            { tbody: 'tabla-resumen-articulos', sumCol: 3 },
+            { tbody: 'tabla-log-actividad', selects: [
+                { col: 1, label: 'Usuario', dinamico: true },
+                { col: 2, label: 'Acción', dinamico: true } ] },
+            { tbody: 'tabla-caja-historial', skipCols: [4, 6], selects: [
+                { col: 1, label: 'Tipo', opciones: [['ingreso', 'Ingresos'], ['egreso', 'Egresos']] },
+                { col: 4, label: 'Recibido', opciones: [['si', 'Recibido: Sí'], ['no', 'Recibido: No (pendiente)']] },
+                { col: 5, label: 'Usuario', dinamico: true } ] }
+        ];
+
+        function normTxt(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+        function montoDeTexto(t) { let n = parseFloat(String(t).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
+
+        function inicializarFiltrosTablas() {
+            FILTROS_TABLAS.forEach(cfg => {
+                const tb = document.getElementById(cfg.tbody);
+                if (!tb) return;
+                const tabla = tb.closest('table'), wrap = tabla && tabla.parentElement;
+                if (!wrap || !wrap.parentElement) return;
+                const id = cfg.tbody, sels = cfg.selects || [], skip = cfg.skipCols || [];
+                const cls = 'px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500';
+
+                const bar = document.createElement('div');
+                bar.className = 'flex flex-wrap items-center gap-2 mb-2 shrink-0';
+                bar.innerHTML = `<input type="search" id="${id}-q" placeholder="🔍 Buscar... (también por fecha, ej. 28/09)" autocomplete="off" class="${cls} flex-1 min-w-[180px]">`
+                    + sels.map((s, i) => `<select id="${id}-s${i}" class="${cls}"></select>`).join('')
+                    + `<button type="button" id="${id}-x" class="${cls} cursor-pointer">✖ Limpiar</button>`
+                    + `<span id="${id}-info" class="text-[11px] text-gray-500 dark:text-gray-400"></span>`;
+                wrap.parentElement.insertBefore(bar, wrap);
+
+                const q = document.getElementById(id + '-q'), info = document.getElementById(id + '-info');
+                const selEls = sels.map((s, i) => document.getElementById(`${id}-s${i}`));
+
+                // Selects con opciones fijas
+                sels.forEach((s, i) => {
+                    if (s.dinamico) { selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>`; return; }
+                    selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>` + s.opciones.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('');
+                });
+
+                const aplicar = () => {
+                    const filas = Array.from(tb.rows).filter(r => !(r.cells.length === 1 && r.cells[0].colSpan > 1));
+
+                    // Selects dinámicos: opciones = valores distintos que hay en la columna
+                    sels.forEach((s, i) => {
+                        if (!s.dinamico) return;
+                        const vistos = {};
+                        filas.forEach(r => { let c = r.cells[s.col]; if (!c) return; let raw = c.textContent.trim(); if (raw) vistos[normTxt(raw)] = raw; });
+                        const claves = Object.keys(vistos).sort();
+                        const firma = claves.join('|');
+                        if (selEls[i].dataset.firma !== firma) {
+                            const actual = selEls[i].value;
+                            selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>` + claves.map(k => `<option value="${k}">${vistos[k]}</option>`).join('');
+                            selEls[i].value = claves.includes(actual) ? actual : '';
+                            selEls[i].dataset.firma = firma;
+                        }
+                    });
+
+                    const palabras = normTxt(q.value).split(/\s+/).filter(Boolean);
+                    const hayFiltro = palabras.length > 0 || selEls.some(e => e.value !== '');
+                    let visibles = 0, suma = 0;
+
+                    filas.forEach(r => {
+                        const celdas = Array.from(r.cells);
+                        const texto = normTxt(celdas.filter((c, i) => !skip.includes(i)).map(c => c.textContent).join(' '));
+                        let ok = palabras.every(p => texto.includes(p));
+                        if (ok) sels.forEach((s, i) => {
+                            const v = selEls[i].value; if (!v) return;
+                            const c = normTxt(celdas[s.col] ? celdas[s.col].textContent : '');
+                            ok = ok && (s.dinamico ? c === v : c.startsWith(v));
+                        });
+                        r.style.display = ok ? '' : 'none';
+                        if (ok) { visibles++; if (cfg.sumCol != null && celdas[cfg.sumCol]) suma += montoDeTexto(celdas[cfg.sumCol].textContent); }
+                    });
+
+                    if (!filas.length) { info.textContent = ''; return; }
+                    let t = hayFiltro ? `Mostrando ${visibles} de ${filas.length}` : `${filas.length} registro(s)`;
+                    if (hayFiltro && cfg.sumCol != null) t += ` · Suma: ${suma < 0 ? '-' : ''}$${Math.abs(suma).toFixed(2)}`;
+                    info.textContent = t;
+                };
+
+                q.addEventListener('input', aplicar);
+                selEls.forEach(e => e.addEventListener('change', aplicar));
+                document.getElementById(id + '-x').addEventListener('click', () => { q.value = ''; selEls.forEach(e => e.value = ''); aplicar(); });
+                // Cada vez que la tabla se vuelve a dibujar, se reaplica el filtro
+                new MutationObserver(aplicar).observe(tb, { childList: true });
+                aplicar();
+            });
+        }
+        try { inicializarFiltrosTablas(); } catch (e) { console.error('Filtros de tablas:', e); }
 
         verificarSesion();
         // Activar el Service Worker para instalación de PWA
