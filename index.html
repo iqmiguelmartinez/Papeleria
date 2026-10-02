@@ -832,6 +832,13 @@
             return p ? p.stock : 0;
         }
 
+        // Formatea un monto con coma de millares, ej: 1234.5 -> "1,234.50"
+        // Usado fuera de las pestañas Registrar Venta / Inventario / Ventas Pasadas.
+        function formatMiles(n) {
+            n = Number(n) || 0;
+            return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
         async function cargarLogActividad() {
             try {
                 Swal.fire({ title: 'Cargando log...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1239,19 +1246,19 @@
         }
         function renderRetiros() {
             let tb = document.getElementById('tabla-retiros-historial'); if(!tb)return; tb.innerHTML="";
-            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${r.monto.toFixed(2)}</td></tr>`);
+            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}</td></tr>`);
         }
         function renderCorte() {
             let tV=ventasActivas.reduce((a,v)=>a+v.total,0), tR=retirosActivos.reduce((a,r)=>a+r.monto,0);
-            document.getElementById('corte-total-ventas').innerText=`$${tV.toFixed(2)}`; document.getElementById('corte-total-retiros').innerText=`$${tR.toFixed(2)}`; document.getElementById('corte-efectivo-neto').innerText=`$${(tV-tR).toFixed(2)}`;
+            document.getElementById('corte-total-ventas').innerText=`$${formatMiles(tV)}`; document.getElementById('corte-total-retiros').innerText=`$${formatMiles(tR)}`; document.getElementById('corte-efectivo-neto').innerText=`$${formatMiles(tV-tR)}`;
             let tb = document.getElementById('tabla-resumen-articulos'); if(!tb)return; let mapa={}; 
             ventasActivas.forEach(v=>{if(v.productos)v.productos.forEach(p=>{if(!mapa[p.codigo])mapa[p.codigo]={k:p.codigo,n:p.nombre,c:0,t:0}; mapa[p.codigo].c+=p.cantidad; mapa[p.codigo].t+=(p.precio*p.cantidad);})});
             let res=Object.values(mapa); tb.innerHTML=res.length===0?`<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin artículos</td></tr>`:"";
-            res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-center font-semibold ${obtenerStockReal(a.k) <= 5 ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">${Number(obtenerStockReal(a.k).toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${a.t.toFixed(2)}</td></tr>`);
+            res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-center font-semibold ${obtenerStockReal(a.k) <= 5 ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">${Number(obtenerStockReal(a.k).toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${formatMiles(a.t)}</td></tr>`);
             
             let cC = document.getElementById('historial-cortes-container'); if(!cC)return; cC.innerHTML="";
             if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;return;}
-            cortesRealizados.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${c.totalVentas.toFixed(2)}</span><span class="text-emerald-600">Neto: $${c.efectivoNeto.toFixed(2)}</span></div></div></div>`; });
+            cortesRealizados.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${formatMiles(c.totalVentas)}</span><span class="text-emerald-600">Neto: $${formatMiles(c.efectivoNeto)}</span></div></div></div>`; });
         }
 
         function fmtExistencia(v) { return (typeof v === 'number' && isFinite(v)) ? Number(v.toFixed(2)) : '—'; }
@@ -1260,16 +1267,16 @@
             let el = document.getElementById('print-corte-caja'); if(!el) return;
             
             document.getElementById('print-corte-fecha').innerText = new Date().toLocaleString('es-MX');
-            document.getElementById('print-corte-v').innerText = `$${tV.toFixed(2)}`;
-            document.getElementById('print-corte-r').innerText = `$${tR.toFixed(2)}`;
-            document.getElementById('print-corte-n').innerText = `$${(tV - tR).toFixed(2)}`;
+            document.getElementById('print-corte-v').innerText = `$${formatMiles(tV)}`;
+            document.getElementById('print-corte-r').innerText = `$${formatMiles(tR)}`;
+            document.getElementById('print-corte-n').innerText = `$${formatMiles(tV - tR)}`;
             
             let tbody = document.getElementById('print-tbody-corte'); tbody.innerHTML = "";
             if (articulos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" style="padding: 6px; text-align: center; color: #9ca3af;">Sin movimientos</td></tr>`;
             } else {
                 articulos.forEach(a => {
-                    tbody.innerHTML += `<tr><td style="padding: 4px; border-bottom: 1px solid #e5e7eb; font-weight: bold; text-align: center;">${Number(a.cantidad.toFixed(2))}</td><td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #4b5563;">${fmtExistencia(a.existencia)}</td><td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">${a.nombre}</td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #e5e7eb; color: #059669; font-weight: bold;">$${a.total.toFixed(2)}</td></tr>`;
+                    tbody.innerHTML += `<tr><td style="padding: 4px; border-bottom: 1px solid #e5e7eb; font-weight: bold; text-align: center;">${Number(a.cantidad.toFixed(2))}</td><td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #4b5563;">${fmtExistencia(a.existencia)}</td><td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">${a.nombre}</td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #e5e7eb; color: #059669; font-weight: bold;">$${formatMiles(a.total)}</td></tr>`;
                 });
             }
             
@@ -1364,7 +1371,7 @@
                 html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="p-2.5 whitespace-nowrap text-gray-700 dark:text-gray-200 font-medium">${fStr}</td>
                     <td class="p-2.5 text-gray-500 dark:text-gray-400">${c.usuario}</td>
-                    <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">$${c.neto.toFixed(2)}</td>
+                    <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">$${formatMiles(c.neto)}</td>
                     <td class="p-2.5 text-center"><button onclick="verDetalleCorte(${idx})" class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded shadow-sm font-semibold transition cursor-pointer">Ver</button></td>
                 </tr>`;
             });
@@ -1379,11 +1386,11 @@
             
             let arts = c.articulos || [];
             let html = `<div class="text-left text-sm space-y-2 mb-4 text-gray-700 dark:text-gray-300">
-                <div class="flex justify-between border-b dark:border-gray-700 pb-2"><span><b>Cajero:</b> ${c.usuario}</span><span><b>Promedio Venta:</b> $${c.promedio.toFixed(2)}</span></div>
+                <div class="flex justify-between border-b dark:border-gray-700 pb-2"><span><b>Cajero:</b> ${c.usuario}</span><span><b>Promedio Venta:</b> $${formatMiles(c.promedio)}</span></div>
                 <div class="grid grid-cols-3 gap-2 mt-3 text-center">
-                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg border border-blue-100 dark:border-blue-800"><p class="text-[10px] uppercase font-bold text-blue-500">Ventas Totales</p><p class="font-bold text-blue-700 dark:text-blue-300">$${c.ventas.toFixed(2)}</p></div>
-                    <div class="bg-red-50 dark:bg-red-900/30 p-2 rounded-lg border border-red-100 dark:border-red-800"><p class="text-[10px] uppercase font-bold text-red-500">Gastos / Retiros</p><p class="font-bold text-red-700 dark:text-red-300">$${c.retiros.toFixed(2)}</p></div>
-                    <div class="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800 shadow-sm"><p class="text-[10px] uppercase font-bold text-emerald-500">Efectivo Neto</p><p class="font-bold text-emerald-700 dark:text-emerald-300">$${c.neto.toFixed(2)}</p></div>
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg border border-blue-100 dark:border-blue-800"><p class="text-[10px] uppercase font-bold text-blue-500">Ventas Totales</p><p class="font-bold text-blue-700 dark:text-blue-300">$${formatMiles(c.ventas)}</p></div>
+                    <div class="bg-red-50 dark:bg-red-900/30 p-2 rounded-lg border border-red-100 dark:border-red-800"><p class="text-[10px] uppercase font-bold text-red-500">Gastos / Retiros</p><p class="font-bold text-red-700 dark:text-red-300">$${formatMiles(c.retiros)}</p></div>
+                    <div class="bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800 shadow-sm"><p class="text-[10px] uppercase font-bold text-emerald-500">Efectivo Neto</p><p class="font-bold text-emerald-700 dark:text-emerald-300">$${formatMiles(c.neto)}</p></div>
                 </div>
             </div>`;
 
@@ -1397,7 +1404,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">`;
                 arts.forEach(a => {
-                    html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-1.5 text-center font-bold text-gray-800 dark:text-gray-200">${Number(a.cantidad.toFixed(2))}</td><td class="p-1.5 text-center text-gray-600 dark:text-gray-400">${fmtExistencia(a.existencia)}</td><td class="p-1.5 text-gray-700 dark:text-gray-300 font-medium">${a.nombre}</td><td class="p-1.5 text-right text-emerald-600 dark:text-emerald-400 font-bold">$${(a.total||0).toFixed(2)}</td></tr>`;
+                    html += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-1.5 text-center font-bold text-gray-800 dark:text-gray-200">${Number(a.cantidad.toFixed(2))}</td><td class="p-1.5 text-center text-gray-600 dark:text-gray-400">${fmtExistencia(a.existencia)}</td><td class="p-1.5 text-gray-700 dark:text-gray-300 font-medium">${a.nombre}</td><td class="p-1.5 text-right text-emerald-600 dark:text-emerald-400 font-bold">$${formatMiles(a.total||0)}</td></tr>`;
                 });
                 html += `</tbody></table></div>`;
             }
@@ -1461,7 +1468,7 @@ async function cargarDatosAnalisis() {
                 
                 tb.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${i.concepto}</td>
-                    <td class="py-2 px-3 text-right font-bold text-gray-700 dark:text-gray-300">$${v.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-bold text-gray-700 dark:text-gray-300">$${formatMiles(v)}</td>
                     <td class="py-2 px-3 text-gray-500 dark:text-gray-400">${i.observaciones||'-'}</td>
                     <td class="py-2 px-3 text-center">${btnPagado}</td>
                     <td class="py-2 px-3 text-gray-500">${i.fecha||'-'}</td>
@@ -1470,8 +1477,8 @@ async function cargarDatosAnalisis() {
             });
             
             // Actualizamos los cuadros de la cabecera
-            document.getElementById('inv-total-credito').innerText = `$${tC.toFixed(2)}`;
-            document.getElementById('inv-total-pagado').innerText = `$${tP.toFixed(2)}`;
+            document.getElementById('inv-total-credito').innerText = `$${formatMiles(tC)}`;
+            document.getElementById('inv-total-pagado').innerText = `$${formatMiles(tP)}`;
         }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
@@ -1576,8 +1583,8 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             // 2. ACTUALIZACIÓN DE TARJETAS KPIs
             // ==========================================
-            document.getElementById('ana-inversion-total').innerText = `$${iT.toFixed(2)}`; 
-            document.getElementById('ana-ganancia-total').innerText = `$${gT.toFixed(2)}`;
+            document.getElementById('ana-inversion-total').innerText = `$${formatMiles(iT)}`; 
+            document.getElementById('ana-ganancia-total').innerText = `$${formatMiles(gT)}`;
             
             // Cálculo Corregido del ROI Real
             let roi = 0;
@@ -1591,7 +1598,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // Balance Neto
             let balance = gT - iT;
             let elBalance = document.getElementById('ana-balance-neto');
-            elBalance.innerText = `$${balance.toFixed(2)}`;
+            elBalance.innerText = `$${formatMiles(balance)}`;
             elBalance.className = balance >= 0 ? "text-xl font-bold text-emerald-800 dark:text-emerald-200" : "text-xl font-bold text-red-800 dark:text-red-200";
 
             // Proyección Cierre Mes (Run-rate)
@@ -1602,7 +1609,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let promDiario = totalMesActual / diasTranscurridos;
                 proyeccion = promDiario * diasMesActual;
             }
-            document.getElementById('ana-forecast-mes').innerText = `~ $${proyeccion.toFixed(2)}`;
+            document.getElementById('ana-forecast-mes').innerText = `~ $${formatMiles(proyeccion)}`;
 
             // Clientes Base y Retención
             let totalClientesUnicos = Object.keys(cli).length;
@@ -1623,7 +1630,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             if (tbTop) {
                 tbTop.innerHTML = ""; 
                 Object.values(top).sort((a, b) => b.g - a.g).slice(0, 5).forEach(t => {
-                    tbTop.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"><td class="py-2 text-gray-700 dark:text-gray-200 font-medium truncate max-w-[120px]" title="${t.n}">${t.n}</td><td class="py-2 text-center text-blue-600 font-bold">${Number(t.c.toFixed(2))}</td><td class="py-2 text-right text-emerald-600 font-bold">$${t.g.toFixed(2)}</td></tr>`;
+                    tbTop.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"><td class="py-2 text-gray-700 dark:text-gray-200 font-medium truncate max-w-[120px]" title="${t.n}">${t.n}</td><td class="py-2 text-center text-blue-600 font-bold">${Number(t.c.toFixed(2))}</td><td class="py-2 text-right text-emerald-600 font-bold">$${formatMiles(t.g)}</td></tr>`;
                 });
             }
 
@@ -1807,7 +1814,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                         let exactDate = new Date();
                         exactDate.setDate(currentDate.getDate() + daysToBreakEven);
                         let dateText = exactDate.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-                        textLabel.innerHTML = `Manteniendo la ganancia actual ($${promGananciaDiaria.toFixed(2)}/día), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${daysToBreakEven} días).`;
+                        textLabel.innerHTML = `Manteniendo la ganancia actual ($${formatMiles(promGananciaDiaria)}/día), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${daysToBreakEven} días).`;
                     }
                 } else {
                     daysToProject = 14; 
@@ -1841,7 +1848,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                         responsive: true, 
                         maintainAspectRatio: false,
                         interaction: { mode: 'index', intersect: false },
-                        plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + context.parsed.y.toFixed(2); } } } },
+                        plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + formatMiles(context.parsed.y); } } } },
                         scales: { y: { beginAtZero: false } }
                     }
                 });
@@ -1946,7 +1953,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     <td class="py-2 px-3 text-gray-500">${m.fechaHora}</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badgeClass}">${m.tipoMov}</span></td>
                     <td class="py-2 px-3 font-medium text-gray-800 dark:text-gray-200">${m.concepto}</td>
-                    <td class="py-2 px-3 text-right font-bold ${isIngreso ? 'text-emerald-600' : 'text-red-600'}">${signo}$${monto.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-bold ${isIngreso ? 'text-emerald-600' : 'text-red-600'}">${signo}$${formatMiles(monto)}</td>
                     <td class="py-2 px-3 text-center">${celdaRecibido}</td>
                     <td class="py-2 px-3 text-gray-600 dark:text-gray-300">${m.usuario}</td>
                     <td class="py-2 px-3 text-center">
@@ -1956,10 +1963,10 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             });
         
             // Solo los movimientos con Recibido = SÍ cuentan en el efectivo físico
-            elSaldo.innerText = `$${saldo.toFixed(2)}`;
+            elSaldo.innerText = `$${formatMiles(saldo)}`;
             if (elPend) {
                 elPend.innerText = nPend > 0
-                    ? `⏳ ${nPend} movimiento(s) pendiente(s) de recibir por $${pendiente.toFixed(2)} (no incluidos)`
+                    ? `⏳ ${nPend} movimiento(s) pendiente(s) de recibir por $${formatMiles(pendiente)} (no incluidos)`
                     : "";
             }
         }
@@ -2054,7 +2061,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let sub = cant * d;
                 total += sub;
                 let subEl = document.getElementById(`sw-sub-${d}`);
-                if (subEl) subEl.innerText = `$${sub.toFixed(2)}`;
+                if (subEl) subEl.innerText = `$${formatMiles(sub)}`;
             });
             let inpMonto = document.getElementById('sw-caja-monto-manual');
             if (inpMonto && total > 0) inpMonto.value = total.toFixed(2);
@@ -2066,7 +2073,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let keys = Object.keys(desg);
             if (keys.length === 0) return Swal.fire('Sin Desglose', 'No se capturó conteo físico de billetes en este movimiento.', 'info');
         
-            let rows = keys.map(k => `<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-bold">$${k}</td><td class="p-2 text-center">${desg[k]} piezas</td><td class="p-2 text-right font-semibold text-emerald-600">$${(parseInt(k) * parseInt(desg[k])).toFixed(2)}</td></tr>`).join('');
+            let rows = keys.map(k => `<tr class="border-b dark:border-gray-700 text-xs"><td class="p-2 font-bold">$${k}</td><td class="p-2 text-center">${desg[k]} piezas</td><td class="p-2 text-right font-semibold text-emerald-600">$${formatMiles(parseInt(k) * parseInt(desg[k]))}</td></tr>`).join('');
         
             Swal.fire({
                 title: '💵 Desglose de Monedas / Billetes',
