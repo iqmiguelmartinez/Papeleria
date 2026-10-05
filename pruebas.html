@@ -697,15 +697,20 @@
     </div>
 
     <script>
-        // ===== CONFIGURACIÓN POR AMBIENTE =====
-        // Producción = raíz del sitio o index.html. Cualquier otra ruta (pruebas.html, archivo local) = pruebas.
-        // Así el mismo archivo sirve en los dos ambientes y un error de ruta nunca toca datos reales.
-        const ES_PROD = /(^|\/)(index\.html)?$/.test(location.pathname);
-        const CONFIG = ES_PROD
-            ? { url: "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec", titulo: "Pixel y Papel", clase: "text-lg font-bold text-gray-800 dark:text-white" }
-            : { url: "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec", titulo: "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]", clase: "text-lg font-bold text-orange-600 dark:text-orange-400" };
-        const URL_APPS_SCRIPT = CONFIG.url;
-        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = CONFIG.titulo; h.className = CONFIG.clase; } })();
+        // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
+        // Para cambiar de ambiente, deja ACTIVA una sola pareja de URL + TÍTULO y comenta (//) la otra.
+
+        // --- PRUEBAS (activo) ---
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
+        const TITULO_APP = "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]";
+        const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
+
+        // --- PRODUCCIÓN (comentado) ---
+        // const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
+        // const TITULO_APP = "Pixel y Papel";
+        // const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
+
+        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } })();
         const PASS_SURTIR = "surtir123";
 
         // ==========================================
@@ -873,7 +878,7 @@
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
-            let filtrados = inventario.filter(p => !p.noActivo && p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
+            let filtrados = inventario.filter(p => !p.noActivo && (p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase())));
             
             let t = Math.ceil(filtrados.length / 3);
             [filtrados.slice(0, t), filtrados.slice(t, t*2), filtrados.slice(t*2)].forEach((parte, i) => {
