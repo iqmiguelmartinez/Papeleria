@@ -43,8 +43,8 @@
                 <img src="logo.jpeg" alt="Pixel y Papel" class="w-10 h-10 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold text-orange-600 dark:text-orange-400">📚 Punto de Venta - Pixel y Papel</h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.6.0</span>
+                        <h1 id="titulo-app" class="text-lg font-bold"></h1>
+                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.7.0</span>
                     </div>
                     <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
                 </div>
@@ -562,7 +562,7 @@
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Histórico de Ventas Diarias</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Ventas Últimos 7 Días</h3>
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -697,7 +697,20 @@
     </div>
 
     <script>
+        // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
+        // Para cambiar de ambiente, deja ACTIVA una sola pareja de URL + TÍTULO y comenta (//) la otra.
+
+        // --- PRUEBAS (activo) ---
+        //const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
+        //const TITULO_APP = "🧪  Pixel y Papel ";
+        //const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
+
+        // --- PRODUCCIÓN (comentado) ---
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
+        const TITULO_APP = "Pixel y Papel";
+        const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
+
+        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } })();
         const PASS_SURTIR = "surtir123";
 
         // ==========================================
@@ -865,7 +878,7 @@
         function renderProductos(filtro = "") {
             const tb1 = document.getElementById('tabla-productos-venta-1'), tb2 = document.getElementById('tabla-productos-venta-2'), tb3 = document.getElementById('tabla-productos-venta-3');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = ""; tb3.innerHTML = "";
-            let filtrados = inventario.filter(p => !p.noActivo && p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()));
+            let filtrados = inventario.filter(p => !p.noActivo && (p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase())));
             
             let t = Math.ceil(filtrados.length / 3);
             [filtrados.slice(0, t), filtrados.slice(t, t*2), filtrados.slice(t*2)].forEach((parte, i) => {
@@ -1731,7 +1744,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let semKey = v.fecha.split('T')[0];
                 semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
             });
-            let semLabels = Object.keys(semMap).sort();
+            let semLabels = Object.keys(semMap).sort().slice(-7);
             let semData = semLabels.map(l => semMap[l]);
 
             if(window.chartSemanaInstance) window.chartSemanaInstance.destroy();
@@ -1868,6 +1881,206 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
         async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
+
+        /* ======== FILTROS Y ORDEN DE TABLAS (Inversiones, Retiros, Corte, Log, Caja) ======== */
+        // Se agrega una barra de filtros encima de cada tabla y se pueden ordenar las columnas con clic en el encabezado.
+        // No modifica las funciones que dibujan las tablas: un observador reaplica filtro y orden cada vez que se redibujan.
+        // El orden vive solo en memoria: al recargar la página o cerrar sesión, todo vuelve al orden original de la tabla.
+        // col = índice de columna (empieza en 0) | skipCols = columnas fuera de la búsqueda de texto
+        // sumCol = columna de monto para mostrar "Suma" de lo filtrado | tipos = tipo de cada columna para ordenar (null = no ordenable)
+        const FILTROS_TABLAS = [
+            { tbody: 'tabla-inversiones-completa', sumCol: 1, skipCols: [3],
+              tipos: ['texto', 'numero', 'texto', 'texto', 'fecha', 'texto'],
+              selects: [
+                { col: 3, label: 'Pagado', opciones: [['si', 'Pagado: Sí'], ['no', 'Pagado: No (crédito)']] },
+                { col: 5, label: 'Persona', dinamico: true } ] },
+            { tbody: 'tabla-retiros-historial', sumCol: 2, tipos: ['fecha', 'texto', 'numero'] },
+            { tbody: 'tabla-resumen-articulos', sumCol: 3, tipos: ['texto', 'numero', 'numero', 'numero'] },
+            { tbody: 'tabla-log-actividad', tipos: ['fecha', 'texto', 'texto', 'texto'],
+              selects: [
+                { col: 1, label: 'Usuario', dinamico: true },
+                { col: 2, label: 'Acción', dinamico: true } ] },
+            { tbody: 'tabla-caja-historial', skipCols: [4, 6], tipos: ['fecha', 'texto', 'texto', 'numero', 'texto', 'texto', null],
+              selects: [
+                { col: 1, label: 'Tipo', opciones: [['ingreso', 'Ingresos'], ['egreso', 'Egresos']] },
+                { col: 4, label: 'Recibido', opciones: [['si', 'Recibido: Sí'], ['no', 'Recibido: No (pendiente)']] },
+                { col: 5, label: 'Usuario', dinamico: true } ] }
+        ];
+
+        function normTxt(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+        function montoDeTexto(t) { let n = parseFloat(String(t).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
+        function numeroDeTexto(t) { let c = String(t).replace(/[^0-9.\-]/g, ''); if (!/\d/.test(c)) return null; let n = parseFloat(c); return isNaN(n) ? null : n; }
+
+        // Convierte el texto de una celda a fecha (ms). Entiende: 28/09/2026 10:30(:15), 2026-09-28T..., "28 sept 2026" y solo hora ("10:35:12 a.m.")
+        function fechaDeTexto(t) {
+            t = String(t || '').trim(); if (!t || t === '-') return null;
+            let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+            if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+            if (/^\d{4}-\d{2}-\d{2}/.test(t)) { let d = Date.parse(t); return isNaN(d) ? null : d; }
+            m = t.match(/^(\d{1,2})\s*(?:de\s+)?([A-Za-zÁÉÍÓÚáéíóú]+)\.?\s*(?:de\s+)?(\d{4})/);
+            if (m) {
+                const meses = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, set: 8, oct: 9, nov: 10, dic: 11 };
+                let mes = meses[normTxt(m[2]).slice(0, 3)];
+                if (mes !== undefined) return new Date(+m[3], mes, +m[1]).getTime();
+            }
+            m = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])?/i);
+            if (m) {
+                let h = +m[1]; const ap = (m[4] || '').toLowerCase();
+                if (ap === 'p' && h < 12) h += 12; if (ap === 'a' && h === 12) h = 0;
+                let d = new Date(); d.setHours(h, +m[2], +(m[3] || 0), 0); return d.getTime();
+            }
+            let d = Date.parse(t); return isNaN(d) ? null : d;
+        }
+
+        // Primer clic: texto A→Z | número mayor→menor | fecha más antigua→más reciente. Segundo clic: al revés. Tercer clic: orden original.
+        const ORDEN_INFO = {
+            texto:  { primero: 1,  ayuda: 'A → Z' },
+            numero: { primero: -1, ayuda: 'mayor a menor' },
+            fecha:  { primero: 1,  ayuda: 'más antigua a más reciente' }
+        };
+
+        function inicializarFiltrosTablas() {
+            FILTROS_TABLAS.forEach(cfg => {
+                const tb = document.getElementById(cfg.tbody);
+                if (!tb) return;
+                const tabla = tb.closest('table'), wrap = tabla && tabla.parentElement;
+                if (!wrap || !wrap.parentElement) return;
+                const id = cfg.tbody, sels = cfg.selects || [], skip = cfg.skipCols || [], tipos = cfg.tipos || [];
+                const cls = 'px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-blue-500';
+
+                const bar = document.createElement('div');
+                bar.className = 'flex flex-wrap items-center gap-2 mb-2 shrink-0';
+                bar.innerHTML = `<input type="search" id="${id}-q" placeholder="🔍 Buscar... (también por fecha, ej. 28/09)" autocomplete="off" class="${cls} flex-1 min-w-[180px]">`
+                    + sels.map((s, i) => `<select id="${id}-s${i}" class="${cls}"></select>`).join('')
+                    + `<button type="button" id="${id}-x" class="${cls} cursor-pointer">✖ Limpiar</button>`
+                    + `<button type="button" id="${id}-o" style="display:none" title="Volver al orden original de la tabla" class="${cls} cursor-pointer">↺ Orden original</button>`
+                    + `<span id="${id}-info" class="text-[11px] text-gray-500 dark:text-gray-400"></span>`;
+                wrap.parentElement.insertBefore(bar, wrap);
+
+                const q = document.getElementById(id + '-q'), info = document.getElementById(id + '-info'), btnOrden = document.getElementById(id + '-o');
+                const selEls = sels.map((s, i) => document.getElementById(`${id}-s${i}`));
+                const datos = () => Array.from(tb.rows).filter(r => !(r.cells.length === 1 && r.cells[0].colSpan > 1));
+
+                // Selects con opciones fijas
+                sels.forEach((s, i) => {
+                    if (s.dinamico) { selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>`; return; }
+                    selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>` + s.opciones.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('');
+                });
+
+                /* ---------- FILTRO ---------- */
+                const aplicar = () => {
+                    const filas = datos();
+
+                    // Selects dinámicos: opciones = valores distintos que hay en la columna
+                    sels.forEach((s, i) => {
+                        if (!s.dinamico) return;
+                        const vistos = {};
+                        filas.forEach(r => { let c = r.cells[s.col]; if (!c) return; let raw = c.textContent.trim(); if (raw) vistos[normTxt(raw)] = raw; });
+                        const claves = Object.keys(vistos).sort();
+                        const firma = claves.join('|');
+                        if (selEls[i].dataset.firma !== firma) {
+                            const actual = selEls[i].value;
+                            selEls[i].innerHTML = `<option value="">${s.label}: Todos</option>` + claves.map(k => `<option value="${k}">${vistos[k]}</option>`).join('');
+                            selEls[i].value = claves.includes(actual) ? actual : '';
+                            selEls[i].dataset.firma = firma;
+                        }
+                    });
+
+                    const palabras = normTxt(q.value).split(/\s+/).filter(Boolean);
+                    const hayFiltro = palabras.length > 0 || selEls.some(e => e.value !== '');
+                    let visibles = 0, suma = 0;
+
+                    filas.forEach(r => {
+                        const celdas = Array.from(r.cells);
+                        const texto = normTxt(celdas.filter((c, i) => !skip.includes(i)).map(c => c.textContent).join(' '));
+                        let ok = palabras.every(p => texto.includes(p));
+                        if (ok) sels.forEach((s, i) => {
+                            const v = selEls[i].value; if (!v) return;
+                            const c = normTxt(celdas[s.col] ? celdas[s.col].textContent : '');
+                            ok = ok && (s.dinamico ? c === v : c.startsWith(v));
+                        });
+                        r.style.display = ok ? '' : 'none';
+                        if (ok) { visibles++; if (cfg.sumCol != null && celdas[cfg.sumCol]) suma += montoDeTexto(celdas[cfg.sumCol].textContent); }
+                    });
+
+                    if (!filas.length) { info.textContent = ''; return; }
+                    let t = hayFiltro ? `Mostrando ${visibles} de ${filas.length}` : `${filas.length} registro(s)`;
+                    if (hayFiltro && cfg.sumCol != null) t += ` · Suma: ${suma < 0 ? '-' : ''}$${formatMiles(Math.abs(suma))}`;
+                    info.textContent = t;
+                };
+
+                /* ---------- ORDEN (solo en memoria; se pierde al recargar) ---------- */
+                let base = datos();               // orden original tal como lo dibuja la tabla
+                let ord = { col: -1, paso: 0 };   // paso 0 = sin ordenar | 1 = primer clic | 2 = segundo clic
+                let obs = null;
+
+                const ths = tabla.tHead && tabla.tHead.rows[0] ? Array.from(tabla.tHead.rows[0].cells) : [];
+                const flechas = {};
+
+                const reordenar = lista => { lista.forEach(r => tb.appendChild(r)); if (obs) obs.takeRecords(); };
+
+                const valorCelda = (r, col, tipo) => {
+                    const c = r.cells[col]; if (!c) return null;
+                    const t = c.textContent.trim();
+                    if (tipo === 'numero') return numeroDeTexto(t);
+                    if (tipo === 'fecha') return fechaDeTexto(t);
+                    const n = normTxt(t); return (n === '' || n === '-') ? null : n;
+                };
+
+                const aplicarOrden = () => {
+                    const vivas = base.filter(r => r.parentNode === tb);
+                    if (ord.paso === 0 || ord.col < 0) { reordenar(vivas); }
+                    else {
+                        const tipo = tipos[ord.col];
+                        const dir = ord.paso === 1 ? ORDEN_INFO[tipo].primero : -ORDEN_INFO[tipo].primero;
+                        const k = new Map(vivas.map((r, i) => [r, { i: i, v: valorCelda(r, ord.col, tipo) }]));
+                        reordenar(vivas.slice().sort((a, b) => {
+                            const A = k.get(a), B = k.get(b);
+                            if (A.v === null && B.v === null) return A.i - B.i;
+                            if (A.v === null) return 1;          // celdas vacías siempre al final
+                            if (B.v === null) return -1;
+                            const c = tipo === 'texto' ? A.v.localeCompare(B.v, 'es') : A.v - B.v;
+                            return c !== 0 ? c * dir : A.i - B.i; // empate: respeta el orden original
+                        }));
+                    }
+                    // Flechas en los encabezados y botón "Orden original"
+                    Object.keys(flechas).forEach(i => {
+                        const activa = (+i === ord.col && ord.paso > 0);
+                        if (!activa) { flechas[i].textContent = '↕'; flechas[i].style.opacity = '0.35'; return; }
+                        const dirAct = ord.paso === 1 ? ORDEN_INFO[tipos[i]].primero : -ORDEN_INFO[tipos[i]].primero;
+                        flechas[i].textContent = dirAct === 1 ? '▲' : '▼'; flechas[i].style.opacity = '1';
+                    });
+                    btnOrden.style.display = ord.paso > 0 ? '' : 'none';
+                };
+
+                ths.forEach((th, i) => {
+                    const tipo = tipos[i];
+                    if (!tipo) return;
+                    const f = document.createElement('span');
+                    f.style.cssText = 'margin-left:4px;font-size:10px;opacity:.35';
+                    f.textContent = '↕';
+                    th.appendChild(f); flechas[i] = f;
+                    th.style.cursor = 'pointer'; th.style.userSelect = 'none';
+                    th.title = (th.title ? th.title + ' · ' : '') + `Clic para ordenar (${ORDEN_INFO[tipo].ayuda}); otro clic invierte; un tercero vuelve al orden original`;
+                    th.addEventListener('click', () => {
+                        if (ord.col !== i) { ord = { col: i, paso: 1 }; }
+                        else { ord.paso = (ord.paso + 1) % 3; if (ord.paso === 0) ord.col = -1; }
+                        aplicarOrden();
+                    });
+                });
+                btnOrden.addEventListener('click', () => { ord = { col: -1, paso: 0 }; aplicarOrden(); });
+
+                q.addEventListener('input', aplicar);
+                selEls.forEach(e => e.addEventListener('change', aplicar));
+                document.getElementById(id + '-x').addEventListener('click', () => { q.value = ''; selEls.forEach(e => e.value = ''); aplicar(); });
+
+                // Cada vez que la tabla se vuelve a dibujar (orden original): se guarda ese orden y se reaplica orden + filtro
+                obs = new MutationObserver(() => { base = datos(); aplicarOrden(); aplicar(); });
+                obs.observe(tb, { childList: true });
+                aplicarOrden(); aplicar();
+            });
+        }
+        try { inicializarFiltrosTablas(); } catch (e) { console.error('Filtros y orden de tablas:', e); }
 
         verificarSesion();
         // Activar el Service Worker para instalación de PWA
