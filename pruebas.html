@@ -533,6 +533,7 @@
                     <p class="text-xs text-gray-500">Métricas en tiempo real, proyecciones y tendencias operativas.</p>
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="abrirCalendarioLaboral()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">📅 Calendario laboral</button>
                     <button onclick="descargarListaSurtidoImagen()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
                         📥 Descargar Lista para Surtir
                     </button>
@@ -565,6 +566,7 @@
                 <div class="bg-sky-50 dark:bg-sky-950/40 p-3 rounded-xl border border-sky-100 dark:border-sky-900/50 shadow-sm">
                     <p class="text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase">Proyección Cierre Mes</p>
                     <p id="ana-forecast-mes" class="text-xl font-bold text-sky-800 dark:text-sky-200">~ $0.00</p>
+                    <p id="ana-forecast-detalle" class="text-[10px] text-sky-700/80 dark:text-sky-300/80 mt-0.5"></p>
                 </div>
                 <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm">
                     <p class="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">Tasa de Recompra</p>
@@ -646,11 +648,11 @@
 
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 text-sm shrink-0">🔥 Velocidad de Agotamiento (Burn Rate)</h3>
-                    <p class="text-[10px] text-gray-400 mb-2">Días estimados antes de agotar stock basado en las últimas ventas.</p>
+                    <p class="text-[10px] text-gray-400 mb-2">Días hábiles estimados antes de agotar stock (últimos 30 días, sin contar descansos ni feriados).</p>
                     <div class="overflow-y-auto max-h-[190px] flex-1">
                         <table class="w-full text-left border-collapse">
                             <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Producto</th><th class="py-2 text-center">Tasa (un/día)</th><th class="py-2 text-right">Días Restantes</th></tr>
+                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Producto</th><th class="py-2 text-center">Tasa (un/día háb.)</th><th class="py-2 text-right">Días háb. restantes</th></tr>
                             </thead>
                             <tbody id="tabla-burn-rate" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
                                 <!-- Filas dinámicas -->
@@ -1528,6 +1530,7 @@ async function cargarDatosAnalisis() {
                 let r = await apiFetch("getDataAnalisis"); 
                 let d = await r.json(); 
                 cacheUltimoAnalisis = d; 
+                await cargarCalendario();
                 
                 // Agregamos la llamada a la función que pinta la tabla
                 renderInversiones(d.inversion); 
@@ -1599,7 +1602,10 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let horasPico = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0, 13:0, 14:0, 15:0, 16:0, 17:0, 18:0, 19:0, 20:0, 21:0, 22:0, 23:0 };
             
             // Variables para Proyección Mes Actual
-            let mesActual = new Date().toISOString().substring(0, 7);
+            let hoyL = new Date();
+            let mesActual = calKey(hoyL).substring(0, 7);
+            let ventasPorDia = {};      // ventas de cada día (fecha local)
+            let gananciaPorDia = {};    // ganancia de cada día (fecha local)
             let totalMesActual = 0;
             let diasConVentaMesActual = new Set();
 
@@ -1608,8 +1614,10 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
             // --- INICIO DEL CICLO DE VENTAS ---
             vts.forEach(v => {
-                let fechaStr = v.fecha ? v.fecha.split('T')[0] : "";
-                let mesVenta = v.fecha ? v.fecha.substring(0, 7) : "";
+                let fvDate = bParseVentaFecha(v);
+                let fechaStr = fvDate ? calKey(fvDate) : "";
+                let mesVenta = fechaStr ? fechaStr.substring(0, 7) : "";
+                if (fechaStr) ventasPorDia[fechaStr] = (ventasPorDia[fechaStr] || 0) + (v.total || 0);
                 
                 // Horas Pico (Extracción inteligente de fecha/hora)
                 let h = -1;
@@ -1668,6 +1676,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
                         let gan = (p.precio - costo) * p.cantidad; 
                         gT += gan;
+                        if (fechaStr) gananciaPorDia[fechaStr] = (gananciaPorDia[fechaStr] || 0) + gan;
                         catGanancias[cat] += gan;
 
                         if (!top[p.codigo]) top[p.codigo] = { n: p.nombre, c: 0, g: 0 }; 
@@ -1700,15 +1709,11 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             elBalance.innerText = `$${formatMiles(balance)}`;
             elBalance.className = balance >= 0 ? "text-xl font-bold text-emerald-800 dark:text-emerald-200" : "text-xl font-bold text-red-800 dark:text-red-200";
 
-            // Proyección Cierre Mes (Run-rate)
-            let diasMesActual = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-            let diasTranscurridos = new Date().getDate();
-            let proyeccion = 0;
-            if (diasTranscurridos > 0) {
-                let promDiario = totalMesActual / diasTranscurridos;
-                proyeccion = promDiario * diasMesActual;
-            }
-            document.getElementById('ana-forecast-mes').innerText = `~ $${formatMiles(proyeccion)}`;
+            // Proyección Cierre Mes: usa solo días hábiles (según el calendario laboral)
+            let proy = calProyeccionMes(ventasPorDia, hoyL);
+            document.getElementById('ana-forecast-mes').innerText = `~ $${formatMiles(proy.total)}`;
+            let elDetProy = document.getElementById('ana-forecast-detalle');
+            if (elDetProy) elDetProy.innerText = `$${formatMiles(proy.prom)}/día hábil · ${proy.restantes} día${proy.restantes === 1 ? '' : 's'} hábil${proy.restantes === 1 ? '' : 'es'} por delante${proy.hoyHab ? ' (con hoy)' : ''}`;
 
             // Clientes Base y Retención
             let totalClientesUnicos = Object.keys(cli).length;
@@ -1767,16 +1772,17 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let tbBurn = document.getElementById('tabla-burn-rate');
             if (tbBurn) {
                 tbBurn.innerHTML = "";
-                let fechaLimite = new Date();
-                fechaLimite.setDate(fechaLimite.getDate() - 30);
-                let limiteTime = fechaLimite.getTime();
-                
+                // Últimos 30 días completos (sin contar hoy) y solo días hábiles según el calendario
+                let hoyBurn = new Date(hoyL.getFullYear(), hoyL.getMonth(), hoyL.getDate());
+                let iniBurn = new Date(hoyBurn.getFullYear(), hoyBurn.getMonth(), hoyBurn.getDate() - 30);
+                let habilesBurn = Math.max(1, calHabilesEntre(iniBurn, hoyBurn));
                 let consumos30D = {};
                 vts.forEach(v => {
-                    let ts = v.fecha ? new Date(v.fecha).getTime() : 0;
-                    if(ts >= limiteTime && v.productos) {
+                    let fv = bParseVentaFecha(v);
+                    if (fv && fv >= iniBurn && fv < hoyBurn && v.productos) {
                         v.productos.forEach(p => {
-                            consumos30D[p.codigo] = (consumos30D[p.codigo] || 0) + p.cantidad;
+                            let codStock = VINCULOS_STOCK[p.codigo] || p.codigo; // el stock vive en el producto base
+                            consumos30D[codStock] = (consumos30D[codStock] || 0) + p.cantidad;
                         });
                     }
                 });
@@ -1785,7 +1791,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 inv.forEach(p => {
                     let cons = consumos30D[p.codigo] || 0;
                     if(cons > 0) {
-                        let tasaDiaria = cons / 30;
+                        let tasaDiaria = cons / habilesBurn;
                         let diasRest = p.stock / tasaDiaria;
                         if(diasRest > 0 && diasRest < 60) { 
                             burnData.push({ cod: p.codigo, nom: p.nombre, tasa: tasaDiaria, dias: diasRest });
@@ -1879,56 +1885,62 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             let ctxProyeccion = document.getElementById('chartProyeccionROI');
             if (ctxProyeccion) {
-                let diasUnicosSet = new Set();
-                vts.forEach(v => {
-                    if (v.fecha) diasUnicosSet.add(v.fecha.split('T')[0]);
-                });
-                let diasOperativos = diasUnicosSet.size > 0 ? diasUnicosSet.size : 1;
-                
-                let promGananciaDiaria = gT / diasOperativos;
-                
+                // Ganancia promedio por DÍA HÁBIL (hasta ayer), según el calendario laboral
+                let hoy0 = new Date(hoyL.getFullYear(), hoyL.getMonth(), hoyL.getDate());
+                let clavesGan = Object.keys(gananciaPorDia).sort();
+                let promGananciaDiaria = 0;
+                if (clavesGan.length) {
+                    let habilesHist = calHabilesEntre(calParseKey(clavesGan[0]), hoy0);
+                    let gananciaHist = 0;
+                    clavesGan.forEach(k => { if (k < calKey(hoy0)) gananciaHist += gananciaPorDia[k]; });
+                    promGananciaDiaria = habilesHist > 0 ? gananciaHist / habilesHist : gT / clavesGan.length;
+                }
+
                 let projLabels = [];
                 let projGanancias = [];
                 let projInversion = [];
-                
-                let currentDate = new Date();
+
                 let accumulatedProfit = gT;
                 let targetInvestment = iT;
-                
+
                 projLabels.push("Hoy");
                 projGanancias.push(accumulatedProfit);
                 projInversion.push(targetInvestment);
-                
-                let daysToProject = 0;
+
+                let habilesAProyectar = 0;
                 let textLabel = document.getElementById('txt-break-even');
-                
+
                 if (targetInvestment <= accumulatedProfit && targetInvestment > 0) {
-                    daysToProject = 7;
+                    habilesAProyectar = 7;
                     if(textLabel) textLabel.innerHTML = "<span class='text-emerald-600 font-bold'>¡Inversión Recuperada!</span> El negocio ya opera con utilidades netas puras.";
                 } else if (promGananciaDiaria > 0 && targetInvestment > 0) {
-                    let daysToBreakEven = Math.ceil((targetInvestment - accumulatedProfit) / promGananciaDiaria);
-                    daysToProject = Math.min(daysToBreakEven + 2, 365); 
-                    
+                    let habilesParaRecuperar = Math.ceil((targetInvestment - accumulatedProfit) / promGananciaDiaria);
+                    let fechaRecupera = calFechaHabilN(hoy0, habilesParaRecuperar);
+                    habilesAProyectar = Math.min(habilesParaRecuperar + 2, 365);
                     if(textLabel) {
-                        let exactDate = new Date();
-                        exactDate.setDate(currentDate.getDate() + daysToBreakEven);
-                        let dateText = exactDate.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-                        textLabel.innerHTML = `Manteniendo la ganancia actual ($${formatMiles(promGananciaDiaria)}/día), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${daysToBreakEven} días).`;
+                        if (fechaRecupera) {
+                            let dateText = fechaRecupera.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                            let naturales = Math.round((fechaRecupera - hoy0) / 86400000);
+                            textLabel.innerHTML = `Con la ganancia promedio por día hábil ($${formatMiles(promGananciaDiaria)}; sin contar descansos ni feriados), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${habilesParaRecuperar} días hábiles, unos ${naturales} días naturales).`;
+                        } else {
+                            textLabel.innerHTML = "<span class='text-amber-500 dark:text-amber-400 font-bold'>Revisa el calendario laboral.</span> No hay días hábiles configurados para proyectar la recuperación.";
+                        }
                     }
                 } else {
-                    daysToProject = 14; 
+                    habilesAProyectar = 14;
                     if(textLabel) textLabel.innerHTML = "<span class='text-amber-500 dark:text-amber-400 font-bold'>Datos insuficientes.</span> Se necesita un promedio de ganancia positiva para calcular la fecha de retorno.";
                 }
-                
-                let step = daysToProject > 60 ? 7 : (daysToProject > 180 ? 15 : 1); 
-                
-                for (let i = 1; i <= daysToProject; i++) {
-                    if (i === daysToProject || i % step === 0) {
-                        let futureDate = new Date();
-                        futureDate.setDate(currentDate.getDate() + i);
-                        
-                        projLabels.push(futureDate.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }));
-                        projGanancias.push(accumulatedProfit + (promGananciaDiaria * i));
+
+                // Puntos del gráfico: solo avanzan los días hábiles
+                let stepHab = habilesAProyectar > 180 ? 15 : (habilesAProyectar > 60 ? 7 : 1);
+                let cursorProy = new Date(hoy0), contHab = 0, guardaProy = 0;
+                while (contHab < habilesAProyectar && guardaProy < 4000) {
+                    cursorProy = calSig(cursorProy); guardaProy++;
+                    if (!calEsHabil(cursorProy)) continue;
+                    contHab++;
+                    if (contHab === habilesAProyectar || contHab % stepHab === 0) {
+                        projLabels.push(cursorProy.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }));
+                        projGanancias.push(accumulatedProfit + (promGananciaDiaria * contHab));
                         projInversion.push(targetInvestment);
                     }
                 }
@@ -2392,6 +2404,168 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             });
         }
     
+// ==========================================================================
+// 📅 CALENDARIO LABORAL
+// Define qué días se trabaja (por ejemplo lunes a viernes), qué feriados oficiales se respetan
+// y qué días sueltos se cierran o se abren de forma extraordinaria. Se guarda en la hoja "Calendario"
+// y lo usan el análisis (proyección de cierre de mes, retorno de inversión, agotamiento de stock)
+// y el Buscador inteligente (velocidad de salida por día hábil).
+// ==========================================================================
+const CAL = { dias: [1, 2, 3, 4, 5], oficiales: true, extras: {}, cargado: false };
+const calKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const calParseKey = k => { const p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const calSig = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+const CAL_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+// Feriados oficiales de México (Ley Federal del Trabajo, art. 74)
+function calFeriadoOficial(d) {
+    const y = d.getFullYear(), m = d.getMonth(), dia = d.getDate(), dow = d.getDay();
+    if (m === 0 && dia === 1) return 'Año Nuevo';
+    if (m === 1 && dow === 1 && dia <= 7) return 'Día de la Constitución (1.er lunes de febrero)';
+    if (m === 2 && dow === 1 && dia >= 15 && dia <= 21) return 'Natalicio de Benito Juárez (3.er lunes de marzo)';
+    if (m === 4 && dia === 1) return 'Día del Trabajo';
+    if (m === 8 && dia === 16) return 'Día de la Independencia';
+    if (m === 9 && dia === 1 && y >= 2024 && (y - 2024) % 6 === 0) return 'Transmisión del Poder Ejecutivo Federal';
+    if (m === 10 && dow === 1 && dia >= 15 && dia <= 21) return 'Día de la Revolución (3.er lunes de noviembre)';
+    if (m === 11 && dia === 25) return 'Navidad';
+    return null;
+}
+function calPascua(y) {
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mes - 1, dia);
+}
+// ¿Se trabaja ese día según la configuración cfg ({dias, oficiales, extras})?
+function calEsHabilCfg(cfg, d) {
+    const ex = cfg.extras[calKey(d)];
+    if (ex) return ex.tipo === 'ABIERTO';
+    if (cfg.oficiales && calFeriadoOficial(d)) return false;
+    return cfg.dias.includes(d.getDay());
+}
+const calEsHabil = d => calEsHabilCfg(CAL, d);
+// Días hábiles en [desde, hasta)
+function calHabilesEntre(desde, hasta) {
+    let n = 0, i = 0;
+    for (let d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()); d < hasta && i < 4000; d = calSig(d), i++) if (calEsHabil(d)) n++;
+    return n;
+}
+// Fecha del n-ésimo día hábil DESPUÉS de "desde" (null si no hay días hábiles configurados)
+function calFechaHabilN(desde, n) {
+    let cont = 0, d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+    for (let i = 0; i < 4000; i++) { d = calSig(d); if (calEsHabil(d)) { cont++; if (cont === n) return d; } }
+    return null;
+}
+// Proyección de ventas al cierre del mes usando solo días hábiles. porDia = { 'yyyy-mm-dd': ventas del día }
+function calProyeccionMes(porDia, hoy) {
+    const y = hoy.getFullYear(), m = hoy.getMonth(), h0 = new Date(y, m, hoy.getDate());
+    let realPrevio = 0, habPrev = 0, ventasHabPrev = 0, ventasHoy = 0, habFuturos = 0, totalMes = 0;
+    for (let d = new Date(y, m, 1); d.getMonth() === m; d = calSig(d)) {
+        const v = porDia[calKey(d)] || 0, hab = calEsHabil(d);
+        totalMes += v;
+        if (d < h0) { realPrevio += v; if (hab) { habPrev++; ventasHabPrev += v; } }
+        else if (d.getTime() === h0.getTime()) ventasHoy = v;
+        else if (hab) habFuturos++;
+    }
+    let prom = 0, base = 'mes';
+    if (habPrev > 0) prom = ventasHabPrev / habPrev;
+    else { // primer día hábil del mes: se usan los últimos 20 días hábiles anteriores
+        let n = 0, suma = 0, i = 0;
+        for (let d = new Date(y, m, 0); i < 150 && n < 20; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1), i++) { if (calEsHabil(d)) { n++; suma += porDia[calKey(d)] || 0; } }
+        if (n > 0) { prom = suma / n; base = 'historial'; }
+    }
+    const hoyHab = calEsHabil(h0);
+    const hoyEst = hoyHab ? Math.max(ventasHoy, prom) : ventasHoy;
+    const total = realPrevio + hoyEst + prom * habFuturos;
+    const restantes = habFuturos + (hoyHab ? 1 : 0);
+    return { total, prom, habPrev, restantes, hoyHab, base, totalMes };
+}
+
+async function cargarCalendario(forzar) {
+    if (CAL.cargado && !forzar) return;
+    try {
+        const d = await (await apiFetch('getCalendario')).json();
+        CAL.dias = Array.isArray(d.diasLaborales) ? d.diasLaborales : [1, 2, 3, 4, 5];
+        CAL.oficiales = d.feriadosOficiales !== false;
+        CAL.extras = {}; (d.extras || []).forEach(x => { CAL.extras[x.fecha] = { tipo: x.tipo, nota: x.nota || '' }; });
+        CAL.cargado = true;
+    } catch (e) { console.warn('Calendario no disponible; se usa lunes a viernes + feriados oficiales.', e); }
+}
+
+// ---------- Editor del calendario ----------
+let calEdit = null;
+function abrirCalendarioLaboral() {
+    const hoy = new Date();
+    calEdit = { dias: CAL.dias.slice(), oficiales: CAL.oficiales, extras: JSON.parse(JSON.stringify(CAL.extras)), mes: new Date(hoy.getFullYear(), hoy.getMonth(), 1), msg: '', guardando: false };
+    let ov = document.getElementById('cal-overlay');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'cal-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto'; document.body.appendChild(ov); }
+    ov.style.display = 'flex'; calRender();
+}
+function calCerrar() { const ov = document.getElementById('cal-overlay'); if (ov) ov.style.display = 'none'; calEdit = null; }
+function calMes(delta) { calEdit.mes = new Date(calEdit.mes.getFullYear(), calEdit.mes.getMonth() + delta, 1); calEdit.msg = ''; calRender(); }
+function calToggleSemana(n) { const i = calEdit.dias.indexOf(n); if (i >= 0) calEdit.dias.splice(i, 1); else calEdit.dias.push(n); calRender(); }
+function calToggleOficiales() { calEdit.oficiales = !calEdit.oficiales; calRender(); }
+function calToggleDia(k) {
+    const e = calEdit, d = calParseKey(k);
+    if (e.extras[k]) delete e.extras[k];
+    else { const base = { dias: e.dias, oficiales: e.oficiales, extras: {} }; e.extras[k] = { tipo: calEsHabilCfg(base, d) ? 'CERRADO' : 'ABIERTO', nota: '' }; }
+    e.msg = ''; calRender();
+}
+function calSugeridos() {
+    const e = calEdit, y = e.mes.getFullYear(), pa = calPascua(y);
+    const lista = [[new Date(y, pa.getMonth(), pa.getDate() - 3), 'Jueves Santo'], [new Date(y, pa.getMonth(), pa.getDate() - 2), 'Viernes Santo'], [new Date(y, 10, 2), 'Día de Muertos'], [new Date(y, 11, 12), 'Día de la Virgen de Guadalupe'], [new Date(y, 11, 24), 'Nochebuena'], [new Date(y, 11, 31), 'Fin de año']];
+    let n = 0;
+    lista.forEach(([d, nota]) => { const k = calKey(d); if (!e.extras[k] && calEsHabilCfg(e, d)) { e.extras[k] = { tipo: 'CERRADO', nota }; n++; } });
+    e.msg = n ? `Se marcaron ${n} día(s) como cerrados en ${y}. Toca cualquier día para quitarlo.` : `En ${y} ya estaban considerados.`;
+    calRender();
+}
+function calRender() {
+    const ov = document.getElementById('cal-overlay'); if (!ov || !calEdit) return;
+    const e = calEdit, y = e.mes.getFullYear(), m = e.mes.getMonth();
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7, nDias = new Date(y, m + 1, 0).getDate(), hoyK = calKey(new Date());
+    let celdas = '', habilesMes = 0;
+    for (let i = 0; i < offset; i++) celdas += '<div></div>';
+    for (let dd = 1; dd <= nDias; dd++) {
+        const d = new Date(y, m, dd), k = calKey(d), ex = e.extras[k], hab = calEsHabilCfg(e, d), fer = calFeriadoOficial(d);
+        if (hab) habilesMes++;
+        let cls, tip;
+        if (ex && ex.tipo === 'ABIERTO') { cls = 'bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500'; tip = 'Día extra que sí se trabaja' + (ex.nota ? ': ' + ex.nota : ''); }
+        else if (ex) { cls = 'bg-orange-100 text-orange-800 ring-2 ring-orange-500'; tip = 'Cerrado' + (ex.nota ? ': ' + ex.nota : ''); }
+        else if (e.oficiales && fer) { cls = 'bg-red-100 text-red-700'; tip = 'Feriado: ' + fer; }
+        else if (!hab) { cls = 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'; tip = 'Día de descanso'; }
+        else { cls = 'bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600'; tip = 'Día hábil'; }
+        celdas += `<button type="button" title="${bEsc(tip)}" onclick="calToggleDia('${k}')" class="h-10 rounded-lg text-sm cursor-pointer ${cls}${k === hoyK ? ' font-extrabold underline' : ''}">${dd}</button>`;
+    }
+    const orden = [[1, 'Lun'], [2, 'Mar'], [3, 'Mié'], [4, 'Jue'], [5, 'Vie'], [6, 'Sáb'], [0, 'Dom']];
+    const semana = orden.map(([n, t]) => `<label class="flex items-center gap-1 text-xs cursor-pointer"><input type="checkbox" ${e.dias.includes(n) ? 'checked' : ''} onchange="calToggleSemana(${n})"> ${t}</label>`).join('');
+    ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-3">
+        <div class="flex justify-between items-center"><h3 class="text-lg font-bold">📅 Calendario laboral</h3><button onclick="calCerrar()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
+        <div><p class="text-xs font-bold text-gray-500 mb-1">Días que se trabaja cada semana</p><div class="flex flex-wrap gap-3">${semana}</div></div>
+        <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" ${e.oficiales ? 'checked' : ''} onchange="calToggleOficiales()"> No se trabaja en feriados oficiales (México)</label>
+        <div class="flex justify-between items-center"><button onclick="calMes(-1)" class="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-pointer">‹</button><b>${CAL_MESES[m]} ${y}</b><button onclick="calMes(1)" class="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-pointer">›</button></div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-500"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
+        <div class="grid grid-cols-7 gap-1">${celdas}</div>
+        <p class="text-xs text-gray-500">Días hábiles este mes: <b class="text-gray-800 dark:text-gray-100">${habilesMes}</b>. Toca un día para cerrarlo o abrirlo de forma extraordinaria; tócalo de nuevo para volver a lo normal.</p>
+        <div class="flex flex-wrap gap-2 text-[10px]"><span class="px-2 py-0.5 rounded bg-red-100 text-red-700">Feriado</span><span class="px-2 py-0.5 rounded bg-orange-100 text-orange-800">Cerrado (extra)</span><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Abierto (extra)</span><span class="px-2 py-0.5 rounded bg-gray-200 text-gray-600">Descanso</span></div>
+        ${e.msg ? `<p class="text-xs text-blue-600 dark:text-blue-400">${bEsc(e.msg)}</p>` : ''}
+        <div class="flex flex-wrap gap-2 justify-between pt-1"><button onclick="calSugeridos()" class="px-3 py-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 text-xs font-medium cursor-pointer">+ Días tradicionales de ${y}</button>
+        <div class="flex gap-2"><button onclick="calCerrar()" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm cursor-pointer">Cancelar</button><button onclick="calGuardar()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold cursor-pointer">Guardar</button></div></div>
+    </div>`;
+}
+async function calGuardar() {
+    const e = calEdit; if (!e || e.guardando) return;
+    const extras = Object.keys(e.extras).sort().map(k => ({ fecha: k, tipo: e.extras[k].tipo, nota: e.extras[k].nota || '' }));
+    if (!e.dias.length && !extras.some(x => x.tipo === 'ABIERTO')) { mostrarAlertaServidor('Marca al menos un día de la semana como laborable.'); return; }
+    e.guardando = true;
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarCalendario', diasLaborales: e.dias, feriadosOficiales: e.oficiales, extras });
+    e.guardando = false;
+    if (!r || r.status !== 'success') return;
+    CAL.dias = e.dias.slice(); CAL.oficiales = e.oficiales; CAL.extras = JSON.parse(JSON.stringify(e.extras)); CAL.cargado = true;
+    calCerrar();
+    Swal.fire({ title: 'Calendario guardado', icon: 'success', timer: 1300, showConfirmButton: false });
+    if (cacheUltimoAnalisis && cacheUltimoAnalisis.ventas && cacheUltimoAnalisis.ventas.length) procesarMetricasAnalisis(cacheUltimoAnalisis.ventas, cacheUltimoAnalisis.inventario, cacheUltimoAnalisis.inversion);
+}
+
 // ==========================================
 // 🔎 BUSCADOR INTELIGENTE (consulta el Log y las Ventas)
 // Entiende preguntas como:
@@ -2619,8 +2793,10 @@ function bVelocidadDe(p, ev, rango) {
     const p0 = primera ? new Date(primera.getFullYear(), primera.getMonth(), primera.getDate()) : null;
     const ventana = (desde, hasta) => {
         let ini = desde; if (p0 && p0 > ini) ini = p0;
-        const fin = hasta > bAddD(h0, 1) ? bAddD(h0, 1) : hasta;
-        const dias = Math.max(1, Math.round((fin - ini) / 86400000));
+        // hoy solo cuenta como día si ya hubo ventas (un día a medias bajaría el promedio)
+        const topeHoy = cons.some(e => e.fecha >= h0) ? bAddD(h0, 1) : h0;
+        const fin = hasta > topeHoy ? topeHoy : hasta;
+        const dias = Math.max(1, calHabilesEntre(ini, fin));
         const c = cons.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
         // Si es el producto "base" (el que lleva el stock real, ej. la hoja), cuenta todo lo que le descuenta (impresiones, copias...)
         const u = esBase ? c : propios.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
@@ -2642,8 +2818,8 @@ function bResVelocidad(prods, rango, etq) {
     let out = '';
     if (prods && prods.length === 1) {
         const r = rows[0];
-        let h = `<div class="text-base">${bEtqProd(prods, etq)} sale a ~<b>${bFmt(r.wR.pd)} pzs por día</b> ${bEsc(per)} (${bFmt(r.wR.u)} pzs en ${r.wR.dias} día${r.wR.dias === 1 ? '' : 's'}${r.incluye ? ', contando también las impresiones/copias que descuentan de este stock' : ''}).</div>`;
-        h += `<div class="text-sm text-gray-600 dark:text-gray-300 mt-2">` + (r.dRest != null ? `Con <b>${bFmt(r.stock)} pzs</b> en stock te alcanza para ~<b>${Math.round(r.dRest)} días</b>${r.real !== r.p.codigo ? ' (comparte stock con otro producto)' : ''}.` : `Con <b>${bFmt(r.stock)} pzs</b> en stock: no hubo salidas ${bEsc(per)}, no se puede estimar cuánto dura.`) + `</div>`;
+        let h = `<div class="text-base">${bEtqProd(prods, etq)} sale a ~<b>${bFmt(r.wR.pd)} pzs por día hábil</b> ${bEsc(per)} (${bFmt(r.wR.u)} pzs en ${r.wR.dias} día${r.wR.dias === 1 ? '' : 's'} hábil${r.wR.dias === 1 ? '' : 'es'}${r.incluye ? ', contando también las impresiones/copias que descuentan de este stock' : ''}).</div>`;
+        h += `<div class="text-sm text-gray-600 dark:text-gray-300 mt-2">` + (r.dRest != null ? `Con <b>${bFmt(r.stock)} pzs</b> en stock te alcanza para ~<b>${Math.round(r.dRest)} días hábiles</b>${r.real !== r.p.codigo ? ' (comparte stock con otro producto)' : ''}.` : `Con <b>${bFmt(r.stock)} pzs</b> en stock: no hubo salidas ${bEsc(per)}, no se puede estimar cuánto dura.`) + `</div>`;
         const sur = bSurtidosDe([r.p]).sort((a, b) => a.fecha - b.fecha);
         if (sur.length >= 2) {
             const dias = (sur[sur.length - 1].fecha - sur[0].fecha) / 86400000 / (sur.length - 1);
@@ -2655,8 +2831,8 @@ function bResVelocidad(prods, rango, etq) {
         out += bCard(`<div class="text-base">${prods ? `Velocidad de salida de ${bEtqProd(prods, etq)}` : 'Los productos que más rápido salen'} ${bEsc(per)}${top ? `: el más rápido es <b>${bEsc(top.p.nombre)}</b> con ~<b>${bFmt(top.wR.pd)} pzs/día</b>` : ''}.</div>`);
     }
     {
-        const filas = rows.slice(0, prods ? 40 : 15).map(r => [bNom(r.p), bFmt(r.w7.pd), bFmt(r.w30.pd), bFmt(r.stock), r.dRest != null ? '~' + Math.round(r.dRest) + ' d' : '—']);
-        out += `<div>${bbTit(prods ? 'Detalle (pzs por día)' : 'Los 15 más rápidos (pzs por día)')}${bTabla(['Producto', 'Últ. 7 días', 'Últ. 30 días', 'Stock', 'Alcanza para'], filas)}</div>`;
+        const filas = rows.slice(0, prods ? 40 : 15).map(r => [bNom(r.p), bFmt(r.w7.pd), bFmt(r.w30.pd), bFmt(r.stock), r.dRest != null ? '~' + Math.round(r.dRest) + ' d háb.' : '—']);
+        out += `<div>${bbTit(prods ? 'Detalle (pzs por día hábil)' : 'Los 15 más rápidos (pzs por día hábil)')}${bTabla(['Producto', 'Últ. 7 días', 'Últ. 30 días', 'Stock', 'Alcanza para'], filas)}</div>`;
     }
     return out;
 }
@@ -2716,7 +2892,7 @@ async function iniciarBuscador(forzar) {
         const logs = await rl.json(), d = await rd.json();
         BUS.logs = Array.isArray(logs) ? logs : []; BUS.ventas = (d && Array.isArray(d.ventas)) ? d.ventas : [];
         if ((!inventario || !inventario.length) && d && Array.isArray(d.inventario)) inventario = d.inventario;
-        BUS.cargado = true; BUS.ultimaCarga = new Date(); bPintarEstado();
+        await cargarCalendario(); BUS.cargado = true; BUS.ultimaCarga = new Date(); bPintarEstado();
     } catch (e) { console.error(e); if (st) st.textContent = '❌ No se pudieron cargar los datos. Revisa tu conexión y pulsa "Actualizar datos".'; }
     BUS.cargando = false;
 }
