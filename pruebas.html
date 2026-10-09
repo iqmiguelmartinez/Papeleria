@@ -73,6 +73,7 @@
             <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
             <button onclick="cambiarTab('caja')" id="btn-tab-caja" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💵 Control de Caja</button>
+            <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">🔎 Buscador</button>
         </div>
 
         <!-- SECCIÓN: VENTAS -->
@@ -444,7 +445,31 @@
             </div>
         </div>
 
-                <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
+                <!-- SECCIÓN: BUSCADOR INTELIGENTE (consulta Log + Ventas) -->
+        <div id="tab-buscador" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-3 mb-3 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">🔎 Buscador Inteligente</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Pregunta en lenguaje normal sobre surtidos, ventas y velocidad de salida de tus productos.</p>
+                </div>
+                <button onclick="iniciarBuscador(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">🔄 Actualizar datos</button>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <input id="bus-input" type="text" autocomplete="off" onkeydown="if(event.key==='Enter')ejecutarBuscador()" placeholder="Ej: ¿cuántas veces he surtido hoja amarillo?" class="flex-1 px-3 py-2 border rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="ejecutarBuscador()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition cursor-pointer">Buscar</button>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-2 shrink-0">
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuántas veces he surtido hoja amarillo?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Qué tan rápido se vende hoja blanca de 500 pzs?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuántas ventas de hojas hubo ayer?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuándo cambié el precio de hoja amarillo?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Qué productos salen más rápido?</button>
+            </div>
+            <p id="bus-estado" class="text-[11px] text-gray-400 mt-2 shrink-0"></p>
+            <div id="bus-resultado" class="space-y-3 mt-3"></div>
+        </div>
+
+        <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
         <div id="tab-caja" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto space-y-4">
         
             <!-- Header -->
@@ -711,7 +736,58 @@
         // const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
 
         (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } })();
-        const PASS_SURTIR = "surtir123";
+        // ===== CAPA DE SEGURIDAD =====
+        // Todas las llamadas al servidor llevan un "token" de sesión que entrega el Apps Script al iniciar sesión.
+        // Las contraseñas ya no viajan al navegador: el usuario y la contraseña se validan en el servidor.
+        // Si por alguna razón el servidor no deja leer las respuestas de los guardados, pon esto en false
+        // para volver al envío "a ciegas" anterior (sigue funcionando, pero no avisa si algo falla).
+        const LEER_RESPUESTA_POST = true;
+        let tokenSesion = sessionStorage.getItem('token_sesion') || '';
+        let loginEnCurso = null;
+        let stockBaseEdicion = {};
+
+        function mostrarAlertaServidor(msg) {
+            let d = document.createElement('div');
+            d.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99999;max-width:90%;background:#b91c1c;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer';
+            d.textContent = '⚠️ ' + msg + '  (toca para cerrar)';
+            d.onclick = () => d.remove(); document.body.appendChild(d); setTimeout(() => d.remove(), 20000);
+        }
+        async function apiPost(data) {
+            const r = await fetch(URL_APPS_SCRIPT, { method: 'POST', body: JSON.stringify(data) });
+            return await r.json();
+        }
+        // Reemplaza a fetch(URL + "?action=...") y devuelve algo con .json() igual que antes
+        async function apiFetch(action, sinRelogin, _reintento) {
+            const r = await fetch(URL_APPS_SCRIPT + '?action=' + action + '&token=' + encodeURIComponent(tokenSesion) + '&_=' + Date.now());
+            const d = await r.json();
+            if (d && !Array.isArray(d) && d.status === 'error') {
+                if (d.code === 'sesion' && !sinRelogin && !_reintento) { if (await reautenticar()) return apiFetch(action, false, true); }
+                const err = new Error(d.error || 'Error del servidor'); err.code = d.code; throw err;
+            }
+            return { json: async () => d };
+        }
+        function reautenticar() {
+            if (!loginEnCurso) loginEnCurso = pedirLogin().finally(() => { loginEnCurso = null; });
+            return loginEnCurso;
+        }
+        async function pedirLogin() {
+            while (true) {
+                const { value: fV } = await Swal.fire({ title: '🔐 Iniciar Sesión', html: '<input id="sw-user" class="swal2-input" placeholder="Usuario"><input id="sw-pass" type="password" class="swal2-input" placeholder="Contraseña">', focusConfirm: false, allowOutsideClick: false, allowEscapeKey: false, preConfirm: () => ({ usuario: document.getElementById('sw-user').value.trim(), password: document.getElementById('sw-pass').value.trim() }) });
+                if (!fV || !fV.usuario) continue;
+                Swal.fire({ title: 'Verificando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const d = await apiPost({ tipo: 'login', usuario: fV.usuario, password: fV.password });
+                    if (d.status === 'success') {
+                        tokenSesion = d.token; usuarioActual = d.usuario; tienePermisoAnalisis = !!d.puedeAnalisis;
+                        sessionStorage.setItem('token_sesion', tokenSesion); sessionStorage.setItem('usuario_activo', usuarioActual); sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
+                        document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs();
+                        Swal.fire({ title: '¡Bienvenido!', icon: 'success', timer: 1200, showConfirmButton: false });
+                        return true;
+                    }
+                    await Swal.fire('Error', d.error || 'Datos incorrectos', 'error');
+                } catch (e) { await Swal.fire('Sin conexión', 'No se pudo contactar al servidor. Revisa tu internet e inténtalo de nuevo.', 'error'); }
+            }
+        }
 
         // ==========================================
         // CONFIGURACIÓN DE VINCULOS DE STOCK
@@ -772,29 +848,26 @@
         initTheme();
 
         async function verificarSesion() {
-            let uGuardado = sessionStorage.getItem('usuario_activo');
-            let pGuardado = sessionStorage.getItem('puede_analisis') === 'true';
-            if (uGuardado) { usuarioActual = uGuardado; tienePermisoAnalisis = pGuardado; document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); return; }
-
-            const { value: fV } = await Swal.fire({ title: '🔐 Iniciar Sesión', html: '<input id="sw-user" class="swal2-input" placeholder="Usuario"><input id="sw-pass" type="password" class="swal2-input" placeholder="Contraseña">', focusConfirm: false, allowOutsideClick: false, preConfirm: () => ({ usuario: document.getElementById('sw-user').value.trim(), password: document.getElementById('sw-pass').value.trim() }) });
-            if (!fV || !fV.usuario) return verificarSesion();
-            
-            Swal.fire({ title: 'Verificando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            try {
-                let resp = await fetch(URL_APPS_SCRIPT + "?action=getUsuarios");
-                let users = await resp.json();
-                let found = users.find(u => u.usuario.toLowerCase() === fV.usuario.toLowerCase() && u.password === fV.password);
-                if (found) {
-                    usuarioActual = found.usuario; tienePermisoAnalisis = found.puedeAnalisis;
+            if (tokenSesion) {
+                try {
+                    const d = await (await apiFetch('validarSesion', true)).json();
+                    usuarioActual = d.usuario; tienePermisoAnalisis = !!d.puedeAnalisis;
                     sessionStorage.setItem('usuario_activo', usuarioActual); sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
-                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); Swal.fire('¡Bienvenido!', '', 'success'); cargarDatosIniciales();
-                } else { Swal.fire('Error', 'Datos incorrectos', 'error').then(verificarSesion); }
-            } catch(e) { Swal.fire('Modo Local', 'Entrando como admin (sin red)', 'warning').then(()=>{ usuarioActual="Admin"; tienePermisoAnalisis=true; actualizarVisibilidadTabs(); cargarDatosIniciales();}); }
+                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); return;
+                } catch (e) {
+                    if (e.code !== 'sesion') {
+                        await Swal.fire({ title: 'Sin conexión', text: 'No se pudo verificar tu sesión. Revisa tu internet.', icon: 'error', confirmButtonText: 'Reintentar', allowOutsideClick: false });
+                        return verificarSesion();
+                    }
+                    tokenSesion = ''; sessionStorage.removeItem('token_sesion');
+                }
+            }
+            if (await pedirLogin()) cargarDatosIniciales();
         }
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja'].forEach(id => {
+            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
@@ -805,13 +878,13 @@
             });
         }
 
-        function cerrarSesion() { sessionStorage.clear(); location.reload(); }
+        function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
 
         function cambiarTab(tab) {
-            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
+            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja', 'buscador'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`), eBtn = document.getElementById(`btn-tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
                 if(eBtn && eBtn.classList.contains('bg-blue-600')) eBtn.className = "px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
@@ -827,13 +900,14 @@
             if(tab === 'corte') renderCorte();
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja();
+            if(tab === 'buscador') iniciarBuscador();
         }
 
         async function cargarDatosIniciales() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
-                let resInv = await fetch(URL_APPS_SCRIPT + "?action=getInventario"); inventario = await resInv.json() || []; renderProductos();
-                let resTur = await fetch(URL_APPS_SCRIPT + "?action=getDataTurno"); let t = await resTur.json();
+                let resInv = await apiFetch("getInventario"); inventario = await resInv.json() || []; renderProductos();
+                let resTur = await apiFetch("getDataTurno"); let t = await resTur.json();
                 if(t){ ventasActivas=t.ventasActivas||[]; retirosActivos=t.retirosActivos||[]; cortesRealizados=t.cortesRealizados||[]; }
                 renderRetiros(); renderCorte();
             } catch (e) { console.error(e); }
@@ -855,7 +929,7 @@
         async function cargarLogActividad() {
             try {
                 Swal.fire({ title: 'Cargando log...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                let resp = await fetch(URL_APPS_SCRIPT + "?action=getAuditoria"); let logs = await resp.json(); Swal.close();
+                let resp = await apiFetch("getAuditoria"); let logs = await resp.json(); Swal.close();
                 const tbody = document.getElementById('tabla-log-actividad'); if (!tbody) return; tbody.innerHTML = "";
                 if (!Array.isArray(logs) || logs.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Sin registros</td></tr>`; return; }
                 let limite72h = new Date().getTime() - (72 * 60 * 60 * 1000);
@@ -1101,7 +1175,7 @@
             renderInventario(); renderProductos();
         }
 
-        function toggleModificarInventario() { editandoInventario = true; document.getElementById('buscar-inventario').disabled = true; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(); }
+        function toggleModificarInventario() { stockBaseEdicion = {}; inventario.forEach(p => stockBaseEdicion[p.codigo] = p.stock); editandoInventario = true; document.getElementById('buscar-inventario').disabled = true; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(); }
         function cancelarModificacionInventario() { editandoInventario = false; document.getElementById('buscar-inventario').disabled = false; document.getElementById('btn-modificar-productos').classList.remove('hidden'); document.getElementById('btn-re-codificar').classList.remove('hidden'); document.getElementById('btn-guardar-modificacion').classList.add('hidden'); document.getElementById('btn-cancelar-modificacion').classList.add('hidden'); document.getElementById('btn-surtir-inv').classList.remove('hidden'); document.getElementById('btn-nuevo-prod').classList.remove('hidden'); renderInventario(); }
         
         async function guardarModificacionInventario() {
@@ -1110,19 +1184,31 @@
                 let idx = parseInt(inp.getAttribute('data-index')), f = inp.getAttribute('data-field'), v = inp.value;
                 if(f==='precio'||f==='costo'||f==='stock') invA[idx][f]=parseFloat(v)||0; else invA[idx][f]=v.trim();
             });
+            // El servidor aplica el stock como diferencia contra el stock que había al abrir la edición,
+            // así una venta hecha mientras editabas no se borra.
+            invA.forEach(it => { if (Object.prototype.hasOwnProperty.call(stockBaseEdicion, it.codigo)) it.stockBase = stockBaseEdicion[it.codigo]; });
             Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            await enviarDatosAGoogleSheets({ tipo: 'actualizarInventario', inventario: invA });
+            const r = await enviarDatosAGoogleSheets({ tipo: 'actualizarInventario', inventario: invA });
+            if (!r || r.status !== 'success') { Swal.close(); return; }
+            try {
+                const srv = await (await apiFetch('getInventario')).json(); const m = {}; srv.forEach(x => m[x.codigo] = x);
+                invA.forEach(it => { if (m[it.codigo]) it.stock = m[it.codigo].stock; delete it.stockBase; });
+            } catch (e) { invA.forEach(it => { delete it.stockBase; }); }
             inventario = invA; cancelarModificacionInventario(); Swal.fire('¡Guardado!', '', 'success'); renderProductos();
         }
 
         async function confirmarSurtidoInventario() {
             if(Object.keys(cantidadesSurtir).length === 0) return Swal.fire('Vacío', 'Ingresa al menos una cantidad.', 'warning');
             const { value: pass } = await Swal.fire({ title: '🔒 Autorizar Surtido', input: 'password', showCancelButton: true });
-            if (pass !== PASS_SURTIR) return pass!==undefined && Swal.fire('Error', 'Contraseña incorrecta', 'error');
-            
-            let entradas = {}; 
-            for(let cod in cantidadesSurtir) { let c = cantidadesSurtir[cod]; entradas[cod] = c; let p = inventario.find(x => x.codigo===cod); if(p) p.stock+=c; }
-            await enviarDatosAGoogleSheets({ tipo: 'surtirLote', entradas });
+            if (pass === undefined) return;
+
+            let entradas = {};
+            for(let cod in cantidadesSurtir) entradas[cod] = cantidadesSurtir[cod];
+            Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            // La contraseña se valida en el servidor; solo si la acepta se actualiza el stock en pantalla
+            const r = await enviarDatosAGoogleSheets({ tipo: 'surtirLote', entradas, passSurtir: pass });
+            if (!r || r.status !== 'success') { if (r && r.code === 'pass') return Swal.fire('Error', 'Contraseña incorrecta', 'error'); return Swal.close(); }
+            for(let cod in entradas) { let p = inventario.find(x => x.codigo===cod); if(p) p.stock += entradas[cod]; }
             cantidadesSurtir = {}; document.getElementById('buscar-inventario').value = "";
             renderInventario(); renderProductos(); Swal.fire('¡Surtido!', '', 'success');
         }
@@ -1358,7 +1444,7 @@
             if (!usarCache || !window.cortesHistoricosCache) {
                 Swal.fire({ title: 'Buscando archivos...', text: 'Consultando cortes de los últimos 30 días', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 try {
-                    let r = await fetch(URL_APPS_SCRIPT + "?action=getCortesHistorico");
+                    let r = await apiFetch("getCortesHistorico");
                     window.cortesHistoricosCache = await r.json();
                 } catch(e) {
                     return Swal.fire('Error', 'No se pudo conectar con la base de datos.', 'error');
@@ -1439,7 +1525,7 @@
 async function cargarDatosAnalisis() {
             try { 
                 Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() }); 
-                let r = await fetch(URL_APPS_SCRIPT+"?action=getDataAnalisis"); 
+                let r = await apiFetch("getDataAnalisis"); 
                 let d = await r.json(); 
                 cacheUltimoAnalisis = d; 
                 
@@ -1879,7 +1965,18 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let link = document.createElement('a'); link.download = 'lista-para-surtir.png'; link.href = canvas.toDataURL(); link.click();
         }
 
-        async function enviarDatosAGoogleSheets(data) { if(URL_APPS_SCRIPT.includes("TU_URL"))return; data.usuario = sessionStorage.getItem('usuario_activo')||'Admin'; await fetch(URL_APPS_SCRIPT, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }); }
+        async function enviarDatosAGoogleSheets(data, _reintento) {
+            if (URL_APPS_SCRIPT.includes("TU_URL")) return { status: 'success' };
+            data.token = tokenSesion;
+            if (!LEER_RESPUESTA_POST) { await fetch(URL_APPS_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) }); return { status: 'success' }; }
+            let res;
+            try { res = await apiPost(data); }
+            catch (e) { mostrarAlertaServidor('No se pudo confirmar que el servidor guardó la operación (' + data.tipo + '). Revisa tu conexión y pulsa Sincronizar para verificar.'); return { status: 'unknown' }; }
+            if (res && res.status === 'success') return res;
+            if (res && res.code === 'sesion' && !_reintento) { if (await reautenticar()) return enviarDatosAGoogleSheets(data, true); }
+            if (!(res && res.code === 'pass')) mostrarAlertaServidor('NO se guardó (' + data.tipo + '): ' + ((res && res.error) || 'error desconocido'));
+            return res || { status: 'error' };
+        }
         async function sincronizarDatos() { Swal.fire({ title: 'Sincronizando...', didOpen: () => Swal.showLoading() }); await cargarDatosIniciales(); Swal.fire('Listo', '', 'success'); }
 
         /* ======== FILTROS Y ORDEN DE TABLAS (Inversiones, Retiros, Corte, Log, Caja) ======== */
@@ -2113,7 +2210,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         async function cargarDatosCaja() {
             try {
                 Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                let resp = await fetch(URL_APPS_SCRIPT + "?action=getMovimientosCaja&_=" + Date.now());
+                let resp = await apiFetch("getMovimientosCaja");
                 let texto = await resp.text();
                 let datos;
                 try { datos = JSON.parse(texto); }
@@ -2294,6 +2391,357 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 showConfirmButton: true
             });
         }
+    
+// ==========================================
+// 🔎 BUSCADOR INTELIGENTE (consulta el Log y las Ventas)
+// Entiende preguntas como:
+//  - "¿Cuántas veces he surtido hoja amarillo?"
+//  - "¿Qué tan rápido se vende hoja blanca de 500 pzs?"
+//  - "¿Cuántas ventas de hojas hubo ayer / el 3 de octubre?"
+// No usa internet ni IA externa: interpreta el texto con reglas dentro de esta misma página.
+// ==========================================
+const BUS = { logs: [], ventas: [], cargado: false, cargando: false, ultimaCarga: null, ult: null };
+const bEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const bQuitaAcentos = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const bTokens = s => bQuitaAcentos(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+function bStem(w) {
+    if (w.length > 5 && w.endsWith('ces')) return w.slice(0, -3) + 'z';
+    if (w.length > 5 && w.endsWith('es')) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith('s')) return w.slice(0, -1);
+    return w;
+}
+const bFmt = n => Number((Number(n) || 0).toFixed(2)).toLocaleString('es-MX');
+const B_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const B_DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+const bAddD = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const bDKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const bFechaLarga = (d, conDia) => d.toLocaleDateString('es-MX', Object.assign({ day: 'numeric', month: 'long', year: 'numeric' }, conDia ? { weekday: 'long' } : {}));
+const bMesIdx = n => n === 'setiembre' ? 8 : B_MESES.indexOf(n);
+const B_STOP = new Set('cuantas cuantos cuanto cuanta veces vez he has hemos ha han hice hizo hicimos hubo habido se que tan es son fue fueron de del la las el los lo un una unos unas en a al por para con mi mis me te y o ya vendi vendio vendimos vendido vendidos vendida venta ventas vender vende venden vendiendo surti surtido surtidos surtida surtir surtimos surto cargue cargado cargados cargar carga cargas cargamos rapido rapida rapidamente velocidad rotacion rota baja bajo bajado bajan bajar acaba acabo acabar acaban agota agotar agotan dura duran durar tarda tardo ritmo salida salidas salen sale salir salio piezas pieza unidades unidad productos producto articulo articulos dia dias semana semanas mes meses ano anos ultimo ultima ultimos ultimas pasado pasada este esta ese esa todo todos todas total totales dame dime muestrame muestra ver quiero saber necesito puedes podrias favor cual cuales como promedio durante hay tengo tiene tienen stock existencia inventario cantidad registro registros log mas menos poco mucho dato datos cuando cuales quien quienes precio precios costo costos nombre nombres cambio cambie cambios cambiado cambiaron cambiar modifique modifico modificado modificar modificacion modificaciones edite edito editado editar edicion ediciones ajuste ajustes corregi correccion correcciones historial actualice actualizado'.split(' '));
+
+// ---------- Fechas ----------
+function bParseLogFecha(s) {
+    s = String(s || ''); const p = s.split(' ');
+    if (p.length >= 2) { const f = p[0].split('/'), h = p[1].split(':'); if (f.length === 3 && h.length >= 2) return new Date(+f[2], +f[1] - 1, +f[0], +h[0], +h[1], +(h[2] || 0)); }
+    const d = new Date(s); return isNaN(d.getTime()) ? null : d;
+}
+function bParseVentaFecha(v) {
+    const s = String(v.fecha || ''); let d = null, m;
+    if (s.includes('T')) d = new Date(s);
+    else if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) d = new Date(+m[1], +m[2] - 1, +m[3]);
+    else if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) d = new Date(+m[3], +m[2] - 1, +m[1]);
+    else if (s) d = new Date(s);
+    return d && !isNaN(d.getTime()) ? d : null;
+}
+const bEnRango = (d, r) => !r || (d >= r.desde && d < r.hasta);
+
+// Detecta el periodo en el texto y lo quita. Devuelve { rango, resto }
+function bParseRango(q) {
+    const ahora = new Date(), hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    let r = null;
+    const dia = (d, et) => ({ desde: d, hasta: bAddD(d, 1), etiqueta: et || ('El ' + bFechaLarga(d)) });
+    const take = (re, fn) => { if (r) return; const m = q.match(re); if (!m) return; const x = fn(m); if (x) { r = x; q = q.replace(m[0], ' '); } };
+    const mesesRe = B_MESES.join('|') + '|setiembre';
+    const fechaSinAnio = (dd, mm) => { let d = new Date(hoy.getFullYear(), mm, dd); if (d > hoy) d = new Date(hoy.getFullYear() - 1, mm, dd); return d; };
+    take(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/, m => { let y = +m[3]; if (y < 100) y += 2000; return dia(new Date(y, +m[2] - 1, +m[1])); });
+    take(/\b(\d{1,2})\/(\d{1,2})\b/, m => (+m[2] >= 1 && +m[2] <= 12) ? dia(fechaSinAnio(+m[1], +m[2] - 1)) : null);
+    take(new RegExp('\\b(\\d{1,2}) de (' + mesesRe + ')(?: (?:de|del) (\\d{4}))?\\b'), m => m[3] ? dia(new Date(+m[3], bMesIdx(m[2]), +m[1])) : dia(fechaSinAnio(+m[1], bMesIdx(m[2]))));
+    take(/\bultim[oa]s? (?:(\d+) )?(dia|dias|semana|semanas|mes|meses)\b/, m => {
+        const n = m[1] ? +m[1] : 1, u = m[2].startsWith('dia') ? 1 : (m[2].startsWith('sem') ? 7 : 30);
+        return { desde: bAddD(hoy, -(n * u - 1)), hasta: bAddD(hoy, 1), etiqueta: 'En los últimos ' + (n * u) + ' días' };
+    });
+    const lunes = bAddD(hoy, -((hoy.getDay() + 6) % 7));
+    take(/\bsemana pasada\b/, () => ({ desde: bAddD(lunes, -7), hasta: lunes, etiqueta: 'La semana pasada' }));
+    take(/\besta semana\b/, () => ({ desde: lunes, hasta: bAddD(hoy, 1), etiqueta: 'Esta semana' }));
+    take(/\bmes pasado\b/, () => ({ desde: new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1), hasta: new Date(hoy.getFullYear(), hoy.getMonth(), 1), etiqueta: 'El mes pasado' }));
+    take(/\beste mes\b/, () => ({ desde: new Date(hoy.getFullYear(), hoy.getMonth(), 1), hasta: bAddD(hoy, 1), etiqueta: 'Este mes' }));
+    take(/\beste ano\b/, () => ({ desde: new Date(hoy.getFullYear(), 0, 1), hasta: bAddD(hoy, 1), etiqueta: 'Este año' }));
+    take(/\b(anteayer|antier)\b/, () => dia(bAddD(hoy, -2)));
+    take(/\bayer\b/, () => dia(bAddD(hoy, -1)));
+    take(/\bhoy\b/, () => dia(hoy, 'Hoy'));
+    take(new RegExp('\\b(' + B_DIAS.join('|') + ')\\b'), m => { const idx = B_DIAS.indexOf(m[1]); return dia(bAddD(hoy, -((hoy.getDay() - idx + 7) % 7)), null); });
+    take(/\bdia (\d{1,2})\b/, m => { let d = new Date(hoy.getFullYear(), hoy.getMonth(), +m[1]); if (d > hoy) d = new Date(hoy.getFullYear(), hoy.getMonth() - 1, +m[1]); return dia(d); });
+    take(new RegExp('\\b(?:(?:en|de|durante|del) )?(' + mesesRe + ')(?: (?:de|del) (\\d{4}))?\\b'), m => {
+        const mi = bMesIdx(m[1]); let y = m[2] ? +m[2] : hoy.getFullYear(); if (!m[2] && mi > hoy.getMonth()) y--;
+        return { desde: new Date(y, mi, 1), hasta: new Date(y, mi + 1, 1), etiqueta: 'En ' + m[1] + ' de ' + y };
+    });
+    return { rango: r, resto: q };
+}
+
+// ---------- Interpretación de la pregunta ----------
+function bIntencion(q) {
+    if (/cambi|modific|\bedit|ajust|historial|correg|actualiz/.test(q)) return 'mod';
+    if (/rapid|veloc|rotac|\brota|baja|bajo|bajad|bajan|agot|acaba|durar|\bdura\b|duran|tarda|consum|por dia|ritmo|salida/.test(q)) return 'vel';
+    if (/surt|carg|reabast|repos|repus|abast|restock|llegaron|entrada/.test(q)) return 'sur';
+    return 'ven';
+}
+function bLev(a, b) {
+    const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9;
+    let p = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; }
+    return p[n];
+}
+function bBuscaProductos(toks) {
+    const st = toks.map(bStem);
+    const info = inventario.map(p => ({
+        p, cod: bQuitaAcentos(p.codigo),
+        nt: bTokens(p.nombre).map(bStem),
+        sig: bTokens(p.nombre).filter(w => !B_STOP.has(w)).map(bStem)
+    }));
+    const ok = (x, t) => x.cod === t || x.nt.includes(t) || (t.length >= 3 && x.nt.some(w => w.startsWith(t)));
+    let c = info.filter(x => st.every(t => ok(x, t)));
+    if (c.length > 1) { const ex = c.filter(x => x.sig.length === st.length && st.every(t => x.sig.includes(t))); if (ex.length) c = ex; }
+    if (c.length) return { cands: c.map(x => x.p), sug: [] };
+    const score = x => st.reduce((a, t) => a + (ok(x, t) ? 1 : ((t.length >= 4 && x.nt.some(w => bLev(w, t) <= (t.length >= 7 ? 2 : 1))) ? 0.8 : 0)), 0);
+    const sc = info.map(x => ({ p: x.p, s: score(x) })).filter(o => o.s > 0).sort((a, b) => b.s - a.s);
+    if (sc.length && sc[0].s >= st.length * 0.8) { const top = sc[0].s; return { cands: sc.filter(o => o.s === top).map(o => o.p), sug: [] }; }
+    return { cands: [], sug: sc.slice(0, 6).map(o => o.p) };
+}
+function bAnaliza(texto) {
+    const q = bQuitaAcentos(texto).replace(/[¿?¡!]/g, ' ').replace(/\s+/g, ' ');
+    const intent = bIntencion(q);
+    const { rango, resto } = bParseRango(q);
+    const toks = bTokens(resto).filter(t => !B_STOP.has(t));
+    const m = toks.length ? bBuscaProductos(toks) : { cands: [], sug: [] };
+    const campos = ['precio', 'stock', 'costo', 'nombre'].filter(c => c === 'stock' ? /stock|existenc|inventario/.test(q) : q.includes(c));
+    return { intent, rango, toks, etq: toks.join(' '), cands: m.cands, sug: m.sug, campos };
+}
+
+// ---------- Datos ----------
+function bEventosVenta() {
+    const ev = [];
+    BUS.ventas.forEach((v, i) => {
+        const d = bParseVentaFecha(v); if (!d || !Array.isArray(v.productos)) return;
+        v.productos.forEach(p => ev.push({ fecha: d, codigo: p.codigo, nombre: p.nombre, cant: Number(p.cantidad) || 0, precio: Number(p.precio) || 0, ticket: i }));
+    });
+    return ev;
+}
+function bBuscaPalabra(t, n) {
+    if (!n) return -1; let i = -1;
+    while ((i = t.indexOf(n, i + 1)) !== -1) { const a = t[i - 1], b = t[i + n.length]; if ((!a || !/[a-z0-9]/.test(a)) && (!b || !/[a-z0-9]/.test(b))) return i; }
+    return -1;
+}
+const bEscRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Busca en el Log los renglones de SURTIDO que mencionan a los productos indicados
+function bSurtidosDe(prods) {
+    const norm = s => bQuitaAcentos(s).replace(/\s+/g, ' ').trim();
+    const todos = inventario.map(o => ({ cod: o.codigo, nm: norm(o.nombre) }));
+    const info = prods.map(p => { const nm = norm(p.nombre); return { p, nm, cod: bQuitaAcentos(p.codigo), sup: todos.filter(o => o.cod !== p.codigo && o.nm !== nm && o.nm.includes(nm)).map(o => o.nm) }; });
+    const out = [];
+    BUS.logs.forEach(l => {
+        if (!/surt|entrada|reabast/.test(bQuitaAcentos(l.accion))) return;
+        const d = bParseLogFecha(l.fechaHora); if (!d) return;
+        const t = bQuitaAcentos(l.detalles || '').replace(/\s+/g, ' ');
+        info.forEach(x => {
+            let i = bBuscaPalabra(t, x.cod), len = x.cod.length;
+            if (i < 0) { i = bBuscaPalabra(t, x.nm); len = x.nm.length; if (i >= 0 && x.sup.some(s => bBuscaPalabra(t, s) >= 0)) i = -1; }
+            if (i < 0) return;
+            const antes = t.slice(Math.max(0, i - 14), i);
+            let resto = t.slice(i + len).replace(new RegExp('^[\\s:\\-(]*' + bEscRe(x.nm)), '');
+            let q = null, m;
+            if ((m = antes.match(/(\d+(?:[.,]\d+)?)\s*x\s*$/))) q = parseFloat(m[1].replace(',', '.'));
+            else if ((m = resto.match(/^[\s:=()\[\]+x\-]*(\d+(?:[.,]\d+)?)/))) q = parseFloat(m[1].replace(',', '.'));
+            out.push({ fecha: d, codigo: x.p.codigo, nombre: x.p.nombre, cant: q, usuario: l.usuario, accion: l.accion, detalle: l.detalles });
+        });
+    });
+    return out;
+}
+
+// ---------- Presentación ----------
+const bCard = h => `<div class="bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-4">${h}</div>`;
+const bNom = p => (p.noActivo ? '🚫 ' : '') + bEsc(p.nombre);
+function bTabla(cols, rows) {
+    return `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs"><thead class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase"><tr>${cols.map(c => `<th class="py-2 px-3">${c}</th>`).join('')}</tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${rows.map(r => `<tr>${r.map(c => `<td class="py-1.5 px-3">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function bEtqProd(prods, etq) {
+    if (!prods || !prods.length) return 'todos los productos';
+    if (prods.length === 1) return `<b>${bNom(prods[0])}</b>`;
+    return `<b>${prods.length} productos</b> que coinciden con “${bEsc(etq)}”`;
+}
+function bFechasDisponibles(fechas) {
+    if (!fechas.length) return 'sin datos';
+    let mn = fechas[0], mx = fechas[0]; fechas.forEach(f => { if (f < mn) mn = f; if (f > mx) mx = f; });
+    return 'del ' + bFechaLarga(mn) + ' al ' + bFechaLarga(mx);
+}
+
+function bResVentas(prods, rango, etq) {
+    const codes = prods && prods.length ? new Set(prods.map(p => p.codigo)) : null;
+    const todos = bEventosVenta();
+    const ev = todos.filter(e => bEnRango(e.fecha, rango) && (!codes || codes.has(e.codigo)));
+    const per = rango ? rango.etiqueta : 'En todo el historial';
+    if (!ev.length) return bCard(`No encontré ventas de ${bEtqProd(prods, etq)}${rango ? ' · ' + bEsc(rango.etiqueta.toLowerCase()) : ''}.<div class="text-xs text-gray-500 mt-1">Las ventas disponibles van ${bFechasDisponibles(todos.map(e => e.fecha))}.</div>`);
+    const uds = ev.reduce((a, e) => a + e.cant, 0), monto = ev.reduce((a, e) => a + e.cant * e.precio, 0), tk = new Set(ev.map(e => e.ticket)).size;
+    let h = bCard(`<div class="text-base">${bEsc(per)}, vendiste <b>${bFmt(uds)} pzs</b> de ${bEtqProd(prods, etq)} en <b>${tk} ticket${tk === 1 ? '' : 's'}</b> por <b>$${formatMiles(monto)}</b>.</div>`);
+    if (!codes || codes.size > 1) {
+        const g = {}; ev.forEach(e => { const k = e.codigo; g[k] = g[k] || { n: e.nombre, u: 0, m: 0 }; g[k].u += e.cant; g[k].m += e.cant * e.precio; });
+        const filas = Object.values(g).sort((a, b) => b.u - a.u).slice(0, codes ? 40 : 15).map(x => [bEsc(x.n), bFmt(x.u), '$' + formatMiles(x.m)]);
+        h += `<div><div class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">${codes ? 'Detalle por producto' : 'Los 15 más vendidos'}</div>${bTabla(['Producto', 'Pzs', 'Importe'], filas)}</div>`;
+    }
+    if (!rango || (rango.hasta - rango.desde) > 1.5 * 86400000) {
+        const g = {}; ev.forEach(e => { const k = bDKey(e.fecha); g[k] = g[k] || { f: e.fecha, u: 0, m: 0, t: new Set() }; g[k].u += e.cant; g[k].m += e.cant * e.precio; g[k].t.add(e.ticket); });
+        const filas = Object.keys(g).sort().reverse().slice(0, 31).map(k => [bFechaLarga(g[k].f, true), bFmt(g[k].u), g[k].t.size, '$' + formatMiles(g[k].m)]);
+        h += `<div><div class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Por día${Object.keys(g).length > 31 ? ' (últimos 31 con ventas)' : ''}</div>${bTabla(['Día', 'Pzs', 'Tickets', 'Importe'], filas)}</div>`;
+    }
+    return h;
+}
+
+function bResSurtidos(prods, rango, etq) {
+    const todos = bSurtidosDe(prods && prods.length ? prods : inventario);
+    const s = todos.filter(e => bEnRango(e.fecha, rango));
+    const per = rango ? rango.etiqueta.toLowerCase() : 'en todo el historial del log';
+    const logIni = BUS.logs.map(l => bParseLogFecha(l.fechaHora)).filter(Boolean);
+    if (!s.length) return bCard(`No encontré surtidos de ${bEtqProd(prods, etq)} ${bEsc(per)}.<div class="text-xs text-gray-500 mt-1">El log disponible va ${bFechasDisponibles(logIni)}. Ojo: los surtidos solo quedan con detalle (producto y cantidad) en el log desde que se actualizó el Apps Script; los surtidos anteriores a esa fecha no se pueden recuperar.</div>`);
+    const ord = s.slice().sort((a, b) => a.fecha - b.fecha), ult = ord[ord.length - 1];
+    const conCant = s.filter(e => e.cant != null), pzs = conCant.reduce((a, e) => a + e.cant, 0);
+    let h = `<div class="text-base">Has surtido ${bEtqProd(prods, etq)} <b>${s.length} ${s.length === 1 ? 'vez' : 'veces'}</b> ${bEsc(per)}${conCant.length ? ` (total <b>${bFmt(pzs)} pzs</b>${conCant.length < s.length ? `, cantidad detectada en ${conCant.length} de ${s.length}` : ''})` : ''}. La última fue el <b>${bFechaLarga(ult.fecha)}</b>.</div>`;
+    if (prods && prods.length === 1 && s.length >= 2) {
+        const dias = (ult.fecha - ord[0].fecha) / 86400000 / (s.length - 1);
+        h += `<div class="text-sm text-gray-600 dark:text-gray-300 mt-2">Entre un surtido y otro pasan en promedio ~<b>${bFmt(dias)} días</b>${conCant.length ? ` y surtes ~<b>${bFmt(pzs / conCant.length)} pzs</b> cada vez` : ''}.</div>`;
+    }
+    let out = bCard(h);
+    if (!prods || prods.length > 1) {
+        const g = {}; s.forEach(e => { g[e.codigo] = g[e.codigo] || { n: e.nombre, v: 0, u: 0, f: e.fecha }; g[e.codigo].v++; g[e.codigo].u += e.cant || 0; if (e.fecha > g[e.codigo].f) g[e.codigo].f = e.fecha; });
+        const filas = Object.values(g).sort((a, b) => b.v - a.v).slice(0, prods ? 40 : 15).map(x => [bEsc(x.n), x.v, bFmt(x.u), bFechaLarga(x.f)]);
+        out += `<div><div class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">${prods ? 'Detalle por producto' : 'Los 15 más surtidos'}</div>${bTabla(['Producto', 'Veces', 'Pzs', 'Último surtido'], filas)}</div>`;
+    }
+    const filas = ord.slice().reverse().slice(0, 40).map(e => [e.fecha.toLocaleString('es-MX'), bEsc(e.nombre), bEsc(e.usuario || ''), e.cant == null ? '<span class="text-gray-400">?</span>' : bFmt(e.cant), `<span class="text-gray-500">${bEsc(String(e.detalle || '').slice(0, 160))}</span>`]);
+    out += `<details class="text-xs"><summary class="cursor-pointer font-bold text-blue-600 dark:text-blue-400">Ver los renglones del log encontrados (${Math.min(40, s.length)} de ${s.length})</summary><div class="mt-2">${bTabla(['Fecha / hora', 'Producto', 'Usuario', 'Cant.', 'Detalle original'], filas)}</div></details>`;
+    return out;
+}
+
+function bVelocidadDe(p, ev, rango) {
+    const real = VINCULOS_STOCK[p.codigo] || p.codigo;
+    const hoy = new Date(); const h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const esBase = p.codigo === real;
+    const propios = ev.filter(e => e.codigo === p.codigo);
+    const cons = ev.filter(e => (VINCULOS_STOCK[e.codigo] || e.codigo) === real);
+    const primera = cons.length ? cons.reduce((a, e) => e.fecha < a ? e.fecha : a, cons[0].fecha) : null;
+    const p0 = primera ? new Date(primera.getFullYear(), primera.getMonth(), primera.getDate()) : null;
+    const ventana = (desde, hasta) => {
+        let ini = desde; if (p0 && p0 > ini) ini = p0;
+        const fin = hasta > bAddD(h0, 1) ? bAddD(h0, 1) : hasta;
+        const dias = Math.max(1, Math.round((fin - ini) / 86400000));
+        const c = cons.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
+        // Si es el producto "base" (el que lleva el stock real, ej. la hoja), cuenta todo lo que le descuenta (impresiones, copias...)
+        const u = esBase ? c : propios.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
+        return { u, c, dias, pd: u / dias, cd: c / dias };
+    };
+    const w7 = ventana(bAddD(h0, -6), bAddD(h0, 1)), w30 = ventana(bAddD(h0, -29), bAddD(h0, 1));
+    const wR = rango ? ventana(rango.desde, rango.hasta) : w30;
+    const stock = (inventario.find(x => x.codigo === real) || p).stock;
+    const dRest = wR.cd > 0 ? stock / wR.cd : null;
+    return { p, real, w7, w30, wR, stock, dRest, primera, propiosN: cons.length, incluye: esBase && cons.some(e => e.codigo !== p.codigo) };
+}
+function bResVelocidad(prods, rango, etq) {
+    const ev = bEventosVenta();
+    const lista = prods && prods.length ? prods : inventario.filter(p => !p.noActivo);
+    let rows = lista.map(p => bVelocidadDe(p, ev, rango)).filter(r => prods || r.wR.u > 0);
+    const per = rango ? rango.etiqueta.toLowerCase() : 'en los últimos 30 días';
+    if (!rows.length || rows.every(r => r.wR.u === 0 && r.propiosN === 0)) return bCard(`No encontré ventas de ${bEtqProd(prods, etq)} para calcular su velocidad.<div class="text-xs text-gray-500 mt-1">Las ventas disponibles van ${bFechasDisponibles(ev.map(e => e.fecha))}.</div>`);
+    rows.sort((a, b) => b.wR.pd - a.wR.pd);
+    let out = '';
+    if (prods && prods.length === 1) {
+        const r = rows[0];
+        let h = `<div class="text-base">${bEtqProd(prods, etq)} sale a ~<b>${bFmt(r.wR.pd)} pzs por día</b> ${bEsc(per)} (${bFmt(r.wR.u)} pzs en ${r.wR.dias} día${r.wR.dias === 1 ? '' : 's'}${r.incluye ? ', contando también las impresiones/copias que descuentan de este stock' : ''}).</div>`;
+        h += `<div class="text-sm text-gray-600 dark:text-gray-300 mt-2">` + (r.dRest != null ? `Con <b>${bFmt(r.stock)} pzs</b> en stock te alcanza para ~<b>${Math.round(r.dRest)} días</b>${r.real !== r.p.codigo ? ' (comparte stock con otro producto)' : ''}.` : `Con <b>${bFmt(r.stock)} pzs</b> en stock: no hubo salidas ${bEsc(per)}, no se puede estimar cuánto dura.`) + `</div>`;
+        const sur = bSurtidosDe([r.p]).sort((a, b) => a.fecha - b.fecha);
+        if (sur.length >= 2) {
+            const dias = (sur[sur.length - 1].fecha - sur[0].fecha) / 86400000 / (sur.length - 1);
+            h += `<div class="text-sm text-gray-600 dark:text-gray-300 mt-1">En el log hay ${sur.length} surtidos: entre uno y otro pasan en promedio ~<b>${bFmt(dias)} días</b>.</div>`;
+        }
+        out += bCard(h);
+    } else {
+        const top = rows[0];
+        out += bCard(`<div class="text-base">${prods ? `Velocidad de salida de ${bEtqProd(prods, etq)}` : 'Los productos que más rápido salen'} ${bEsc(per)}${top ? `: el más rápido es <b>${bEsc(top.p.nombre)}</b> con ~<b>${bFmt(top.wR.pd)} pzs/día</b>` : ''}.</div>`);
+    }
+    {
+        const filas = rows.slice(0, prods ? 40 : 15).map(r => [bNom(r.p), bFmt(r.w7.pd), bFmt(r.w30.pd), bFmt(r.stock), r.dRest != null ? '~' + Math.round(r.dRest) + ' d' : '—']);
+        out += `<div>${bbTit(prods ? 'Detalle (pzs por día)' : 'Los 15 más rápidos (pzs por día)')}${bTabla(['Producto', 'Últ. 7 días', 'Últ. 30 días', 'Stock', 'Alcanza para'], filas)}</div>`;
+    }
+    return out;
+}
+const bbTit = t => `<div class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">${t}</div>`;
+
+// Lee del Log los renglones MODIFICAR (cambios hechos en "Modificar productos")
+function bModificacionesDe(prods) {
+    const set = new Set(prods.map(p => bQuitaAcentos(p.codigo))), out = [];
+    BUS.logs.forEach(l => {
+        if (!/modific/.test(bQuitaAcentos(l.accion))) return;
+        const d = bParseLogFecha(l.fechaHora); if (!d) return;
+        String(l.detalles || '').replace(/^Inventario editado:\s*/, '').split(' | ').forEach(seg => {
+            const m = seg.match(/^(\S+) (.*?): ((?:nombre|precio|stock|costo) .*)$/); if (!m) return;
+            if (!set.has(bQuitaAcentos(m[1]))) return;
+            const re = /(nombre|precio|stock|costo) (.+?) → (.+?)(?=; (?:nombre|precio|stock|costo) |$)/g; let f;
+            while ((f = re.exec(m[3]))) out.push({ fecha: d, codigo: m[1], nombre: m[2], campo: f[1], antes: f[2], despues: f[3], usuario: l.usuario });
+        });
+    });
+    return out;
+}
+function bResModificaciones(prods, rango, etq, campos) {
+    const lista = prods && prods.length ? prods : inventario;
+    const todos = bModificacionesDe(lista);
+    const s = todos.filter(e => bEnRango(e.fecha, rango) && (!campos || !campos.length || campos.includes(e.campo)));
+    const per = rango ? rango.etiqueta.toLowerCase() : 'en todo el historial del log';
+    const que = campos && campos.length ? ' de ' + campos.join(' / ') : '';
+    if (!s.length) return bCard(`No encontré cambios${que} en ${bEtqProd(prods, etq)} ${bEsc(per)}.<div class="text-xs text-gray-500 mt-1">Los cambios solo quedan con detalle en el log desde que se actualizó el Apps Script; los anteriores no se pueden recuperar.</div>`);
+    const ord = s.slice().sort((a, b) => a.fecha - b.fecha), ult = ord[ord.length - 1];
+    const porCampo = {}; s.forEach(e => porCampo[e.campo] = (porCampo[e.campo] || 0) + 1);
+    const resumen = Object.keys(porCampo).map(k => `${k}: ${porCampo[k]}`).join(' · ');
+    let out = bCard(`<div class="text-base">${bEtqProd(prods, etq)} tuvo <b>${s.length} cambio${s.length === 1 ? '' : 's'}${bEsc(que)}</b> ${bEsc(per)} (${bEsc(resumen)}). El último fue el <b>${bFechaLarga(ult.fecha)}</b>: ${bEsc(ult.campo)} ${bEsc(ult.antes)} → <b>${bEsc(ult.despues)}</b>.</div>`);
+    const filas = ord.slice().reverse().slice(0, 50).map(e => [e.fecha.toLocaleString('es-MX'), bEsc(e.nombre), bEsc(e.campo), bEsc(e.antes), `<b>${bEsc(e.despues)}</b>`, bEsc(e.usuario || '')]);
+    out += `<div>${bbTit(`Cambios (${Math.min(50, s.length)} de ${s.length}, el más reciente primero)`)}${bTabla(['Fecha / hora', 'Producto', 'Campo', 'Antes', 'Después', 'Usuario'], filas)}</div>`;
+    return out;
+}
+
+function bComponer(intent, rango, prods, etq, campos) {
+    if (intent === 'mod') return bResModificaciones(prods, rango, etq, campos);
+    if (intent === 'sur') return bResSurtidos(prods, rango, etq);
+    if (intent === 'vel') return bResVelocidad(prods, rango, etq);
+    return bResVentas(prods, rango, etq);
+}
+
+// ---------- Interfaz ----------
+function bPintarEstado() {
+    const st = document.getElementById('bus-estado'); if (!st) return;
+    const lf = BUS.logs.map(l => bParseLogFecha(l.fechaHora)).filter(Boolean), vf = BUS.ventas.map(bParseVentaFecha).filter(Boolean);
+    st.innerHTML = `📋 ${BUS.logs.length} registros de log (${bFechasDisponibles(lf)}) · 🧾 ${BUS.ventas.length} ventas (${bFechasDisponibles(vf)}) · actualizado ${BUS.ultimaCarga ? BUS.ultimaCarga.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}`;
+}
+async function iniciarBuscador(forzar) {
+    const st = document.getElementById('bus-estado');
+    if (BUS.cargando) return;
+    if (BUS.cargado && !forzar) { bPintarEstado(); return; }
+    BUS.cargando = true; if (st) st.textContent = '⏳ Cargando log y ventas...';
+    try {
+        const [rl, rd] = await Promise.all([apiFetch("getAuditoria"), apiFetch("getDataAnalisis")]);
+        const logs = await rl.json(), d = await rd.json();
+        BUS.logs = Array.isArray(logs) ? logs : []; BUS.ventas = (d && Array.isArray(d.ventas)) ? d.ventas : [];
+        if ((!inventario || !inventario.length) && d && Array.isArray(d.inventario)) inventario = d.inventario;
+        BUS.cargado = true; BUS.ultimaCarga = new Date(); bPintarEstado();
+    } catch (e) { console.error(e); if (st) st.textContent = '❌ No se pudieron cargar los datos. Revisa tu conexión y pulsa "Actualizar datos".'; }
+    BUS.cargando = false;
+}
+async function ejecutarBuscador(texto) {
+    const inp = document.getElementById('bus-input'), res = document.getElementById('bus-resultado');
+    if (texto !== undefined) inp.value = texto;
+    const q = inp.value.trim(); if (!q) return;
+    if (!BUS.cargado) { await iniciarBuscador(); if (!BUS.cargado) return; }
+    if (!inventario || !inventario.length) { res.innerHTML = bCard('El inventario aún no se ha cargado. Pulsa "Sincronizar" e inténtalo de nuevo.'); return; }
+    const a = bAnaliza(q); BUS.ult = { intent: a.intent, rango: a.rango, campos: a.campos };
+    const nombres = { mod: 'cambios en productos (log)', sur: 'surtidos (log)', vel: 'velocidad de salida', ven: 'ventas' };
+    const interp = `<div class="text-[11px] text-gray-500 dark:text-gray-400">Entendí → <b>${nombres[a.intent]}</b> · producto: <b>${a.etq ? bEsc(a.etq) : 'todos'}</b> · periodo: <b>${a.rango ? bEsc(a.rango.etiqueta) : 'todo el historial'}</b></div>`;
+    let h;
+    if (a.toks.length && !a.cands.length) {
+        h = bCard(a.sug.length
+            ? `No encontré un producto llamado “${bEsc(a.etq)}”. ¿Quisiste decir alguno de estos?<div class="flex flex-wrap gap-2 mt-2">${a.sug.map(p => `<button data-cod="${bEsc(p.codigo)}" onclick="bUsaProducto(this.dataset.cod)" class="px-2 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-medium cursor-pointer">${bNom(p)}</button>`).join('')}</div>`
+            : `No encontré ningún producto parecido a “${bEsc(a.etq)}”. Prueba con otra palabra del nombre o con el código.`);
+    } else h = bComponer(a.intent, a.rango, a.cands.length ? a.cands : null, a.etq, a.campos);
+    res.innerHTML = interp + h;
+}
+function bUsaProducto(cod) {
+    const p = inventario.find(x => x.codigo === cod); if (!p || !BUS.ult) return;
+    document.getElementById('bus-resultado').innerHTML = bComponer(BUS.ult.intent, BUS.ult.rango, [p], p.nombre, BUS.ult.campos);
+}
+
     </script>
 </body>
 </html>
