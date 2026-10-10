@@ -589,7 +589,14 @@
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📅 Ventas Últimos 7 Días</h3>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas Diarias</h3>
+                        <select id="sel-rango-diario" onchange="renderGraficoVentasDiarias()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                            <option value="todo" selected>Desde el inicio</option>
+                            <option value="30">Últimos 30 días</option>
+                            <option value="7">Últimos 7 días</option>
+                        </select>
+                    </div>
                     <div style="height: 220px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -1583,6 +1590,37 @@ async function cargarDatosAnalisis() {
             document.getElementById('inv-total-pagado').innerText = `$${formatMiles(tP)}`;
         }
 
+function renderGraficoVentasDiarias() {
+    let ctx = document.getElementById('chartVentasSemana'); if (!ctx) return;
+    let sel = document.getElementById('sel-rango-diario'), modo = sel ? sel.value : 'todo';
+    let porDia = window.ventasPorDiaCache || {}, claves = Object.keys(porDia).sort();
+    if (window.chartSemanaInstance) window.chartSemanaInstance.destroy();
+    if (!claves.length) return;
+    let hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    let desde = calParseKey(claves[0]);
+    let tope = modo === '7' ? 6 : (modo === '30' ? 29 : 0);
+    if (tope) { let lim = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - tope); if (lim > desde) desde = lim; }
+    // Se grafican los días hábiles (aunque no hayan tenido ventas) y cualquier otro día que sí vendió.
+    // Hoy solo aparece si ya tiene ventas.
+    let fechas = [], labels = [], data = [];
+    for (let d = new Date(desde); d <= h0; d = calSig(d)) {
+        let k = calKey(d), v = porDia[k] || 0;
+        if (v > 0 || (calEsHabil(d) && d < h0)) { fechas.push(d); labels.push(d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })); data.push(v); }
+    }
+    let total = data.reduce((a, b) => a + b, 0), prom = data.length ? total / data.length : 0;
+    window.chartSemanaInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [
+            { type: 'bar', label: 'Ventas Diarias ($)', data: data, backgroundColor: '#3b82f6', borderRadius: 3, categoryPercentage: 1, barPercentage: 0.85, order: 2 },
+            { type: 'line', label: 'Promedio por día ($' + formatMiles(prom) + ')', data: data.map(() => prom), borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 0, borderWidth: 2, fill: false, order: 1 }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 10 } } },
+                tooltip: { callbacks: { title: items => items.length ? fechas[items[0].dataIndex].toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '', label: c => c.dataset.label.startsWith('Promedio') ? c.dataset.label : 'Ventas: $' + formatMiles(c.parsed.y) } } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 12, maxRotation: 0 } } } }
+    });
+}
+
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             // 1. INVERSIÓN Y GANANCIAS HISTÓRICAS
@@ -1812,10 +1850,9 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             
             let mesMap = {};
-            vts.forEach(v => {
-                if(!v.fecha) return;
-                let mesKey = v.fecha.substring(0, 7);
-                mesMap[mesKey] = (mesMap[mesKey] || 0) + (v.total || 0);
+            Object.keys(ventasPorDia).forEach(k => {
+                let mesKey = k.substring(0, 7);
+                mesMap[mesKey] = (mesMap[mesKey] || 0) + ventasPorDia[k];
             });
             let mesLabels = Object.keys(mesMap).sort().slice(-6);
             let mesData = mesLabels.map(l => mesMap[l]);
@@ -1830,24 +1867,9 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 });
             }
 
-            let semMap = {};
-            vts.forEach(v => {
-                if(!v.fecha) return;
-                let semKey = v.fecha.split('T')[0];
-                semMap[semKey] = (semMap[semKey] || 0) + (v.total || 0);
-            });
-            let semLabels = Object.keys(semMap).sort().slice(-7);
-            let semData = semLabels.map(l => semMap[l]);
-
-            if(window.chartSemanaInstance) window.chartSemanaInstance.destroy();
-            let ctxSem = document.getElementById('chartVentasSemana');
-            if(ctxSem) {
-                window.chartSemanaInstance = new Chart(ctxSem, {
-                    type: 'bar',
-                    data: { labels: semLabels, datasets: [{ label: 'Ventas Diarias ($)', data: semData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-                });
-            }
+            // Ventas diarias (por defecto desde la primera venta). Se redibuja al cambiar el selector.
+            window.ventasPorDiaCache = ventasPorDia;
+            renderGraficoVentasDiarias();
 
             let catLabels = ['Impresión', 'Hojas', 'Papelería', 'Misceláneo'];
             let catData = [catGanancias['IMP']||0, catGanancias['HOJ']||0, catGanancias['PAP']||0, catGanancias['MS']||0];
