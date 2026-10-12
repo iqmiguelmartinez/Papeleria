@@ -126,7 +126,7 @@
                     <span class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Admin</span>
                 <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" data-tab="analisis" title="Análisis" style="--c:#10b981" class="tabbtn"><span class="ti">📈</span><span>Análisis</span></button>
                 <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" data-tab="ventasPasadas" title="Ventas Pasadas" style="--c:#06b6d4" class="tabbtn"><span class="ti">📜</span><span>Ventas pasadas</span></button>
-                <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" data-tab="inversion" title="Inversiones / Créditos" style="--c:#6366f1" class="tabbtn"><span class="ti">💼</span><span>Inversiones</span></button>
+                <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" data-tab="inversion" title="Gastos / Créditos" style="--c:#6366f1" class="tabbtn"><span class="ti">💼</span><span>Gastos</span></button>
                 <button onclick="cambiarTab('caja')" id="btn-tab-caja" data-tab="caja" title="Control de Caja" style="--c:#84cc16" class="tabbtn"><span class="ti">💵</span><span>Caja</span></button>
                 <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" data-tab="buscador" title="Buscador inteligente" style="--c:#ec4899" class="tabbtn"><span class="ti">🔎</span><span>Buscador</span></button>
                 <button onclick="cambiarTab('impresiones')" id="btn-tab-impresiones" data-tab="impresiones" title="Auditoría de Impresiones" style="--c:#0ea5e9" class="tabbtn"><span class="ti">🖨️</span><span>Impresiones</span></button>
@@ -350,7 +350,7 @@
         <div id="tab-inversion" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 shrink-0">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Inversiones y Créditos</h2>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Gastos y Créditos</h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago.</p>
                 </div>
                 <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
@@ -869,7 +869,7 @@
             <button onclick="cambiarTab('corte')" id="nm-corte" data-tab="corte" style="--c:#8b5cf6" class="navbtn"><span class="ni">📊</span><span>Corte</span></button>
             <button onclick="cambiarTab('analisis')" id="nm-analisis" data-tab="analisis" style="--c:#10b981" class="navbtn hidden"><span class="ni">📈</span><span>Análisis</span></button>
             <button onclick="cambiarTab('ventasPasadas')" id="nm-ventasPasadas" data-tab="ventasPasadas" style="--c:#06b6d4" class="navbtn hidden"><span class="ni">📜</span><span>Pasadas</span></button>
-            <button onclick="cambiarTab('inversion')" id="nm-inversion" data-tab="inversion" style="--c:#6366f1" class="navbtn hidden"><span class="ni">💼</span><span>Inversión</span></button>
+            <button onclick="cambiarTab('inversion')" id="nm-inversion" data-tab="inversion" style="--c:#6366f1" class="navbtn hidden"><span class="ni">💼</span><span>Gastos</span></button>
             <button onclick="cambiarTab('caja')" id="nm-caja" data-tab="caja" style="--c:#84cc16" class="navbtn hidden"><span class="ni">💵</span><span>Caja</span></button>
             <button onclick="cambiarTab('buscador')" id="nm-buscador" data-tab="buscador" style="--c:#ec4899" class="navbtn hidden"><span class="ni">🔎</span><span>Buscador</span></button>
             <button onclick="cambiarTab('impresiones')" id="nm-impresiones" data-tab="impresiones" style="--c:#0ea5e9" class="navbtn hidden"><span class="ni">🖨️</span><span>Impresiones</span></button>
@@ -1128,6 +1128,15 @@
             return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        // El servidor puede devolver la fecha como texto "dd/MM/yyyy HH:mm:ss" o como fecha ISO (2026-10-12T04:54:59.000Z); siempre se muestra en hora local, igual que antes
+        function formatoFechaLog(v) {
+            let s = String(v == null ? '' : v);
+            if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+                const d = new Date(s);
+                if (!isNaN(d.getTime())) { const z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}/${z(d.getMonth() + 1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`; }
+            }
+            return s;
+        }
         async function cargarLogActividad() {
             try {
                 Swal.fire({ title: 'Cargando log...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1145,7 +1154,7 @@
                 logsF.forEach(log => {
                     let col = "bg-gray-100 text-gray-700"; let act = log.accion.toUpperCase();
                     if(act.includes("VENTA")) col = "bg-blue-100 text-blue-700"; else if(act.includes("RETIRO")) col = "bg-red-100 text-red-700"; else if(act.includes("CORTE")) col = "bg-purple-100 text-purple-700"; else if(act.includes("SURTIR")||act.includes("ALTA")||act.includes("MODIFICAR")) col = "bg-emerald-100 text-emerald-700"; else if(act.includes("INVERSIÓN")||act.includes("ESTADO")) col = "bg-amber-100 text-amber-700";
-                    tbody.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs"><td class="py-2 px-3 text-gray-500">${log.fechaHora}</td><td class="py-2 px-3 font-semibold">${log.usuario}</td><td class="py-2 px-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${col}">${log.accion}</span></td><td class="py-2 px-3">${log.detalles}</td></tr>`;
+                    tbody.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs"><td class="py-2 px-3 text-gray-500 whitespace-nowrap">${formatoFechaLog(log.fechaHora)}</td><td class="py-2 px-3 font-semibold">${log.usuario}</td><td class="py-2 px-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${col}">${log.accion}</span></td><td class="py-2 px-3">${log.detalles}</td></tr>`;
                 });
             } catch (err) { Swal.close(); Swal.fire('Error', 'No se pudo cargar el log.', 'error'); }
         }
@@ -1751,7 +1760,7 @@ async function cargarDatosAnalisis() {
             
             // Si no hay datos
             if(!invs || invs.length === 0) {
-                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">No hay registros de inversiones.</td></tr>`;
+                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">No hay registros de gastos.</td></tr>`;
                 document.getElementById('inv-total-credito').innerText = `$0.00`;
                 document.getElementById('inv-total-pagado').innerText = `$0.00`;
                 return;
