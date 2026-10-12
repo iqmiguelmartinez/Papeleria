@@ -1950,9 +1950,10 @@ function volMargenDatos() {
         let u = 0, ingr = 0, g = 0, cr = null, nombre = cod;
         ev[cod].forEach(e => { if (!limK || (e.k && e.k >= limK)) { u += e.c; ingr += e.i; g += e.g; } cr = e.cr; nombre = e.n || nombre; });
         if (u <= 0 || ingr <= 0) return;
-        let pInv = inv.find(x => x.codigo === cr) || {};
-        if (pInv.noActivo) { descont++; return; } // los productos descontinuados no se muestran en este gráfico
-        if (!(pInv.costo > 0)) { sinCosto++; return; } // sin costo capturado el margen no es confiable
+        // Se revisa el producto en sí (no el producto base del que descuenta stock): un producto descontinuado no se muestra aunque su base siga activo
+        let propio = inv.find(x => x.codigo === cod) || {}, base = inv.find(x => x.codigo === cr) || {};
+        if (propio.noActivo) { descont++; return; }
+        if (!(propio.costo > 0 || base.costo > 0)) { sinCosto++; return; } // sin costo capturado el margen no es confiable
         pts.push({ x: u, y: (g / ingr) * 100, g: g, n: nombre });
     });
     if (!pts.length) return { pts: pts, sinCosto: sinCosto, descont: descont };
@@ -2156,8 +2157,9 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     // Ganancias y Rentabilidad
                     v.productos.forEach(p => {
                         let codReal = VINCULOS_STOCK[p.codigo] || p.codigo;
-                        let pInv = inv.find(x => x.codigo === codReal) || {};
-                        let costo = pInv.costo || 0;
+                        // El costo es el del PROPIO producto (ej. CONTACT 0.5m = $2.95); solo si no tiene costo capturado se usa el del producto del que descuenta stock (ej. el metro completo = $5.90)
+                        let pPropio = inv.find(x => x.codigo === p.codigo) || {}, pInv = inv.find(x => x.codigo === codReal) || {};
+                        let costo = pPropio.costo > 0 ? pPropio.costo : (pInv.costo || 0);
                         let cat = p.codigo.substring(0, 3).toUpperCase();
                         if (cat === 'LAP') cat = 'PAP'; 
                         if (!catGanancias[cat]) catGanancias[cat] = 0;
