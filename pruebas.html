@@ -78,6 +78,12 @@
         .navbtn.activa { color: var(--c); }
         .navbtn.activa .ni { transform: translateY(-2px) scale(1.18); }
         .navbtn.activa::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 6px 6px; background: var(--c); }
+        [data-tipid] { position: relative; cursor: help; }
+        [data-tipid]::after { content: 'ⓘ'; position: absolute; top: 4px; right: 7px; font-size: 10px; opacity: .35; pointer-events: none; }
+        [data-tipid]:hover::after { opacity: .8; }
+        #tip-flotante { position: fixed; z-index: 99999; max-width: 330px; padding: .55rem .75rem; border-radius: .6rem; background: #111827; color: #f9fafb; font-size: 12px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.3); white-space: pre-line; pointer-events: none; opacity: 0; transition: opacity .12s; }
+        #tip-flotante.on { opacity: 1; }
+        #tip-flotante b { color: #fcd34d; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 overflow-hidden flex flex-col">
@@ -728,31 +734,25 @@
                 <p id="kx-valor" class="text-xl md:text-2xl font-bold text-fuchsia-800 dark:text-fuchsia-200">—</p>
             </div>
 
-            <!-- ROW 2: GRÁFICOS PRINCIPALES (Tendencias y Distribución) -->
+
+            <!-- NAVEGACIÓN POR SECCIONES -->
+            <div class="shrink-0 sticky top-0 z-20 -mt-2 py-2 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur flex flex-wrap gap-2 text-xs">
+                <a href="#" onclick="irSeccion('sec-ventas');return false" class="px-3 py-1 rounded-full bg-white dark:bg-gray-900 border dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-blue-50 dark:hover:bg-gray-700">📊 Ventas</a>
+                <a href="#" onclick="irSeccion('sec-productos');return false" class="px-3 py-1 rounded-full bg-white dark:bg-gray-900 border dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-blue-50 dark:hover:bg-gray-700">🏆 Productos</a>
+                <a href="#" onclick="irSeccion('sec-inventario');return false" class="px-3 py-1 rounded-full bg-white dark:bg-gray-900 border dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-blue-50 dark:hover:bg-gray-700">📦 Inventario</a>
+                <a href="#" onclick="irSeccion('sec-finanzas');return false" class="px-3 py-1 rounded-full bg-white dark:bg-gray-900 border dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-blue-50 dark:hover:bg-gray-700">💰 Finanzas</a>
+            </div>
+
+            <!-- SECCIÓN: 📊 Ventas y tendencia -->
+            <div id="sec-ventas" class="shrink-0 pt-2 scroll-mt-16">
+                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">📊 Ventas y tendencia</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Cómo van las ventas, cuándo se vende más y cómo se compara contra el mes anterior.</p>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">📊 Ventas Mensuales (Tendencia)</h3>
-                    <div style="height: 220px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
+                    <div style="height: 280px; position: relative;"><canvas id="chartVentasMes"></canvas></div>
                 </div>
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas Diarias</h3>
-                        <select id="sel-rango-diario" onchange="renderGraficoVentasDiarias()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
-                            <option value="todo" selected>Desde el inicio</option>
-                            <option value="30">Últimos 30 días</option>
-                            <option value="7">Últimos 7 días</option>
-                        </select>
-                    </div>
-                    <div style="height: 220px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
-                </div>
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">🕒 Mapa de Calor: Horas Pico</h3>
-                    <div style="height: 220px; position: relative;"><canvas id="chartHorasPico"></canvas></div>
-                </div>
-            </div>
-
-            <!-- ROW 2B: AVANCE DEL MES Y MARGEN -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1 text-sm">📈 Avance del Mes vs Mes Anterior</h3>
                     <p class="text-[10px] text-gray-400 mb-2">Ventas acumuladas por día hábil (según el calendario laboral).</p>
@@ -762,17 +762,48 @@
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1 text-sm">🧮 Margen por Mes</h3>
                     <p class="text-[10px] text-gray-400 mb-2">Ganancia y porcentaje de margen sobre lo vendido. * = mes en curso.</p>
-                    <div style="height: 240px; position: relative;"><canvas id="chartMargenMes"></canvas></div>
+                    <div style="height: 280px; position: relative;"><canvas id="chartMargenMes"></canvas></div>
+                </div>
+            </div>
+            <div class="shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas Diarias</h3>
+                        <select id="sel-rango-diario" onchange="renderGraficoVentasDiarias()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                            <option value="todo" selected>Desde el inicio</option>
+                            <option value="30">Últimos 30 días</option>
+                            <option value="7">Últimos 7 días</option>
+                        </select>
+                    </div>
+                    <div style="height: 260px; position: relative;"><canvas id="chartVentasSemana"></canvas></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas por Día de la Semana</h3>
+                        <select id="sel-dow" onchange="renderDiaSemana()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="28">Últimas 4 semanas</option><option value="84" selected>Últimas 12 semanas</option><option value="todo">Desde el inicio</option></select>
+                    </div>
+                    <p id="txt-dow" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div class="relative" style="height: 280px;"><canvas id="chartDow"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Promedio de venta por cada día que se trabajó (según tu calendario). Barras grises: día que normalmente no abres.</p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">🕒 Mapa de Calor: Horas Pico</h3>
+                    <div style="height: 280px; position: relative;"><canvas id="chartHorasPico"></canvas></div>
                 </div>
             </div>
 
-            <!-- ROW 3: COMPORTAMIENTO DEL CONSUMIDOR Y RENTABILIDAD -->
+            <!-- SECCIÓN: 🏆 Productos y rentabilidad -->
+            <div id="sec-productos" class="shrink-0 pt-2 scroll-mt-16">
+                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">🏆 Productos y rentabilidad</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Qué productos dejan el dinero, cuáles se compran juntos y cuáles rinden poco.</p>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm">💰 Rentabilidad por Categoría</h3>
                     <div style="height: 200px; position: relative;" class="flex-1"><canvas id="chartRentabilidadCat"></canvas></div>
                 </div>
-                
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm shrink-0">🏆 Top Productos (Más Rentables)</h3>
                     <div class="overflow-y-auto max-h-[200px] flex-1">
@@ -784,7 +815,6 @@
                         </table>
                     </div>
                 </div>
-
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3 text-sm shrink-0">🛒 Análisis de Cesta (Comprados Juntos)</h3>
                     <div class="overflow-y-auto max-h-[200px] flex-1">
@@ -799,52 +829,18 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ROW 4: SALUD DE INVENTARIO -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 text-sm shrink-0">⚠️ Alerta de Stock Crítico</h3>
-                    <div class="overflow-y-auto max-h-[220px] flex-1">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Código</th><th class="py-2">Producto</th><th class="py-2 text-center">Faltante Sugerido</th></tr>
-                            </thead>
-                            <tbody id="tabla-sugerencia-compra" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs"></tbody>
-                        </table>
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🏆 Pareto 80/20 de Productos</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="sel-pareto-metrica" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="g" selected>Por ganancia</option><option value="i">Por ingreso</option></select>
+                            <select id="sel-pareto-periodo" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="30">30 días</option><option value="90" selected>90 días</option><option value="todo">Desde el inicio</option></select>
+                        </div>
                     </div>
-                </div>
-
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2 text-sm shrink-0">🔥 Velocidad de Agotamiento (Burn Rate)</h3>
-                    <p class="text-[10px] text-gray-400 mb-2">Días hábiles estimados antes de agotar stock (últimos 30 días, sin contar descansos ni feriados).</p>
-                    <div class="overflow-y-auto max-h-[190px] flex-1">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                                <tr class="text-gray-500 text-[10px] uppercase border-b dark:border-gray-700"><th class="py-2">Producto</th><th class="py-2 text-center">Tasa (un/día háb.)</th><th class="py-2 text-right">Días háb. restantes</th></tr>
-                            </thead>
-                            <tbody id="tabla-burn-rate" class="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
-                                <!-- Filas dinámicas -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ROW 4B: DINERO PARADO Y VOLUMEN VS MARGEN -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <div class="flex justify-between items-center mb-1">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🧊 Dinero Parado en Inventario</h3>
-                        <select id="sel-parado" onchange="renderDineroParado()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
-                            <option value="30">Sin ventas 30+ días</option>
-                            <option value="60" selected>Sin ventas 60+ días</option>
-                            <option value="90">Sin ventas 90+ días</option>
-                        </select>
-                    </div>
-                    <div id="parado-metricas" class="grid grid-cols-2 gap-2 mb-2"></div>
-                    <p id="txt-parado" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
-                    <div class="flex-1 relative" style="min-height: 300px;"><canvas id="chartDineroParado"></canvas></div>
-                    <p class="text-[10px] text-gray-400 mt-2">Capital = stock × costo. Rojo: nunca se ha vendido. 🚫 = producto descontinuado que aún tiene stock.</p>
+                    <p id="txt-pareto" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div class="relative flex-1" style="min-height: 380px;"><canvas id="chartPareto"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Barras = lo que aporta cada producto (los 20 principales). Línea = % acumulado. Los productos A (hasta 80%) son los que nunca deben faltar.</p>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex justify-between items-center mb-1">
@@ -861,12 +857,18 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN: 📦 Inventario -->
+            <div id="sec-inventario" class="shrink-0 pt-2 scroll-mt-16">
+                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">📦 Inventario</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Qué surtir, cuánto te alcanza y cuánto dinero tienes detenido.</p>
+            </div>
             <!-- ROW 4C: COBERTURA DE INVENTARIO -->
             <div class="pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📦 Cobertura de Inventario y Qué Surtir</h3>
                         <div class="flex flex-wrap gap-2">
+                            <button onclick="descargarListaSurtidoImagen()" class="text-xs px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer">📥 Lista para surtir</button>
                             <select id="sel-cob-ventana" onchange="renderCobertura()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
                                 <option value="30" selected>Ritmo: últimos 30 días</option>
                                 <option value="60">Ritmo: últimos 60 días</option>
@@ -892,31 +894,28 @@
                 </div>
             </div>
 
-            <!-- ROW 4D: PARETO Y DIA DE LA SEMANA -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+            <div class="shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🏆 Pareto 80/20 de Productos</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <select id="sel-pareto-metrica" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="g" selected>Por ganancia</option><option value="i">Por ingreso</option></select>
-                            <select id="sel-pareto-periodo" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="30">30 días</option><option value="90" selected>90 días</option><option value="todo">Desde el inicio</option></select>
-                        </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🧊 Dinero Parado en Inventario</h3>
+                        <select id="sel-parado" onchange="renderDineroParado()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                            <option value="30">Sin ventas 30+ días</option>
+                            <option value="60" selected>Sin ventas 60+ días</option>
+                            <option value="90">Sin ventas 90+ días</option>
+                        </select>
                     </div>
-                    <p id="txt-pareto" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
-                    <div class="relative" style="height: 380px;"><canvas id="chartPareto"></canvas></div>
-                    <p class="text-[10px] text-gray-400 mt-2">Barras = lo que aporta cada producto (los 20 principales). Línea = % acumulado. Los productos A (hasta 80%) son los que nunca deben faltar.</p>
-                </div>
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas por Día de la Semana</h3>
-                        <select id="sel-dow" onchange="renderDiaSemana()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="28">Últimas 4 semanas</option><option value="84" selected>Últimas 12 semanas</option><option value="todo">Desde el inicio</option></select>
-                    </div>
-                    <p id="txt-dow" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
-                    <div class="relative" style="height: 380px;"><canvas id="chartDow"></canvas></div>
-                    <p class="text-[10px] text-gray-400 mt-2">Promedio de venta por cada día que se trabajó (según tu calendario). Barras grises: día que normalmente no abres.</p>
+                    <div id="parado-metricas" class="grid grid-cols-2 gap-2 mb-2"></div>
+                    <p id="txt-parado" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div class="flex-1 relative" style="min-height: 300px;"><canvas id="chartDineroParado"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Capital = stock × costo. Rojo: nunca se ha vendido. 🚫 = producto descontinuado que aún tiene stock.</p>
                 </div>
             </div>
 
+            <!-- SECCIÓN: 💰 Finanzas del negocio -->
+            <div id="sec-finanzas" class="shrink-0 pt-2 scroll-mt-16">
+                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">💰 Finanzas del negocio</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Cuánto cuesta operar, cómo se mueve tu caja, cuándo recuperas y cuánto vale.</p>
+            </div>
             <!-- ROW 4D2: GASTO OPERATIVO -->
             <div class="pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
@@ -934,28 +933,7 @@
                 </div>
             </div>
 
-            <!-- ROW 4D3: VALUACIÓN -->
-            <div id="card-valuacion" class="pb-6 shrink-0">
-                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💎 Valuación del Negocio</h3>
-                        <div class="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-300">
-                            <label class="flex items-center gap-1">Vida útil del equipo (años) <input id="inp-val-vida" type="number" min="1" value="5" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
-                            <label class="flex items-center gap-1">Mejoras al local recuperables (%) <input id="inp-val-mejoras" type="number" min="0" max="100" value="0" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
-                            <label class="flex items-center gap-1">Múltiplo de utilidad <input id="inp-val-m1" type="number" min="0.1" step="0.1" value="1" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"> a <input id="inp-val-m2" type="number" min="0.1" step="0.1" value="2" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
-                        </div>
-                    </div>
-                    <div id="val-hero" class="bg-fuchsia-50 dark:bg-fuchsia-950/30 border border-fuchsia-100 dark:border-fuchsia-900/50 rounded-lg px-4 py-3 mb-3"></div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">1. Por activos (piso)</p><table class="w-full text-xs"><tbody id="val-tabla"></tbody></table></div>
-                        <div><p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">2. Por ganancias</p><table class="w-full text-xs"><tbody id="val-tabla-gan"></tbody></table></div>
-                    </div>
-                    <p id="val-nota" class="text-[10px] text-gray-400 mt-3"></p>
-                </div>
-            </div>
-
-            <!-- ROW 4E: FLUJO DE CAJA SEMANAL + PROYECCIÓN ROI (mitad y mitad) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💵 Flujo de Caja Semanal</h3>
@@ -980,6 +958,25 @@
                     </div>
                 </div>
             </div>
+            <!-- ROW 4D3: VALUACIÓN -->
+            <div id="card-valuacion" class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💎 Valuación del Negocio</h3>
+                        <div class="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-300">
+                            <label class="flex items-center gap-1">Vida útil del equipo (años) <input id="inp-val-vida" type="number" min="1" value="5" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
+                            <label class="flex items-center gap-1">Mejoras al local recuperables (%) <input id="inp-val-mejoras" type="number" min="0" max="100" value="0" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
+                            <label class="flex items-center gap-1">Múltiplo de utilidad <input id="inp-val-m1" type="number" min="0.1" step="0.1" value="1" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"> a <input id="inp-val-m2" type="number" min="0.1" step="0.1" value="2" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
+                        </div>
+                    </div>
+                    <div id="val-hero" class="bg-fuchsia-50 dark:bg-fuchsia-950/30 border border-fuchsia-100 dark:border-fuchsia-900/50 rounded-lg px-4 py-3 mb-3"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">1. Por activos (piso)</p><table class="w-full text-xs"><tbody id="val-tabla"></tbody></table></div>
+                        <div><p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">2. Por ganancias</p><table class="w-full text-xs"><tbody id="val-tabla-gan"></tbody></table></div>
+                    </div>
+                    <p id="val-nota" class="text-[10px] text-gray-400 mt-3"></p>
+                </div>
+            </div>
 
             <!-- ROW 6: BENCHMARK -->
             <div class="pb-6 shrink-0">
@@ -1001,19 +998,21 @@
                 </div>
             </div>
 
+
         </div>
     <!-- Contenedores ocultos (Impresión) -->
     <div style="position: absolute; left: -9999px; top: -9999px;">
         <div id="print-lista-surtido" style="background-color: #ffffff; padding: 32px; border-radius: 16px; width: 650px; color: #1f2937; border: 1px solid #e5e7eb; font-family: sans-serif;">
             <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #059669; padding-bottom: 12px;">
                 <h2 style="font-size: 20px; font-weight: bold; margin: 0 0 4px 0;">📚 Pixel y Papel</h2>
-                <p style="font-size: 14px; font-weight: 600; color: #059669; margin: 0;">Lista de Productos Faltantes para Surtir</p>
+                <p id="print-sub-surtido" style="font-size: 14px; font-weight: 600; color: #059669; margin: 0;">Lista de Productos Faltantes para Surtir</p>
             </div>
             <table style="width: 100%; text-align: left; border-collapse: collapse; margin-bottom: 16px;">
                 <thead>
                     <tr style="background-color: #f3f4f6; font-size: 11px; text-transform: uppercase;">
                         <th style="padding: 10px; border-bottom: 1px solid #d1d5db;">Código</th>
                         <th style="padding: 10px; border-bottom: 1px solid #d1d5db;">Producto</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #d1d5db;">Stock</th>
                         <th style="padding: 10px; text-align: center; border-bottom: 1px solid #d1d5db; color: #059669;">Sugerido a Comprar</th>
                     </tr>
                 </thead>
@@ -2456,6 +2455,7 @@ function renderFlujoCaja() {
         const t = (tit, val, cls, sub) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p>${sub ? `<p class="text-[10px] text-gray-400">${sub}</p>` : ''}</div>`;
         kp.innerHTML = t('Ventas', '$' + formatMiles(tV), 'text-emerald-600 dark:text-emerald-400') + t('Retiros', '$' + formatMiles(tR), 'text-red-600 dark:text-red-400') + t('Gastos pagados', '$' + formatMiles(tG), 'text-orange-600 dark:text-orange-400', 'operativos e inversión') + t('Resurtido pagado', '$' + formatMiles(tRs), 'text-yellow-600 dark:text-yellow-400', incl ? 'incluido en el neto' : 'no incluido en el neto') + t('Neto del periodo', (tN < 0 ? '-$' : '$') + formatMiles(Math.abs(tN)), tN >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400');
     }
+    if (kp && kp.lastElementChild && kp.children.length % 2 === 1) kp.lastElementChild.classList.add('col-span-2');
     const tc = anaTxtColor();
     const ds = [
         { type: 'bar', label: 'Ventas', data: S.map(s => s.v), backgroundColor: '#10b981', borderRadius: 3, stack: 'in', order: 2 },
@@ -2711,6 +2711,60 @@ function renderValuacion() {
     if (nota) nota.innerText = `Confianza ${V.nMeses >= 6 ? 'media' : 'baja'}: ${V.nMeses} mes${V.nMeses === 1 ? '' : 'es'} completo${V.nMeses === 1 ? '' : 's'} de historia. Método: se anualiza con los días hábiles de tu calendario (no ×12, para respetar vacaciones) y el valor se obtiene como utilidad × múltiplo más inventario a costo, menos deudas. Las guías mexicanas de valuación de PyMEs dan 2×–4× la utilidad del dueño (SDE) para negocios operados por su dueño, pero advierten que baja con poca historia, dependencia del dueño o de un solo cliente o ubicación (capitalenorden.com, grupoconsultorefe.com). Este negocio tiene poca historia, depende de una escuela y de una temporada, así que el múltiplo inicial es 1×–2×; ajústalo arriba. Si la temporada de inicio de ciclo fue tu mejor etapa, la utilidad anual saldrá inflada. Es una estimación orientativa, no un avalúo.`;
 }
 
+
+// ==========================================
+// NAVEGACIÓN POR SECCIONES Y TOOLTIPS DE MÉTRICAS
+// ==========================================
+function irSeccion(id) { const e = document.getElementById(id); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+const _$m = n => '$' + formatMiles(n);
+const TIPS = {
+    'ana-inversion-total': () => { const invs = (window.analisisCache || {}).invs || [], c = { 'Resurtido': 0, 'Operativo': 0, 'Inversión': 0 }; invs.forEach(g => { if (!gastoEsInicial(g)) c[gastoCategoria(g)] += Math.abs(g.cantidad || 0); }); return `<b>Gastos e Inversión</b>\nOperativo ${_$m(c['Operativo'])} + Inversión ${_$m(c['Inversión'])}.\nNO incluye el resurtido (${_$m(c['Resurtido'])}) porque la mercancía ya está descontada en el costo de lo vendido.\nIncluye lo que está a crédito (por pagar).`; },
+    'ana-ganancia-total': '<b>Ganancia histórica</b>\nSuma de (precio − costo) × piezas de todas las ventas. Usa el costo del propio producto; si no tiene, el del producto del que descuenta stock.\nEs ganancia bruta: todavía no resta gastos.',
+    'ana-roi': '<b>Retorno (ROI)</b>\n(Ganancia histórica − Gastos e Inversión) ÷ Gastos e Inversión.\nNegativo = aún no recuperas lo que has gastado. 0% = justo recuperado. Positivo = ya estás ganando por encima de lo invertido.',
+    'ana-balance-neto': '<b>Balance neto</b>\nGanancia histórica menos Gastos e Inversión: lo que llevas ganado después de pagar todo lo que no es mercancía.\nNegativo = todavía estás recuperando.',
+    'ana-forecast-mes': '<b>Proyección de cierre de mes</b>\nLo vendido en el mes + (promedio por día hábil × días hábiles que faltan), según tu calendario laboral.\nMientras más días hábiles transcurran, más confiable.',
+    'ana-tasa-recompra': '<b>Tasa de recompra</b>\n% de clientes con teléfono registrado que compraron en 2 o más días distintos.\nSolo cuenta clientes identificados; quien no da teléfono no entra.',
+    'ana-total-clientes': '<b>Clientes base</b>\nTeléfonos distintos registrados en tus ventas (últimos 10 dígitos). Son los clientes a quienes podrías escribir por WhatsApp.',
+    'ana-proporcion-wa': '<b>Tickets con teléfono</b>\nDe cada 100 tickets, cuántos traen teléfono. Mientras más alto, más completa es tu base de clientes y más confiables la recompra y la base.',
+    'kx-agot': '<b>Agotados con demanda</b>\nProductos que se venden (tuvieron ventas en el periodo) y hoy tienen stock 0. Excluye descontinuados.\nSon ventas que estás perdiendo. El detalle está en la tabla de Cobertura.',
+    'kx-surtir': '<b>Por surtir</b>\nCosto aproximado de reponer lo necesario para cubrir 15 días hábiles al ritmo de venta actual: (ritmo × 15 − stock) × costo, producto por producto.',
+    'kx-parado': '<b>Dinero parado</b>\nCapital (stock × costo) en productos con existencia que llevan 60 o más días sin venderse.\nEs dinero detenido: puedes liquidarlo, ofertarlo o dejar de resurtirlo.',
+    'kx-margen': '<b>Margen bruto (90 días)</b>\nGanancia bruta ÷ ingreso de los últimos 90 días.\nReferencia de papelería general: 40–43% (guías de negocio, no oficial); los servicios de impresión suelen ser más altos.',
+    'kx-dia': '<b>Mejor día de la semana</b>\nDía con mayor venta promedio en las últimas 12 semanas, contando solo los días trabajados según tu calendario.',
+    'kx-neto': '<b>Flujo neto 4 semanas</b>\nVentas − retiros − gastos pagados − resurtido pagado.\nEs flujo de caja, no utilidad: el resurtido sí cuenta aquí porque es dinero que salió.',
+    'kx-opmes': '<b>Gasto operativo / mes</b>\nPromedio mensual de los gastos categorizados como Operativo (renta, sueldos, internet, impresoras, consumibles) en meses completos.\nSin resurtido ni inversión en equipo.',
+    'kx-pe': '<b>Punto de equilibrio</b>\nVentas mensuales mínimas para cubrir el gasto operativo = gasto operativo mensual ÷ margen bruto.\nPor debajo de eso pierdes dinero cada mes.',
+    'kx-valor': () => { const V = window.kpiValuacion; if (!V) return '<b>Valor estimado del negocio</b>\nAún sin datos.'; return `<b>Valor estimado</b>\nActivos netos: ${_$m(V.activosNetos)} (inventario + equipo − deudas).\n` + (V.porEarnings ? `Por ganancias: utilidad anual ${_$m(V.sdeAnual)} × ${V.multBajo}–${V.multAlto} + inventario − deudas.\nSe muestra el mayor entre ambos.` : 'Aún no hay utilidad operativa, por eso se usa el valor de activos.') + '\nToca para ver el detalle y ajustar los supuestos.'; }
+};
+const TIPS_TITULO = {
+    'agotados con demanda': TIPS['kx-agot'], 'criticos': '<b>Críticos</b>\nProductos con 3 días hábiles o menos de stock al ritmo de venta actual.', 'productos por surtir': '<b>Productos por surtir</b>\nCuántos productos no alcanzan para el horizonte elegido (7, 15 o 30 días hábiles).', 'inversion aprox': '<b>Inversión aproximada</b>\nCosto de comprar las piezas sugeridas de todos los productos de la lista, al costo registrado.',
+    'inventario a costo': '<b>Inventario a costo</b>\nSuma de stock × costo unitario de los productos con existencia. Es lo que te costó, no lo que valdría vendido.', 'inventario a precio': '<b>Inventario a precio de venta</b>\nSuma de stock × precio. La diferencia con el costo es la ganancia potencial si se vendiera todo.',
+    'gasto operativo / mes': TIPS['kx-opmes'], '% de tus ventas': '<b>% de tus ventas</b>\nCuánto del dinero que vendes se va en operar (gasto operativo promedio ÷ ventas promedio, meses completos).', 'punto de equilibrio': TIPS['kx-pe'], 'utilidad operativa': '<b>Utilidad operativa</b>\nGanancia bruta del mes − gasto operativo del mes. Si es negativa, ese mes no alcanzó a cubrir lo que cuesta operar.',
+    'ventas': '<b>Ventas</b>\nTotal cobrado en las semanas mostradas.', 'retiros': '<b>Retiros</b>\nSalidas de caja registradas en la pestaña Retiros.', 'gastos pagados': '<b>Gastos pagados</b>\nGastos operativos e inversión ya pagados y con fecha. Los gastos a crédito sin pagar no cuentan hasta que los marques como pagados.', 'resurtido pagado': '<b>Resurtido pagado</b>\nMercancía comprada y pagada en el periodo. Es salida de caja, pero no se resta en las métricas de ganancia.', 'neto del periodo': '<b>Neto del periodo</b>\nVentas − retiros − gastos pagados (− resurtido si la casilla está marcada).'
+};
+function instalarTips() {
+    Object.keys(TIPS).forEach(id => { const e = document.getElementById(id); const c = e && e.closest('div'); if (c) c.setAttribute('data-tipid', id); });
+    document.querySelectorAll('#cob-kpis > div, #parado-metricas > div, #go-kpis > div, #flujo-kpis > div').forEach(d => {
+        const p = d.querySelector('p'), k = anaNorm(p && p.textContent).trim(), key = Object.keys(TIPS_TITULO).find(t => k.startsWith(t));
+        if (key) d.setAttribute('data-tipid', 't:' + key);
+    });
+}
+(function () {
+    let tip = null, actual = null;
+    const get = () => tip || (tip = (() => { const d = document.createElement('div'); d.id = 'tip-flotante'; document.body.appendChild(d); return d; })());
+    const texto = el => { const id = el.getAttribute('data-tipid') || '', t = id.startsWith('t:') ? TIPS_TITULO[id.slice(2)] : TIPS[id]; try { return typeof t === 'function' ? t() : (t || ''); } catch (e) { return ''; } };
+    function mostrar(el) {
+        const t = texto(el); if (!t) return; const d = get(); d.innerHTML = t.replace(/\n/g, '<br>'); d.classList.add('on'); actual = el;
+        const r = el.getBoundingClientRect(), w = d.offsetWidth, hh = d.offsetHeight;
+        let top = r.bottom + 8; if (top + hh > innerHeight - 8) top = Math.max(8, r.top - hh - 8);
+        d.style.top = top + 'px'; d.style.left = Math.min(Math.max(8, r.left), innerWidth - w - 8) + 'px';
+    }
+    function ocultar() { if (tip) tip.classList.remove('on'); actual = null; }
+    document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('[data-tipid]'); if (el) { if (el !== actual) mostrar(el); } else if (actual) ocultar(); });
+    document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('[data-tipid]'); if (el && 'ontouchstart' in window) { if (el === actual) ocultar(); else mostrar(el); } else if (actual) ocultar(); });
+    document.addEventListener('scroll', ocultar, true);
+})();
+
 // Resumen de las gráficas nuevas en la primera sección
 function renderKpisExtra() {
     const A = window.analisisCache || {}, hoy = anaHoy();
@@ -2734,7 +2788,7 @@ function renderKpisExtra() {
     else { set('kx-opmes', '—'); set('kx-opmes-sub', 'sin gastos operativos con fecha'); set('kx-pe', '—'); set('kx-pe-sub', ''); }
 }
 
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderValuacion(); renderKpisExtra(); }
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderValuacion(); renderKpisExtra(); instalarTips(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
@@ -3128,9 +3182,14 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         }        
         async function descargarListaSurtidoImagen() {
             let el = document.getElementById('print-lista-surtido'); if(!el) return;
+            const A = window.analisisCache || {};
+            const vent = parseInt((document.getElementById('sel-cob-ventana') || {}).value) || 30, hor = parseInt((document.getElementById('sel-cob-horizonte') || {}).value) || 15;
+            const lista = calcCobertura(A.inv, A.prodEventos, anaHoy(), vent, hor).filter(f => f.pedir > 0);
+            if (!lista.length) { Swal.fire('Nada por surtir', `Todo lo que se mueve alcanza para ${hor} días hábiles.`, 'success'); return; }
+            const sub = document.getElementById('print-sub-surtido'); if (sub) sub.innerText = `Lista de Productos para Surtir (cubre ${hor} días hábiles)`;
             let tbody = document.getElementById('print-tbody-surtido'); tbody.innerHTML = "";
-            inventario.filter(x => !x.noActivo && x.stock <= 5).forEach(p => {
-                tbody.innerHTML += `<tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${p.codigo}</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${p.nombre}</td><td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #059669;">+${Math.max(10, 15 - p.stock)} un.</td></tr>`;
+            lista.forEach(f => {
+                tbody.innerHTML += `<tr><td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-family: monospace;">${f.cod}</td><td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${f.n}</td><td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb;">${Number(f.stock.toFixed(2))}</td><td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: bold; color: #059669;">+${f.pedir} un.</td></tr>`;
             });
             el.style.left = "0px";
             let canvas = await html2canvas(el);
