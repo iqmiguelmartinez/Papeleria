@@ -74,6 +74,7 @@
             <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
             <button onclick="cambiarTab('caja')" id="btn-tab-caja" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💵 Control de Caja</button>
             <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">🔎 Buscador</button>
+            <button onclick="cambiarTab('impresiones')" id="btn-tab-impresiones" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">🖨️ Impresiones</button>
         </div>
 
         <!-- SECCIÓN: VENTAS -->
@@ -394,6 +395,8 @@
                 </div>
             </div>
 
+            <div id="corte-impresiones" class="hidden mb-4 shrink-0 bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-4"></div>
+
             <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Resumen de Artículos Vendidos</h3>
             <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl mb-4 flex-1 min-h-[16rem]">
                 <table class="w-full text-left border-collapse relative">
@@ -467,6 +470,31 @@
             </div>
             <p id="bus-estado" class="text-[11px] text-gray-400 mt-2 shrink-0"></p>
             <div id="bus-resultado" class="space-y-3 mt-3"></div>
+        </div>
+
+        <!-- SECCIÓN: AUDITORÍA DE IMPRESIONES (impresora Kyocera vs punto de venta) -->
+        <div id="tab-impresiones" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-3 mb-3 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">🖨️ Auditoría de Impresiones</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Páginas que contó la impresora contra las que vendió el punto de venta.</p>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <select id="sel-imp-dias" onchange="impRender()" class="text-xs border rounded-lg px-2 py-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                        <option value="90">Últimos 90 días</option>
+                    </select>
+                    <button onclick="capturarLecturaManual()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
+                    <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
+                    <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
+                </div>
+            </div>
+            <p id="imp-estado" class="text-[11px] text-gray-400 shrink-0"></p>
+            <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 shrink-0"></div>
+            <div style="height: 220px; position: relative;" class="mt-4 shrink-0"><canvas id="chartImpresiones"></canvas></div>
+            <div id="imp-tabla" class="mt-4"></div>
+            <p class="text-[10px] text-gray-400 mt-3">Cada día se compara la ventana entre la última lectura del día anterior y la última del día. Diferencias pequeñas son normales (pruebas, atascos, copias propias). Para que cuadre mejor, que la última lectura del día sea después de la última venta.</p>
         </div>
 
         <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
@@ -605,6 +633,21 @@
                 </div>
             </div>
 
+            <!-- ROW 2B: AVANCE DEL MES Y MARGEN -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1 text-sm">📈 Avance del Mes vs Mes Anterior</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Ventas acumuladas por día hábil (según el calendario laboral).</p>
+                    <div style="height: 240px; position: relative;"><canvas id="chartAvanceMes"></canvas></div>
+                    <p id="txt-avance-mes" class="text-xs text-gray-600 dark:text-gray-300 mt-2"></p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-1 text-sm">🧮 Margen por Mes</h3>
+                    <p class="text-[10px] text-gray-400 mb-2">Ganancia y porcentaje de margen sobre lo vendido. * = mes en curso.</p>
+                    <div style="height: 240px; position: relative;"><canvas id="chartMargenMes"></canvas></div>
+                </div>
+            </div>
+
             <!-- ROW 3: COMPORTAMIENTO DEL CONSUMIDOR Y RENTABILIDAD -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
@@ -666,6 +709,35 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- ROW 4B: DINERO PARADO Y VOLUMEN VS MARGEN -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🧊 Dinero Parado en Inventario</h3>
+                        <select id="sel-parado" onchange="renderDineroParado()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                            <option value="30">Sin ventas 30+ días</option>
+                            <option value="60" selected>Sin ventas 60+ días</option>
+                            <option value="90">Sin ventas 90+ días</option>
+                        </select>
+                    </div>
+                    <p id="txt-parado" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div style="height: 260px; position: relative;"><canvas id="chartDineroParado"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Capital = stock × costo. Rojo: nunca se ha vendido. 🚫 = producto descontinuado que aún tiene stock.</p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🎯 Volumen vs Margen por Producto</h3>
+                        <select id="sel-volmargen" onchange="renderVolumenMargen()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                            <option value="30">Últimos 30 días</option>
+                            <option value="90" selected>Últimos 90 días</option>
+                            <option value="todo">Desde el inicio</option>
+                        </select>
+                    </div>
+                    <div style="height: 300px; position: relative;"><canvas id="chartVolMargen"></canvas></div>
+                    <p id="txt-volmargen-nota" class="text-[10px] text-gray-400 mt-2"></p>
                 </div>
             </div>
 
@@ -876,11 +948,28 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador'].forEach(id => {
+            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
             
+            // Si la sesión pasa a un usuario SIN permiso de análisis (por ejemplo, al renovar la sesión), se cierran
+            // las pestañas restringidas que estuvieran abiertas y se borran los datos que quedaron en memoria.
+            if (!tienePermisoAnalisis) {
+                try {
+                    ['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].forEach(t => {
+                        const e = document.getElementById('tab-' + t);
+                        if (e && !e.classList.contains('hidden')) cambiarTab('ventas');
+                    });
+                    IMP.lecturas = []; IMP.cargado = false; BUS.logs = []; BUS.ventas = []; BUS.cargado = false;
+                    cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
+                    ['imp-resumen', 'imp-tabla', 'bus-resultado', 'corte-impresiones'].forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
+                    const bxCorte = document.getElementById('corte-impresiones'); if (bxCorte) bxCorte.classList.add('hidden');
+                    ultimoCorteImpresiones = null;
+                    ['imp-overlay', 'cal-overlay'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+                } catch (e) { console.warn(e); }
+            }
+
             // Ocultar cabeceras de la tabla de inventario si no tiene permisos
             document.querySelectorAll('.th-costo').forEach(th => {
                 tienePermisoAnalisis ? th.classList.remove('hidden') : th.classList.add('hidden');
@@ -890,10 +979,10 @@
         function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
 
         function cambiarTab(tab) {
-            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
+            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja', 'buscador'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja', 'buscador', 'impresiones'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`), eBtn = document.getElementById(`btn-tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
                 if(eBtn && eBtn.classList.contains('bg-blue-600')) eBtn.className = "px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
@@ -906,10 +995,11 @@
             if(tab === 'ventasPasadas') renderVentasPasadas();
             if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
-            if(tab === 'corte') renderCorte();
+            if(tab === 'corte') { renderCorte(); cargarImpresionesCorte(); }
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja();
             if(tab === 'buscador') iniciarBuscador();
+            if(tab === 'impresiones') iniciarImpresiones();
         }
 
         async function cargarDatosIniciales() {
@@ -1115,7 +1205,7 @@
                 if(p) p.stock -= i.cantidad; 
             });
             
-            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), t: new Date().toISOString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
             
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
@@ -1400,6 +1490,12 @@
 
         async function realizarCorteTurno() {
             if(ventasActivas.length===0 && retirosActivos.length===0) return;
+
+            // Solo con permiso de análisis: compara lo que contó la impresora contra lo vendido en este turno
+            let cmpCorte = null;
+            if (tienePermisoAnalisis) {
+                try { await impCargarLecturas(true); cmpCorte = impCompararVentana(IMP.lecturas, ventasActivas, impFactor, IMP.tolPct, IMP.tolMin); } catch (e) { console.warn(e); }
+            }
             
             let tV = ventasActivas.reduce((a,v)=>a+v.total, 0);
             let tR = retirosActivos.reduce((a,r)=>a+r.monto, 0);
@@ -1429,7 +1525,8 @@
                 totalRetiros: tR, 
                 efectivoNeto: tV-tR, 
                 promedioVenta: promVenta, 
-                articulos: articulosVendidos 
+                articulos: articulosVendidos, 
+                impresiones: cmpCorte ? impTextoCorte(cmpCorte) : ''
             });
             await enviarDatosAGoogleSheets({
                 tipo: 'movimientoCaja',
@@ -1444,9 +1541,11 @@
             ventasActivas = []; 
             retirosActivos = []; 
             
+            if (cmpCorte) ultimoCorteImpresiones = { hora: new Date().toLocaleTimeString(), texto: impTextoCorte(cmpCorte) };
             renderCorte(); 
             renderRetiros(); 
-            Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
+            renderImpresionesCorte();
+            Swal.fire({ title: 'Corte Realizado', html: 'El turno se ha reiniciado y el ticket se descargó correctamente.' + (cmpCorte ? `<div style="margin-top:10px;font-size:13px;text-align:left;border-top:1px solid #ddd;padding-top:8px">🖨️ ${bEsc(impTextoCorte(cmpCorte))}</div>` : ''), icon: 'success' });
         }
 
         async function verHistorialCortes(usarCache = false) {
@@ -1592,7 +1691,7 @@ async function cargarDatosAnalisis() {
 
 function renderGraficoVentasDiarias() {
     let ctx = document.getElementById('chartVentasSemana'); if (!ctx) return;
-    let sel = document.getElementById('sel-rango-diario'), modo = sel ? sel.value : 'todo';
+    let sel = document.getElementById('sel-rango-diario'), modo = (sel && sel.value) || 'todo';
     let porDia = window.ventasPorDiaCache || {}, claves = Object.keys(porDia).sort();
     if (window.chartSemanaInstance) window.chartSemanaInstance.destroy();
     if (!claves.length) return;
@@ -1621,6 +1720,159 @@ function renderGraficoVentasDiarias() {
     });
 }
 
+// ===== GRÁFICOS ADICIONALES DEL ANÁLISIS =====
+// Acumulado de ventas por día hábil de un mes (índice 0 = primer día hábil). hastaDia: último día del mes a considerar.
+function bSerieAcumHabiles(porDia, y, m, hastaDia) {
+    let out = [], cum = 0, ult = new Date(y, m + 1, 0).getDate();
+    for (let dd = 1; dd <= ult && dd <= hastaDia; dd++) {
+        let d = new Date(y, m, dd);
+        cum += porDia[calKey(d)] || 0;
+        if (calEsHabil(d)) out.push(cum);
+    }
+    if (out.length && cum > out[out.length - 1]) out[out.length - 1] = cum; // ventas de días de descanso quedan en el último día hábil
+    return out;
+}
+
+function renderAvanceMes() {
+    let ctx = document.getElementById('chartAvanceMes'); if (!ctx) return;
+    let A = window.analisisCache || {}, porDia = A.ventasPorDia || {};
+    if (window.chartAvanceInstance) window.chartAvanceInstance.destroy();
+    let hoy = new Date(), y = hoy.getFullYear(), m = hoy.getMonth();
+    let proy = calProyeccionMes(porDia, hoy);
+    let actual = bSerieAcumHabiles(porDia, y, m, hoy.getDate());
+    let ant = bSerieAcumHabiles(porDia, m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1, 31);
+    let nCur = calHabilesEntre(new Date(y, m, 1), new Date(y, m + 1, 1));
+    let N = Math.max(nCur, ant.length, 1);
+    let labels = Array.from({ length: N }, (_, i) => i + 1);
+    let padAnt = labels.map((_, i) => i < ant.length ? ant[i] : null);
+    let padAct = labels.map((_, i) => i < actual.length ? actual[i] : null);
+    let padProy = labels.map(() => null);
+    let v = proy.baseHoy;
+    if (actual.length > 0) padProy[actual.length - 1] = v;
+    for (let k = actual.length; k < nCur; k++) { v += proy.prom; padProy[k] = v; }
+
+    let completos = proy.hoyHab ? actual.length - 1 : actual.length, txt = document.getElementById('txt-avance-mes');
+    if (txt) {
+        let partes = [];
+        if (completos >= 1 && ant.length) {
+            let cur = actual[completos - 1], prev = ant[Math.min(completos, ant.length) - 1];
+            let dif = cur - prev, pct = prev > 0 ? (dif / prev) * 100 : null;
+            partes.push(`Tras ${completos} día${completos === 1 ? '' : 's'} hábil${completos === 1 ? '' : 'es'} llevas <b>$${formatMiles(cur)}</b>; el mes pasado en el mismo punto llevabas $${formatMiles(prev)} (<b class="${dif >= 0 ? 'text-emerald-600' : 'text-red-500'}">${dif >= 0 ? '+' : '−'}$${formatMiles(Math.abs(dif))}${pct !== null ? ' · ' + (dif >= 0 ? '+' : '−') + Math.abs(pct).toFixed(0) + '%' : ''}</b>).`);
+        } else partes.push('Aún no hay días hábiles completos este mes para comparar.');
+        if (ant.length) partes.push(`Proyección al cierre: <b>$${formatMiles(proy.total)}</b> contra $${formatMiles(ant[ant.length - 1])} del mes pasado.`);
+        txt.innerHTML = partes.join(' ');
+    }
+    window.chartAvanceInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: [
+            { label: 'Mes anterior', data: padAnt, borderColor: '#9ca3af', backgroundColor: 'rgba(156,163,175,0.1)', tension: 0.2, pointRadius: 2, spanGaps: false },
+            { label: 'Este mes', data: padAct, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', fill: true, tension: 0.2, pointRadius: 3, spanGaps: false },
+            { label: 'Proyección', data: padProy, borderColor: '#f59e0b', borderDash: [6, 5], tension: 0.2, pointRadius: 0, spanGaps: false }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { title: it => 'Día hábil ' + it[0].label, label: c => c.parsed.y == null ? null : c.dataset.label + ': $' + formatMiles(c.parsed.y) } } },
+            scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Día hábil del mes', font: { size: 10 } } } } }
+    });
+}
+
+function renderMargenMensual() {
+    let ctx = document.getElementById('chartMargenMes'); if (!ctx) return;
+    let A = window.analisisCache || {}, gan = A.gananciaPorDia || {}, ing = A.ingresoPorDia || {};
+    if (window.chartMargenInstance) window.chartMargenInstance.destroy();
+    let mG = {}, mI = {};
+    Object.keys(ing).forEach(k => { let mk = k.substring(0, 7); mI[mk] = (mI[mk] || 0) + ing[k]; mG[mk] = (mG[mk] || 0) + (gan[k] || 0); });
+    let meses = Object.keys(mI).sort().slice(-12), mesAct = calKey(new Date()).substring(0, 7);
+    if (!meses.length) return;
+    let labels = meses.map(k => { let p = k.split('-'); return CAL_MESES[+p[1] - 1].substring(0, 3) + ' ' + p[0].slice(2) + (k === mesAct ? '*' : ''); });
+    let ganData = meses.map(k => mG[k]), margenData = meses.map(k => mI[k] > 0 ? (mG[k] / mI[k]) * 100 : 0);
+    window.chartMargenInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [
+            { type: 'bar', label: 'Ganancia ($)', data: ganData, backgroundColor: '#10b981', borderRadius: 4, yAxisID: 'y', order: 2 },
+            { type: 'line', label: 'Margen (%)', data: margenData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.25, pointRadius: 4, yAxisID: 'y1', order: 1 }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: c => c.dataset.yAxisID === 'y1' ? 'Margen: ' + c.parsed.y.toFixed(1) + '%' : 'Ganancia: $' + formatMiles(c.parsed.y) } } },
+            scales: { y: { beginAtZero: true, position: 'left' }, y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%' } } } }
+    });
+}
+
+function renderDineroParado() {
+    let ctx = document.getElementById('chartDineroParado'); if (!ctx) return;
+    let A = window.analisisCache || {}, inv = A.inv || [], ult = A.ultimaVentaStock || {};
+    if (window.chartParadoInstance) window.chartParadoInstance.destroy();
+    let sel = document.getElementById('sel-parado'), umbral = parseInt(sel && sel.value) || 60;
+    let h0 = new Date(); h0 = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate());
+    let totalInv = 0, parados = [];
+    inv.forEach(p => {
+        if (VINCULOS_STOCK[p.codigo]) return; // los productos de impresión no tienen stock propio
+        let capital = (p.stock || 0) * (p.costo || 0);
+        if (capital <= 0) return;
+        totalInv += capital;
+        let u = ult[p.codigo], dias = u ? Math.floor((h0 - new Date(u.getFullYear(), u.getMonth(), u.getDate())) / 86400000) : null;
+        if (dias === null || dias >= umbral) parados.push({ n: p.nombre, noActivo: p.noActivo, stock: p.stock, capital: capital, dias: dias });
+    });
+    parados.sort((a, b) => b.capital - a.capital);
+    let totalParado = parados.reduce((a, x) => a + x.capital, 0);
+    let txt = document.getElementById('txt-parado');
+    if (txt) txt.innerHTML = parados.length
+        ? `<b>$${formatMiles(totalParado)}</b> parados en <b>${parados.length}</b> producto${parados.length === 1 ? '' : 's'} sin ventas en ${umbral}+ días (${totalInv > 0 ? ((totalParado / totalInv) * 100).toFixed(0) : 0}% de tu inventario a costo, que suma $${formatMiles(totalInv)}).`
+        : `Ningún producto con stock lleva ${umbral} días o más sin venderse. 🎉`;
+    let top = parados.slice(0, 10);
+    if (!top.length) return;
+    window.chartParadoInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: top.map(x => (x.noActivo ? '🚫 ' : '') + (x.n.length > 26 ? x.n.substring(0, 25) + '…' : x.n)), datasets: [{ label: 'Dinero parado ($)', data: top.map(x => x.capital), backgroundColor: top.map(x => x.dias === null ? '#ef4444' : '#f97316'), borderRadius: 4 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + formatMiles(c.parsed.x), afterLabel: c => { let x = top[c.dataIndex]; return `${x.stock} pzs · ${x.dias === null ? 'nunca se ha vendido' : 'sin ventas hace ' + x.dias + ' días'}`; } } } },
+            scales: { x: { beginAtZero: true } } }
+    });
+}
+
+function renderVolumenMargen() {
+    let ctx = document.getElementById('chartVolMargen'); if (!ctx) return;
+    let A = window.analisisCache || {}, ev = A.prodEventos || {}, inv = A.inv || [];
+    if (window.chartVolMargenInstance) window.chartVolMargenInstance.destroy();
+    let sel = document.getElementById('sel-volmargen'), modo = (sel && sel.value) || '90';
+    let h0 = new Date(); h0 = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate());
+    let limK = modo === 'todo' ? '' : calKey(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - parseInt(modo)));
+    let pts = [], sinCosto = 0;
+    Object.keys(ev).forEach(cod => {
+        let u = 0, ingr = 0, g = 0, cr = null, nombre = cod;
+        ev[cod].forEach(e => { if (!limK || (e.k && e.k >= limK)) { u += e.c; ingr += e.i; g += e.g; } cr = e.cr; nombre = e.n || nombre; });
+        if (u <= 0 || ingr <= 0) return;
+        let pInv = inv.find(x => x.codigo === cr) || {};
+        if (!(pInv.costo > 0)) { sinCosto++; return; } // sin costo capturado el margen no es confiable
+        pts.push({ x: u, y: (g / ingr) * 100, g: g, n: nombre });
+    });
+    let nota = document.getElementById('txt-volmargen-nota');
+    if (!pts.length) { if (nota) nota.innerText = 'Sin datos suficientes para este periodo.'; return; }
+    let xs = pts.map(p => p.x).sort((a, b) => a - b), medX = xs[Math.floor(xs.length / 2)];
+    let margenG = pts.reduce((a, p) => a + p.y, 0) / pts.length; // margen típico por producto
+    let gMax = Math.max(...pts.map(p => Math.abs(p.g)), 1);
+    let rad = p => 3 + Math.sqrt(Math.max(p.g, 0) / gMax) * 11;
+    let grupos = [
+        { t: '⭐ Estrellas (venden mucho y dejan buen margen)', c: '#10b981', f: p => p.x >= medX && p.y >= margenG },
+        { t: '⚠️ Mucho volumen, poco margen (revisa precio o costo)', c: '#f97316', f: p => p.x >= medX && p.y < margenG },
+        { t: '💎 Buen margen, poco volumen (promuévelos)', c: '#3b82f6', f: p => p.x < medX && p.y >= margenG },
+        { t: '🔍 Poco volumen y poco margen (candidatos a revisar)', c: '#9ca3af', f: p => p.x < medX && p.y < margenG }
+    ];
+    let ys = pts.map(p => p.y), yMin = Math.min(0, ...ys) - 5, yMax = Math.max(...ys) + 5, xMin = Math.min(...xs) / 1.5, xMax = Math.max(...xs) * 1.5;
+    let datasets = grupos.map(gr => { let sub = pts.filter(gr.f); return { type: 'scatter', label: gr.t, data: sub, backgroundColor: gr.c + 'cc', borderColor: gr.c, pointRadius: sub.map(rad), pointHoverRadius: sub.map(p => rad(p) + 2) }; });
+    datasets.push({ type: 'line', label: '_mediana', data: [{ x: medX, y: yMin }, { x: medX, y: yMax }], borderColor: '#6b7280', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 });
+    datasets.push({ type: 'line', label: '_margen', data: [{ x: xMin, y: margenG }, { x: xMax, y: margenG }], borderColor: '#6b7280', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 });
+    if (nota) nota.innerText = `Cada punto es un producto (el tamaño indica su ganancia total). Las líneas punteadas marcan la mediana de volumen (${bFmt(medX)} pzs) y el margen típico (${margenG.toFixed(0)}%).` + (sinCosto ? ` No se incluyen ${sinCosto} producto(s) sin costo capturado.` : '');
+    window.chartVolMargenInstance = new Chart(ctx, {
+        data: { datasets: datasets },
+        options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { boxWidth: 10, font: { size: 9 }, filter: it => !it.text.startsWith('_') } },
+                tooltip: { filter: it => !it.dataset.label.startsWith('_'), callbacks: { title: it => it[0].raw.n, label: c => `${bFmt(c.raw.x)} pzs · margen ${c.raw.y.toFixed(0)}% · ganancia $${formatMiles(c.raw.g)}` } } },
+            scales: { x: { type: 'logarithmic', min: xMin, max: xMax, title: { display: true, text: 'Unidades vendidas (escala logarítmica)', font: { size: 10 } } }, y: { min: yMin, max: yMax, title: { display: true, text: 'Margen (%)', font: { size: 10 } }, ticks: { callback: v => v + '%' } } } }
+    });
+}
+
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); }
+
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             // 1. INVERSIÓN Y GANANCIAS HISTÓRICAS
@@ -1644,6 +1896,9 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let mesActual = calKey(hoyL).substring(0, 7);
             let ventasPorDia = {};      // ventas de cada día (fecha local)
             let gananciaPorDia = {};    // ganancia de cada día (fecha local)
+            let ingresoPorDia = {};     // ingreso por productos de cada día (para el margen)
+            let ultimaVentaStock = {};  // última venta de cada producto con stock (incluye lo que se vende por vínculo)
+            let prodEventos = {};       // ventas por producto (fecha, piezas, ingreso, ganancia)
             let totalMesActual = 0;
             let diasConVentaMesActual = new Set();
 
@@ -1714,7 +1969,9 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
                         let gan = (p.precio - costo) * p.cantidad; 
                         gT += gan;
-                        if (fechaStr) gananciaPorDia[fechaStr] = (gananciaPorDia[fechaStr] || 0) + gan;
+                        if (fechaStr) { gananciaPorDia[fechaStr] = (gananciaPorDia[fechaStr] || 0) + gan; ingresoPorDia[fechaStr] = (ingresoPorDia[fechaStr] || 0) + p.precio * p.cantidad; }
+                        if (fvDate && (!ultimaVentaStock[codReal] || fvDate > ultimaVentaStock[codReal])) ultimaVentaStock[codReal] = fvDate;
+                        (prodEventos[p.codigo] = prodEventos[p.codigo] || []).push({ k: fechaStr, c: p.cantidad, i: p.precio * p.cantidad, g: gan, cr: codReal, n: p.nombre });
                         catGanancias[cat] += gan;
 
                         if (!top[p.codigo]) top[p.codigo] = { n: p.nombre, c: 0, g: 0 }; 
@@ -1870,6 +2127,8 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // Ventas diarias (por defecto desde la primera venta). Se redibuja al cambiar el selector.
             window.ventasPorDiaCache = ventasPorDia;
             renderGraficoVentasDiarias();
+            window.analisisCache = { ventasPorDia, ingresoPorDia, gananciaPorDia, ultimaVentaStock, prodEventos, inv };
+            renderGraficosExtra();
 
             let catLabels = ['Impresión', 'Hojas', 'Papelería', 'Misceláneo'];
             let catData = [catGanancias['IMP']||0, catGanancias['HOJ']||0, catGanancias['PAP']||0, catGanancias['MS']||0];
@@ -2500,7 +2759,7 @@ function calProyeccionMes(porDia, hoy) {
     const hoyEst = hoyHab ? Math.max(ventasHoy, prom) : ventasHoy;
     const total = realPrevio + hoyEst + prom * habFuturos;
     const restantes = habFuturos + (hoyHab ? 1 : 0);
-    return { total, prom, habPrev, restantes, hoyHab, base, totalMes };
+    return { total, prom, habPrev, restantes, hoyHab, base, totalMes, baseHoy: realPrevio + hoyEst, habFuturos };
 }
 
 async function cargarCalendario(forzar) {
@@ -2586,6 +2845,263 @@ async function calGuardar() {
     calCerrar();
     Swal.fire({ title: 'Calendario guardado', icon: 'success', timer: 1300, showConfirmButton: false });
     if (cacheUltimoAnalisis && cacheUltimoAnalisis.ventas && cacheUltimoAnalisis.ventas.length) procesarMetricasAnalisis(cacheUltimoAnalisis.ventas, cacheUltimoAnalisis.inventario, cacheUltimoAnalisis.inversion);
+}
+
+// ==========================================================================
+// 🖨️ AUDITORÍA DE IMPRESIONES
+// Compara las páginas que contó la impresora Kyocera (lecturas que manda el programa de la PC)
+// contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
+// Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
+// ==========================================================================
+const IMP = { lecturas: [], factores: {}, tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+
+function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
+// Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
+function impFactorDefecto(cod) {
+    const n = bQuitaAcentos(impNombreProd(cod));
+    if (/color|doble carta/.test(n)) return 0;   // no salen de la Kyocera (blanco y negro, tamaño carta)
+    if (/ambos lados/.test(n)) return 2;         // una hoja por los dos lados = 2 páginas en el contador
+    return 1;
+}
+function impFactor(cod) {
+    if (!VINCULOS_STOCK[cod]) return 0;          // solo productos de impresión/copia (los que descuentan hoja)
+    return IMP.factores[cod] !== undefined ? IMP.factores[cod] : impFactorDefecto(cod);
+}
+
+// dias: lista de fechas (medianoche). Devuelve una fila por día.
+function impCalcular(lecturas, ventas, dias, factorDe, tolPct, tolMin) {
+    const L = lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
+    const V = [];
+    ventas.forEach(v => {
+        const d = bParseVentaFecha(v); if (!d || !Array.isArray(v.productos)) return;
+        v.productos.forEach(p => { const f = factorDe(p.codigo), c = Number(p.cantidad) || 0; if (f > 0 && c) V.push({ t: d, pag: c * f, ing: (Number(p.precio) || 0) * c }); });
+    });
+    return dias.map(d0 => {
+        const fin = calSig(d0); let S = null, E = null;
+        for (const l of L) { if (l.t < d0) S = l; else if (l.t < fin) E = l; else break; }
+        const fila = { dia: d0, S: S, E: E, delta: null, pos: 0, ing: 0, diff: null, pct: null, estado: '', incluye: 0 };
+        if (!E) { fila.estado = 'sinlectura'; return fila; }
+        if (!S) { fila.estado = 'sinprevia'; return fila; }
+        fila.delta = E.total - S.total;
+        if (fila.delta < 0) { fila.estado = 'reinicio'; return fila; }
+        V.forEach(v => { if (v.t > S.t && v.t <= E.t) { fila.pos += v.pag; fila.ing += v.ing; } });
+        fila.diff = fila.delta - fila.pos;
+        fila.pct = fila.pos > 0 ? (fila.diff / fila.pos) * 100 : null;
+        const umbral = Math.max(tolMin, (tolPct / 100) * fila.pos);
+        fila.estado = Math.abs(fila.diff) <= umbral ? 'ok' : (fila.diff > 0 ? 'sobra' : 'falta');
+        fila.incluye = Math.max(0, Math.round((d0 - new Date(S.t.getFullYear(), S.t.getMonth(), S.t.getDate())) / 86400000) - 1);
+        return fila;
+    });
+}
+
+async function iniciarImpresiones(forzar) {
+    const est = document.getElementById('imp-estado');
+    if (IMP.cargando) return;
+    if (IMP.cargado && !forzar) { impRender(); return; }
+    IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y ventas...';
+    try {
+        const hayVentas = !forzar && cacheUltimoAnalisis && cacheUltimoAnalisis.ventas && cacheUltimoAnalisis.ventas.length > 0;
+        const pedidos = [apiFetch('getImpresiones')];
+        if (!hayVentas) pedidos.push(apiFetch('getDataAnalisis'));
+        const res = await Promise.all(pedidos);
+        const d = await res[0].json(), c = d.config || {};
+        IMP.lecturas = d.lecturas || []; IMP.factores = c.factores || {}; IMP.ts = Date.now();
+        IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
+        if (!hayVentas) cacheUltimoAnalisis = await res[1].json();
+        await cargarCalendario();
+        IMP.cargado = true; impRender();
+    } catch (e) { console.error(e); if (est) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
+    IMP.cargando = false;
+}
+
+const impEstados = {
+    ok: ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'],
+    sobra: ['⚠️ Imprimió de más', 'text-red-600 dark:text-red-400 font-bold'],
+    falta: ['🔎 Vendió de más', 'text-amber-600 dark:text-amber-400 font-bold'],
+    sinlectura: ['— Sin lecturas', 'text-gray-400'],
+    sinprevia: ['— Sin lectura previa', 'text-gray-400'],
+    sinventas: ['— Sin ventas en el turno', 'text-gray-400'],
+    sinnueva: ['⏳ Esperando lectura nueva', 'text-gray-500'],
+    reinicio: ['⚙️ Contador reiniciado', 'text-gray-500']
+};
+const impSigno = n => (n > 0 ? '+' : (n < 0 ? '−' : '')) + bFmt(Math.abs(n));
+
+function impRender() {
+    const sel = document.getElementById('sel-imp-dias'), nDias = parseInt(sel && sel.value) || 30;
+    const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const dias = []; for (let i = nDias - 1; i >= 0; i--) dias.push(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - i));
+    const ventas = (cacheUltimoAnalisis && cacheUltimoAnalisis.ventas) || [];
+    const filas = impCalcular(IMP.lecturas, ventas, dias, impFactor, IMP.tolPct, IMP.tolMin);
+    IMP.filas = filas;
+
+    // Estado de las lecturas
+    const est = document.getElementById('imp-estado');
+    const ult = IMP.lecturas.map(l => new Date(l.t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
+    if (est) {
+        if (!ult) est.innerHTML = '<span class="text-red-500 font-bold">Aún no hay lecturas.</span> Instala el programa lector en la PC o captura una lectura manual.';
+        else {
+            const horas = (hoy - ult) / 3600000;
+            est.innerHTML = `Última lectura: <b>${ult.toLocaleString('es-MX')}</b> (hace ${horas < 1 ? 'menos de 1 hora' : Math.floor(horas) + ' h'})` + (horas > 26 && calEsHabil(h0) ? ' <span class="text-red-500 font-bold">· El lector lleva más de un día sin reportar.</span>' : '') + ` · ${IMP.lecturas.length} lecturas guardadas`;
+        }
+    }
+
+    // Resumen
+    const con = filas.filter(f => ['ok', 'sobra', 'falta'].includes(f.estado));
+    const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
+    const diff = sDelta - sPos, porPag = sPos > 0 ? sIng / sPos : 0;
+    const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
+    const tarjeta = (t, v, sub, clase) => `<div class="bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-3"><p class="text-[10px] uppercase text-gray-500 font-bold">${t}</p><p class="text-xl font-bold ${clase || 'text-gray-800 dark:text-gray-100'}">${v}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+    const res = document.getElementById('imp-resumen');
+    if (res) res.innerHTML = con.length
+        ? tarjeta('Páginas que contó la impresora', bFmt(sDelta), `en ${con.length} día${con.length === 1 ? '' : 's'} con lecturas`) +
+          tarjeta('Páginas vendidas en el punto de venta', bFmt(sPos), 'según las equivalencias configuradas') +
+          tarjeta('Diferencia', impSigno(diff), diff > 0 ? 'imprimió más de lo que se cobró' : (diff < 0 ? 'se cobró más de lo que imprimió' : 'cuadra'), diff > 0 ? 'text-red-600' : (diff < 0 ? 'text-amber-600' : 'text-emerald-600')) +
+          tarjeta('Dinero en juego', diff > 0 ? '$' + formatMiles(diff * porPag) : '$0.00', diff > 0 ? `≈ ${bFmt(diff)} págs × $${formatMiles(porPag)} promedio por página` : `${alertas} día${alertas === 1 ? '' : 's'} fuera de tolerancia`, diff > 0 ? 'text-red-600' : '')
+        : '<p class="text-sm text-gray-500 col-span-4">Todavía no hay días con dos lecturas para comparar. Con una lectura por hora, el primer día completo aparece mañana.</p>';
+
+    // Tabla (más reciente primero). Los días de descanso sin lecturas no se muestran.
+    const visibles = filas.filter(f => f.estado !== 'sinlectura' || calEsHabil(f.dia)).reverse();
+    const tab = document.getElementById('imp-tabla');
+    if (tab) tab.innerHTML = bTabla(['Día', 'Lecturas usadas', 'Impresora', 'Punto de venta', 'Diferencia', 'Estado'], visibles.map(f => {
+        const [txt, cls] = impEstados[f.estado] || ['', ''];
+        const hora = d => d.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const lect = f.S && f.E ? `${hora(f.S.t)} → ${hora(f.E.t)}` : (f.E ? hora(f.E.t) : '');
+        return [bEsc(bFechaLarga(f.dia, true)), `<span class="text-gray-500">${bEsc(lect)}</span>`, f.delta === null ? '—' : bFmt(f.delta), f.delta === null || f.estado === 'reinicio' ? '—' : bFmt(f.pos),
+            f.diff === null ? '—' : `<b>${impSigno(f.diff)}</b>${f.pct !== null ? ` <span class="text-gray-400">(${f.diff >= 0 ? '+' : '−'}${Math.abs(f.pct).toFixed(0)}%)</span>` : ''}`,
+            `<span class="${cls}">${txt}</span>${f.incluye > 0 ? `<br><span class="text-[10px] text-gray-400">incluye ${f.incluye} día(s) previos sin lectura</span>` : ''}`];
+    }));
+
+    // Gráfico
+    const ctx = document.getElementById('chartImpresiones');
+    if (ctx) {
+        if (window.chartImpInstance) window.chartImpInstance.destroy();
+        if (con.length) window.chartImpInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: con.map(f => f.dia.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })), datasets: [
+                { label: 'Impresora (contador)', data: con.map(f => f.delta), backgroundColor: '#3b82f6', borderRadius: 3 },
+                { label: 'Punto de venta', data: con.map(f => f.pos), backgroundColor: '#10b981', borderRadius: 3 }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
+        });
+    }
+}
+
+async function capturarLecturaManual() {
+    const { value } = await Swal.fire({ title: 'Lectura manual del contador', html: '<p style="font-size:13px;margin-bottom:6px">En la página de la impresora: Información del dispositivo → Contador → <b>Total</b>.</p>', input: 'number', inputAttributes: { min: 0, step: 1 }, showCancelButton: true, confirmButtonText: 'Guardar' });
+    if (value === undefined || value === '') return;
+    const total = parseInt(value, 10);
+    if (!isFinite(total) || total < 0) return;
+    const r = await enviarDatosAGoogleSheets({ tipo: 'contadorManual', total });
+    if (!r || r.status !== 'success') return;
+    IMP.lecturas.push({ t: new Date().toISOString(), total: total, origen: 'manual:' + usuarioActual });
+    IMP.ts = Date.now(); impRender(); renderImpresionesCorte();
+    Swal.fire({ title: 'Lectura guardada', icon: 'success', timer: 1200, showConfirmButton: false });
+}
+
+// ---------- Comparación del turno actual (se ve en "Corte Diario" y al hacer el corte) ----------
+// Compara las páginas que contó la impresora desde que empezó el turno contra las páginas vendidas en el turno.
+let ultimoCorteImpresiones = null;
+function ventaTurnoFecha(v) {
+    const d = v.t ? new Date(v.t) : new Date(v.hora);   // las ventas de este navegador traen "t"; las del servidor traen la fecha completa en "hora"
+    return isNaN(d.getTime()) ? null : d;
+}
+async function impCargarLecturas(forzar) {
+    if (!forzar && IMP.ts && (Date.now() - IMP.ts) < 120000) return;
+    const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
+    IMP.lecturas = d.lecturas || []; IMP.factores = c.factores || {};
+    IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
+    IMP.ts = Date.now();
+}
+// ventas: las del turno. Inicio del turno = primera venta; se usa la última lectura anterior a esa venta.
+function impCompararVentana(lecturas, ventas, factorDe, tolPct, tolMin) {
+    const L = lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
+    const V = [], fechas = [];
+    ventas.forEach(v => {
+        const d = ventaTurnoFecha(v); if (!d || !Array.isArray(v.productos)) return;
+        fechas.push(d);
+        v.productos.forEach(p => { const f = factorDe(p.codigo), c = Number(p.cantidad) || 0; if (f > 0 && c) V.push({ t: d, pag: c * f, ing: (Number(p.precio) || 0) * c }); });
+    });
+    const r = { S: null, E: null, delta: null, pos: 0, ing: 0, tarde: 0, diff: null, pct: null, estado: '' };
+    if (!fechas.length) { r.estado = 'sinventas'; return r; }
+    if (!L.length) { r.estado = 'sinlectura'; return r; }
+    const t0 = fechas.sort((a, b) => a - b)[0];
+    for (const l of L) if (l.t <= t0) r.S = l;
+    r.E = L[L.length - 1];
+    if (!r.S) { r.estado = 'sinprevia'; return r; }
+    if (r.E.t <= r.S.t) { r.estado = 'sinnueva'; return r; }
+    r.delta = r.E.total - r.S.total;
+    if (r.delta < 0) { r.estado = 'reinicio'; return r; }
+    V.forEach(v => { if (v.t > r.S.t && v.t <= r.E.t) { r.pos += v.pag; r.ing += v.ing; } else if (v.t > r.E.t) r.tarde += v.pag; });
+    r.diff = r.delta - r.pos;
+    r.pct = r.pos > 0 ? (r.diff / r.pos) * 100 : null;
+    r.estado = Math.abs(r.diff) <= Math.max(tolMin, (tolPct / 100) * r.pos) ? 'ok' : (r.diff > 0 ? 'sobra' : 'falta');
+    return r;
+}
+const impExplica = {
+    sinventas: 'Todavía no hay ventas en este turno.',
+    sinlectura: 'Aún no hay lecturas de la impresora (instala el lector o captura una lectura manual).',
+    sinprevia: 'No hay una lectura anterior al inicio del turno, por eso no se puede comparar.',
+    sinnueva: 'Aún no hay una lectura nueva desde que empezó el turno (el lector toma una cada hora). Puedes capturar el contador ahora.',
+    reinicio: 'El contador de la impresora bajó (¿se reinició?), no se compara.'
+};
+// Texto corto para el Log y el aviso del corte
+function impTextoCorte(r) {
+    if (r.delta === null) return 'Impresiones: sin comparación (' + (impExplica[r.estado] || r.estado).replace(/\s*\(.*?\)/g, '') + ')';
+    const est = { ok: 'cuadra', sobra: 'imprimió de más', falta: 'vendió de más' }[r.estado];
+    return `Impresiones: impresora ${r.delta} pág., punto de venta ${r.pos} pág., diferencia ${r.diff > 0 ? '+' : ''}${r.diff} (${est})`;
+}
+async function cargarImpresionesCorte() {
+    const box = document.getElementById('corte-impresiones'); if (!box) return;
+    if (!tienePermisoAnalisis) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+    box.classList.remove('hidden');
+    if (!IMP.lecturas.length) box.innerHTML = '<p class="text-xs text-gray-400">⏳ Revisando impresiones...</p>';
+    try { await impCargarLecturas(false); } catch (e) { console.error(e); box.innerHTML = '<p class="text-xs text-red-500">No se pudieron cargar las lecturas de la impresora.</p>'; return; }
+    renderImpresionesCorte();
+}
+function renderImpresionesCorte() {
+    const box = document.getElementById('corte-impresiones'); if (!box || !tienePermisoAnalisis) return;
+    const r = impCompararVentana(IMP.lecturas, ventasActivas, impFactor, IMP.tolPct, IMP.tolMin);
+    const hm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const cifra = (t, v, sub, cls) => `<div><p class="text-[10px] uppercase text-gray-500 font-bold">${t}</p><p class="text-xl font-bold ${cls || 'text-gray-800 dark:text-gray-100'}">${v}</p>${sub ? `<p class="text-[10px] text-gray-400">${sub}</p>` : ''}</div>`;
+    let cuerpo;
+    if (r.delta === null) cuerpo = `<p class="text-sm text-gray-500">${bEsc(impExplica[r.estado] || '')}</p>`;
+    else {
+        const [txt, cls] = impEstados[r.estado], porPag = r.pos > 0 ? r.ing / r.pos : 0;
+        cuerpo = `<div class="grid grid-cols-2 md:grid-cols-4 gap-3">` +
+            cifra('Impresora contó', bFmt(r.delta), `${hm(r.S.t)} → ${hm(r.E.t)}`) +
+            cifra('Punto de venta', bFmt(r.pos), 'según las equivalencias') +
+            cifra('Diferencia', impSigno(r.diff), r.pct !== null ? (r.diff >= 0 ? '+' : '−') + Math.abs(r.pct).toFixed(0) + '%' : '', r.estado === 'ok' ? 'text-emerald-600' : (r.estado === 'sobra' ? 'text-red-600' : 'text-amber-600')) +
+            `<div><p class="text-[10px] uppercase text-gray-500 font-bold">Estado</p><p class="text-sm ${cls}">${txt}</p>${r.diff > 0 && r.estado === 'sobra' ? `<p class="text-[10px] text-gray-400">≈ $${formatMiles(r.diff * porPag)} sin cobrar</p>` : ''}</div></div>` +
+            (r.tarde > 0 ? `<p class="text-[10px] text-gray-400 mt-2">Hay ${bFmt(r.tarde)} pág. vendidas después de la última lectura (${hm(r.E.t)}) que aún no se comparan.</p>` : '');
+    }
+    const previo = ultimoCorteImpresiones ? `<p class="text-[11px] text-gray-500 mt-2 border-t dark:border-gray-700 pt-2">Último corte (${bEsc(ultimoCorteImpresiones.hora)}): ${bEsc(ultimoCorteImpresiones.texto)}</p>` : '';
+    box.innerHTML = `<div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🖨️ Impresiones de este turno</h3><button onclick="capturarLecturaManual()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-1 rounded-lg text-[11px] cursor-pointer">✍️ Capturar contador ahora</button></div>${cuerpo}${previo}`;
+}
+
+// ---------- Equivalencias (páginas del contador por unidad vendida) ----------
+function abrirConfigImpresion() {
+    let ov = document.getElementById('imp-overlay');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'imp-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto'; document.body.appendChild(ov); }
+    const filas = Object.keys(VINCULOS_STOCK).sort().map(cod => `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td><td class="py-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${impFactor(cod)}" class="imp-factor w-16 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></td></tr>`).join('');
+    ov.style.display = 'flex';
+    ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[92vh] overflow-y-auto">
+        <div class="flex justify-between items-center"><h3 class="text-lg font-bold">⚙️ Equivalencias de impresión</h3><button onclick="cerrarConfigImpresion()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
+        <p class="text-xs text-gray-500">Cuántas páginas suma el contador de la impresora por cada unidad vendida. Pon <b>0</b> a lo que NO sale de esta Kyocera (color, doble carta...). Si una venta de "ambos lados" cuenta cada cara, pon 2.</p>
+        <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Código</th><th>Producto</th><th>Páginas</th></tr></thead><tbody>${filas}</tbody></table>
+        <div class="flex gap-3 items-end"><label class="text-xs">Tolerancia (%)<input id="imp-tol-pct" type="number" min="0" step="1" value="${IMP.tolPct}" class="block w-20 mt-1 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></label>
+        <label class="text-xs">Mínimo (páginas)<input id="imp-tol-min" type="number" min="0" step="1" value="${IMP.tolMin}" class="block w-20 mt-1 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></label>
+        <p class="text-[10px] text-gray-400 flex-1">Una diferencia menor a la mayor de las dos (pruebas, atascos, copias propias) se considera normal.</p></div>
+        <div class="flex gap-2 justify-end"><button onclick="cerrarConfigImpresion()" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm cursor-pointer">Cancelar</button><button onclick="guardarConfigImpresion()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold cursor-pointer">Guardar</button></div></div>`;
+}
+function cerrarConfigImpresion() { const ov = document.getElementById('imp-overlay'); if (ov) ov.style.display = 'none'; }
+async function guardarConfigImpresion() {
+    const factores = {}; document.querySelectorAll('.imp-factor').forEach(i => { const v = parseFloat(i.value); factores[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; });
+    const tolPct = parseFloat(document.getElementById('imp-tol-pct').value) || 0, tolMin = parseFloat(document.getElementById('imp-tol-min').value) || 0;
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, tolPct, tolMin });
+    if (!r || r.status !== 'success') return;
+    IMP.factores = factores; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
+    cerrarConfigImpresion(); impRender();
+    Swal.fire({ title: 'Equivalencias guardadas', icon: 'success', timer: 1200, showConfirmButton: false });
 }
 
 // ==========================================
