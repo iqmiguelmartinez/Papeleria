@@ -860,7 +860,7 @@
             <!-- SECCIÓN: 📦 Inventario -->
             <div id="sec-inventario" class="shrink-0 pt-2 scroll-mt-16">
                 <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">📦 Inventario</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Qué surtir, cuánto te alcanza y cuánto dinero tienes detenido.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Qué surtir y cuánto te alcanza.</p>
             </div>
             <!-- ROW 4C: COBERTURA DE INVENTARIO -->
             <div class="pb-6 shrink-0">
@@ -894,7 +894,13 @@
                 </div>
             </div>
 
-            <div class="shrink-0">
+            <!-- SECCIÓN: 💰 Finanzas del negocio -->
+            <div id="sec-finanzas" class="shrink-0 pt-2 scroll-mt-16">
+                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">💰 Finanzas del negocio</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Dinero detenido en inventario, cuánto cuesta operar, cómo se mueve tu caja, cuándo recuperas y cuánto vale.</p>
+            </div>
+            <!-- ROW 4D: DINERO PARADO + GASTO OPERATIVO (mitad y mitad) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex justify-between items-center mb-1">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🧊 Dinero Parado en Inventario</h3>
@@ -909,19 +915,10 @@
                     <div class="flex-1 relative" style="min-height: 300px;"><canvas id="chartDineroParado"></canvas></div>
                     <p class="text-[10px] text-gray-400 mt-2">Capital = stock × costo. Rojo: nunca se ha vendido. 🚫 = producto descontinuado que aún tiene stock.</p>
                 </div>
-            </div>
-
-            <!-- SECCIÓN: 💰 Finanzas del negocio -->
-            <div id="sec-finanzas" class="shrink-0 pt-2 scroll-mt-16">
-                <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">💰 Finanzas del negocio</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Cuánto cuesta operar, cómo se mueve tu caja, cuándo recuperas y cuánto vale.</p>
-            </div>
-            <!-- ROW 4D2: GASTO OPERATIVO -->
-            <div class="pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm mb-1">🏪 Gasto Operativo y Punto de Equilibrio</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Renta, sueldos, internet, impresoras y consumibles (lo que cuesta operar cada mes), sin contar la mercancía que resurtes.</p>
-                    <div id="go-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+                    <div id="go-kpis" class="grid grid-cols-2 gap-2 mb-3"></div>
                     <div class="relative" style="height: 300px;"><canvas id="chartGastoOp"></canvas></div>
                     <div class="overflow-x-auto mt-3">
                         <table class="w-full text-xs text-left">
