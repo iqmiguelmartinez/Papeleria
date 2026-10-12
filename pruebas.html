@@ -942,6 +942,7 @@
                         <div class="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-300">
                             <label class="flex items-center gap-1">Vida útil del equipo (años) <input id="inp-val-vida" type="number" min="1" value="5" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
                             <label class="flex items-center gap-1">Mejoras al local recuperables (%) <input id="inp-val-mejoras" type="number" min="0" max="100" value="0" onchange="renderValuacion()" class="w-16 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
+                            <label class="flex items-center gap-1">Múltiplo de utilidad <input id="inp-val-m1" type="number" min="0.1" step="0.1" value="1" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"> a <input id="inp-val-m2" type="number" min="0.1" step="0.1" value="2" onchange="renderValuacion()" class="w-14 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></label>
                         </div>
                     </div>
                     <div id="val-hero" class="bg-fuchsia-50 dark:bg-fuchsia-950/30 border border-fuchsia-100 dark:border-fuchsia-900/50 rounded-lg px-4 py-3 mb-3"></div>
@@ -2614,7 +2615,8 @@ function calcGastoOperativo(invs, ingresoPorDia, gananciaPorDia, ventasPorDia, h
     const margen = ingB > 0 ? ganB / ingB : null;
     const pe = margen && margen > 0 ? opProm / margen : null;
     const habMes = Math.max(1, calHabilesEntre(new Date(hoy.getFullYear(), hoy.getMonth(), 1), new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1)));
-    return { vacio: false, meses, nBase: base.length, utilProm: base.reduce((a, m) => a + m.util, 0) / base.length, opProm, margen, pe, peDia: pe ? pe / habMes : null, pctVentas: venB > 0 ? opProm / venB * 100 : null, sinFecha };
+    const habBase = Math.max(1, base.reduce((a, m) => a + calHabilesEntre(new Date(m.y, m.mo, 1), new Date(m.y, m.mo + 1, 1)), 0));
+    return { vacio: false, meses, nBase: base.length, ganBase: ganB, habBase, ventasBase: venB, utilProm: base.reduce((a, m) => a + m.util, 0) / base.length, opProm, margen, pe, peDia: pe ? pe / habMes : null, pctVentas: venB > 0 ? opProm / venB * 100 : null, sinFecha };
 }
 function renderGastoOperativo() {
     const ctx = document.getElementById('chartGastoOp'); if (!ctx) return;
@@ -2644,9 +2646,11 @@ function renderGastoOperativo() {
 // ==========================================
 // VALUACIÓN DEL NEGOCIO
 // ==========================================
-const VAL_MULT = { bajo: 2, medio: 3, alto: 4 }; // múltiplos de utilidad (SDE) usuales en comercio minorista pequeño
+// Múltiplos de utilidad (SDE). En México, las guías de valuación de PyMEs dan 2×–4× SDE para negocios operados por el dueño, y advierten que baja cuando hay
+// poca historia, dependencia del dueño o de un solo cliente/ubicación. Por eso aquí el valor inicial es MÁS BAJO que esa banda y se puede ajustar.
+const VAL_MULT = { bajo: 1, alto: 2 };
 function gastoEsMejoraLocal(g) { return /local|ventana|mano de obra|instalacion|electric|electrcio|cable|centro de carga|pastilla|taquete|pija|pasador|candado|silicon|grapas|tapas|material/.test(anaNorm((g.concepto || '') + ' ' + (g.observaciones || ''))); }
-function calcValuacion(A, GO, parado, vidaAnios, pctMejoras, hoy) {
+function calcValuacion(A, GO, parado, vidaAnios, pctMejoras, multBajo, multAlto, hoy) {
     const inv = A.inv || [], invs = A.invs || [];
     let invCosto = 0; inv.forEach(p => { if (!VINCULOS_STOCK[p.codigo] && p.stock > 0) invCosto += p.stock * (p.costo || 0); });
     const paradoCap = parado ? Math.min(parado.total, invCosto) : 0, ajusteParado = -0.5 * paradoCap;
@@ -2662,37 +2666,49 @@ function calcValuacion(A, GO, parado, vidaAnios, pctMejoras, hoy) {
         equipoBruto += m; equipoNeto += m * Math.max(0, 1 - anios / Math.max(1, vidaAnios));
     });
     const mejorasVal = mejorasBruto * (pctMejoras / 100);
-    const activosNetos = invCosto + ajusteParado + equipoNeto + mejorasVal - porPagar;
-    const sdeMes = GO && !GO.vacio ? GO.utilProm : null, sdeAnual = sdeMes !== null ? sdeMes * 12 : null;
     const invVal = invCosto + ajusteParado;
-    const porGanancias = m => sdeAnual !== null && sdeAnual > 0 ? sdeAnual * m + invVal : null;
+    const activosNetos = invVal + equipoNeto + mejorasVal - porPagar;
+    // Utilidad anual realista: ganancia bruta por DÍA HÁBIL × días hábiles de los próximos 12 meses (respeta vacaciones y cierres del calendario) − gasto operativo anual
+    let sdeAnual = null, ganAnual = null, opAnual = null, habAnio = 0;
+    if (GO && !GO.vacio && GO.habBase > 0) {
+        habAnio = calHabilesEntre(hoy, new Date(hoy.getFullYear() + 1, hoy.getMonth(), hoy.getDate()));
+        ganAnual = GO.ganBase / GO.habBase * habAnio; opAnual = GO.opProm * 12; sdeAnual = ganAnual - opAnual;
+    }
+    const porEarnings = sdeAnual !== null && sdeAnual > 0;
+    const ganVal = m => porEarnings ? sdeAnual * m + invVal - porPagar : null;
     const piso = Math.max(0, activosNetos);
-    const lo = Math.max(piso, porGanancias(VAL_MULT.bajo) || 0), hi = Math.max(piso, porGanancias(VAL_MULT.alto) || 0);
-    return { invCosto, ajusteParado, equipoBruto, equipoNeto, mejorasBruto, mejorasVal, porPagar, activosNetos, piso, sdeMes, sdeAnual, invVal, gan: { bajo: porGanancias(VAL_MULT.bajo), medio: porGanancias(VAL_MULT.medio), alto: porGanancias(VAL_MULT.alto) }, lo, hi,
-        porEarnings: sdeAnual !== null && sdeAnual > 0, nMeses: GO && !GO.vacio ? GO.nBase : 0, invTotalSetup,
-        recuperaMeses: sdeMes && sdeMes > 0 ? invTotalSetup / sdeMes : null };
+    const medio = (multBajo + multAlto) / 2;
+    const lo = Math.max(piso, ganVal(multBajo) || 0), hi = Math.max(piso, ganVal(multAlto) || 0);
+    const ventasAnual = GO && !GO.vacio && GO.habBase > 0 ? (GO.ventasBase / GO.habBase) * habAnio : null;
+    return { invCosto, ajusteParado, equipoBruto, equipoNeto, mejorasBruto, mejorasVal, porPagar, activosNetos, piso, sdeAnual, sdeMes: sdeAnual !== null ? sdeAnual / 12 : null, ganAnual, opAnual, habAnio, invVal, multBajo, multAlto, medio,
+        gan: { bajo: ganVal(multBajo), medio: ganVal(medio), alto: ganVal(multAlto) }, lo, hi, porEarnings, nMeses: GO && !GO.vacio ? GO.nBase : 0, invTotalSetup, ventasAnual,
+        pctVentas: ventasAnual > 0 ? hi / ventasAnual * 100 : null,
+        recuperaMeses: sdeAnual && sdeAnual > 0 ? invTotalSetup / (sdeAnual / 12) : null };
 }
 function renderValuacion() {
     const tb = document.getElementById('val-tabla'); if (!tb) return;
-    const vi = document.getElementById('inp-val-vida'), mi = document.getElementById('inp-val-mejoras');
-    try { if (vi && !vi.dataset.t) { vi.dataset.t = 1; const a = localStorage.getItem('val_vida'), b = localStorage.getItem('val_mejoras'); if (a) vi.value = a; if (b !== null && b !== undefined && mi) mi.value = b; } else { if (vi) localStorage.setItem('val_vida', vi.value); if (mi) localStorage.setItem('val_mejoras', mi.value); } } catch (e) {}
+    const el = id => document.getElementById(id), vi = el('inp-val-vida'), mi = el('inp-val-mejoras'), m1 = el('inp-val-m1'), m2 = el('inp-val-m2');
+    try { if (vi && !vi.dataset.t) { vi.dataset.t = 1; [['val_vida', vi], ['val_mejoras', mi], ['val_m1', m1], ['val_m2', m2]].forEach(([k, e]) => { const v = localStorage.getItem(k); if (v !== null && e) e.value = v; }); } else [['val_vida', vi], ['val_mejoras', mi], ['val_m1', m1], ['val_m2', m2]].forEach(([k, e]) => { if (e) localStorage.setItem(k, e.value); }); } catch (e) {}
     const vida = parseFloat(vi && vi.value) || 5, pm = Math.min(100, Math.max(0, parseFloat(mi && mi.value) || 0));
-    const A = window.analisisCache || {}, V = calcValuacion(A, window.kpiGastoOp, window.kpiParado, vida, pm, anaHoy());
+    let mb = parseFloat(m1 && m1.value), ma = parseFloat(m2 && m2.value); if (!(mb > 0)) mb = VAL_MULT.bajo; if (!(ma > 0)) ma = VAL_MULT.alto; if (ma < mb) { const t = ma; ma = mb; mb = t; }
+    const A = window.analisisCache || {}, V = calcValuacion(A, window.kpiGastoOp, window.kpiParado, vida, pm, mb, ma, anaHoy());
     window.kpiValuacion = V;
     const $ = n => (n < 0 ? '-$' : '$') + formatMiles(Math.abs(n));
     const row = (a, b, cls, nota) => `<tr class="border-b dark:border-gray-800"><td class="py-1.5 ${cls || 'text-gray-700 dark:text-gray-200'}">${a}${nota ? ` <span class="text-[10px] text-gray-400">${nota}</span>` : ''}</td><td class="py-1.5 text-right font-medium ${cls || ''}">${b}</td></tr>`;
     tb.innerHTML = row('Inventario a costo', $(V.invCosto)) + row('Ajuste por inventario parado', $(V.ajusteParado), '', 'se valúa al 50%') + row('Equipo y mobiliario', $(V.equipoNeto), '', `${$(V.equipoBruto)} pagados, a ${vida} años`) + row('Mejoras al local', $(V.mejorasVal), '', `${$(V.mejorasBruto)} × ${pm}% recuperable`) + row('(−) Cuentas por pagar', $(-V.porPagar), 'text-red-600 dark:text-red-400', 'gastos a crédito') + row('Valor de activos netos', $(V.activosNetos), 'font-bold text-gray-900 dark:text-white');
-    const tg = document.getElementById('val-tabla-gan');
-    if (tg) tg.innerHTML = V.sdeMes === null ? row('Aún no hay gastos operativos con fecha', '—') :
-        row('Utilidad operativa mensual', $(V.sdeMes), V.sdeMes >= 0 ? '' : 'text-red-600 dark:text-red-400', `promedio de ${V.nMeses} mes${V.nMeses === 1 ? '' : 'es'} completo${V.nMeses === 1 ? '' : 's'}`) + row('Utilidad anualizada', $(V.sdeAnual)) +
-        (V.porEarnings ? row(`× ${VAL_MULT.bajo} + inventario`, $(V.gan.bajo)) + row(`× ${VAL_MULT.medio} + inventario`, $(V.gan.medio)) + row(`× ${VAL_MULT.alto} + inventario`, $(V.gan.alto)) : row('Sin utilidad positiva todavía', 'valor por ganancias no aplica', 'text-gray-500'));
-    const hero = document.getElementById('val-hero'), ban = document.getElementById('kx-valor'), banSub = document.getElementById('kx-valor-sub');
-    const txt = V.porEarnings && V.hi > V.lo + 1 ? `${$(V.lo)} – ${$(V.hi)}` : $(V.piso);
-    const sub = V.porEarnings ? 'rango: activos netos o utilidad × 2–4 + inventario (lo mayor)' : (V.activosNetos < 0 ? `por activos: tus deudas (${$(V.porPagar)}) superan tus activos por ${$(-V.activosNetos)} y aún no hay utilidad operativa` : 'por valor de activos (el negocio aún no genera utilidad operativa)');
-    if (hero) hero.innerHTML = `<p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">Valor estimado del negocio</p><p class="text-2xl font-bold text-fuchsia-700 dark:text-fuchsia-300">${txt}</p><p class="text-[11px] text-gray-500 dark:text-gray-400">${sub}</p>` + (V.recuperaMeses ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Con ${$(V.invTotalSetup)} puestos en equipo y local, recuperarías esa inversión en ≈ <b>${V.recuperaMeses.toFixed(0)} meses</b> al ritmo actual de utilidad.</p>` : `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Has puesto ${$(V.invTotalSetup)} en equipo y local; aún no hay utilidad operativa para calcular su recuperación.</p>`);
-    if (ban) { ban.innerText = txt; if (banSub) banSub.innerText = V.porEarnings ? 'activos netos o utilidad × 2–4' : 'por activos · aún sin utilidad operativa'; }
-    const nota = document.getElementById('val-nota');
-    if (nota) nota.innerText = `Confianza ${V.nMeses >= 6 ? 'media' : 'baja'}: ${V.nMeses} mes${V.nMeses === 1 ? '' : 'es'} completo${V.nMeses === 1 ? '' : 's'} de historia. Una valuación por ganancias necesita 6–12 meses y debe ajustarse por temporada (inicio de ciclo escolar). Los múltiplos 2–4× son los usuales para comercio minorista pequeño en EE. UU. (shopappy.com); no hay referencia mexicana publicada, tómalos como orientación. El inventario se suma aparte del múltiplo y se valúa a costo. Una venta real dependerá de la renta del local, el contrato con la escuela y quién lo opere.`;
+    const tg = el('val-tabla-gan');
+    if (tg) tg.innerHTML = V.sdeAnual === null ? row('Aún no hay gastos operativos con fecha', '—') :
+        row('Ganancia bruta anual', $(V.ganAnual), '', `ganancia por día hábil × ${V.habAnio} días hábiles al año`) + row('(−) Gasto operativo anual', $(-V.opAnual), 'text-red-600 dark:text-red-400', 'promedio mensual × 12') + row('Utilidad anual del negocio', $(V.sdeAnual), V.sdeAnual >= 0 ? 'font-bold' : 'font-bold text-red-600 dark:text-red-400', `base: ${V.nMeses} mes${V.nMeses === 1 ? '' : 'es'} completo${V.nMeses === 1 ? '' : 's'}`) +
+        (V.porEarnings ? row(`× ${V.multBajo} + inventario − deudas`, $(V.gan.bajo)) + row(`× ${V.medio} + inventario − deudas`, $(V.gan.medio)) + row(`× ${V.multAlto} + inventario − deudas`, $(V.gan.alto)) : row('Sin utilidad positiva todavía', 'valor por ganancias no aplica', 'text-gray-500'));
+    const hero = el('val-hero'), ban = el('kx-valor'), banSub = el('kx-valor-sub');
+    const txt = V.porEarnings && V.hi > V.lo + 1 ? `${$(V.lo)} – ${$(V.hi)}` : $(V.porEarnings ? V.hi : V.piso);
+    const sub = V.porEarnings ? `activos netos o utilidad anual × ${V.multBajo}–${V.multAlto} + inventario − deudas (lo mayor)` : (V.activosNetos < 0 ? `por activos: tus deudas (${$(V.porPagar)}) superan tus activos por ${$(-V.activosNetos)} y aún no hay utilidad` : 'por valor de activos (aún no hay utilidad operativa)');
+    if (hero) hero.innerHTML = `<p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">Valor estimado del negocio</p><p class="text-2xl font-bold text-fuchsia-700 dark:text-fuchsia-300">${txt}</p><p class="text-[11px] text-gray-500 dark:text-gray-400">${sub}</p>` +
+        (V.pctVentas !== null && V.porEarnings ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Equivale a ≈ ${V.pctVentas.toFixed(0)}% de tus ventas anuales estimadas (${$(V.ventasAnual)}); como referencia, para negocios de distribución se citan 0.3×–0.8× las ventas anuales (capitalenorden.com).</p>` : '') +
+        (V.recuperaMeses ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Con ${$(V.invTotalSetup)} puestos en equipo y local, recuperarías esa inversión en ≈ <b>${V.recuperaMeses.toFixed(0)} meses</b> al ritmo de utilidad estimada.</p>` : `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Has puesto ${$(V.invTotalSetup)} en equipo y local; aún no hay utilidad para calcular su recuperación.</p>`);
+    if (ban) { ban.innerText = txt; if (banSub) banSub.innerText = V.porEarnings ? `activos netos o utilidad × ${V.multBajo}–${V.multAlto}` : 'por activos · aún sin utilidad'; }
+    const nota = el('val-nota');
+    if (nota) nota.innerText = `Confianza ${V.nMeses >= 6 ? 'media' : 'baja'}: ${V.nMeses} mes${V.nMeses === 1 ? '' : 'es'} completo${V.nMeses === 1 ? '' : 's'} de historia. Método: se anualiza con los días hábiles de tu calendario (no ×12, para respetar vacaciones) y el valor se obtiene como utilidad × múltiplo más inventario a costo, menos deudas. Las guías mexicanas de valuación de PyMEs dan 2×–4× la utilidad del dueño (SDE) para negocios operados por su dueño, pero advierten que baja con poca historia, dependencia del dueño o de un solo cliente o ubicación (capitalenorden.com, grupoconsultorefe.com). Este negocio tiene poca historia, depende de una escuela y de una temporada, así que el múltiplo inicial es 1×–2×; ajústalo arriba. Si la temporada de inicio de ciclo fue tu mejor etapa, la utilidad anual saldrá inflada. Es una estimación orientativa, no un avalúo.`;
 }
 
 // Resumen de las gráficas nuevas en la primera sección
