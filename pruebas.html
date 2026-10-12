@@ -45,18 +45,14 @@
         .tabbtn.activa .ti { background: rgba(255,255,255,.22); }
         .tabbtn.hidden { display: none; }
         #grp-admin:not(.hidden) { display: flex; }
-        .navbtn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: .45rem 0 .3rem; font-size: 10px; font-weight: 700; color: #6b7280; position: relative; cursor: pointer; background: none; border: 0; -webkit-tap-highlight-color: transparent; }
+        .navbtn { flex: 1 0 auto; min-width: 4.6rem; padding-left: .4rem; padding-right: .4rem; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: .45rem 0 .3rem; font-size: 10px; font-weight: 700; color: #6b7280; position: relative; cursor: pointer; background: none; border: 0; -webkit-tap-highlight-color: transparent; }
         html.dark .navbtn { color: #9ca3af; }
+        .navbtn.hidden { display: none; }
+        .navbtn.salir, html.dark .navbtn.salir { color: #ef4444; }
         .navbtn .ni { font-size: 1.3rem; line-height: 1.6rem; transition: transform .2s ease; }
         .navbtn.activa { color: var(--c); }
         .navbtn.activa .ni { transform: translateY(-2px) scale(1.18); }
         .navbtn.activa::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 6px 6px; background: var(--c); }
-        .sheet-tile { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .7rem .25rem; border-radius: 1rem; font-size: 11px; font-weight: 700; text-align: center; color: #374151; background: color-mix(in srgb, var(--c) 10%, transparent); border: 1px solid color-mix(in srgb, var(--c) 25%, transparent); cursor: pointer; }
-        html.dark .sheet-tile { color: #e5e7eb; }
-        .sheet-tile .ti { font-size: 1.5rem; }
-        .sheet-tile.activa { background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 68%, #000)); color: #fff; border-color: transparent; }
-        #sheet-mas { transition: opacity .2s ease; } #sheet-mas .panel { transition: transform .25s ease; transform: translateY(100%); }
-        #sheet-mas.abierto .panel { transform: translateY(0); }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 overflow-hidden flex flex-col">
@@ -829,36 +825,24 @@
         </div>
     </div>
 
-    <!-- NAVEGACIÓN MÓVIL (barra inferior) -->
-    <nav id="nav-movil" class="md:hidden shrink-0 flex bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_14px_rgba(0,0,0,.06)]" style="padding-bottom: env(safe-area-inset-bottom);">
-        <button onclick="cambiarTab('ventas')" id="nm-ventas" data-tab="ventas" style="--c:#3b82f6" class="navbtn activa"><span class="ni">🛒</span><span>Venta</span></button>
-        <button onclick="cambiarTab('inventario')" id="nm-inventario" data-tab="inventario" style="--c:#f59e0b" class="navbtn"><span class="ni">📦</span><span>Inventario</span></button>
-        <button onclick="cambiarTab('retiros')" id="nm-retiros" data-tab="retiros" style="--c:#f43f5e" class="navbtn"><span class="ni">💸</span><span>Retiros</span></button>
-        <button onclick="cambiarTab('corte')" id="nm-corte" data-tab="corte" style="--c:#8b5cf6" class="navbtn"><span class="ni">📊</span><span>Corte</span></button>
-        <button onclick="abrirSheetMas()" id="nm-mas" style="--c:#6366f1" class="navbtn"><span class="ni" id="nm-mas-icono">☰</span><span id="nm-mas-texto">Más</span></button>
-    </nav>
-    <div id="sheet-mas" class="md:hidden fixed inset-0 z-[60] opacity-0 pointer-events-none flex items-end bg-black/50" onclick="if(event.target===this) cerrarSheetMas()">
-        <div class="panel w-full bg-white dark:bg-gray-800 rounded-t-3xl p-4 shadow-2xl max-h-[85vh] overflow-y-auto" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
-            <div class="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-            <div id="sheet-admin" class="hidden mb-3">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Administración</p>
-                <div class="grid grid-cols-3 gap-2">
-            <button onclick="cambiarTab('analisis'); cerrarSheetMas()" data-tab="analisis" style="--c:#10b981" class="sheet-tile"><span class="ti">📈</span><span>Análisis</span></button>
-            <button onclick="cambiarTab('ventasPasadas'); cerrarSheetMas()" data-tab="ventasPasadas" style="--c:#06b6d4" class="sheet-tile"><span class="ti">📜</span><span>Ventas Pasadas</span></button>
-            <button onclick="cambiarTab('inversion'); cerrarSheetMas()" data-tab="inversion" style="--c:#6366f1" class="sheet-tile"><span class="ti">💼</span><span>Inversiones / Créditos</span></button>
-            <button onclick="cambiarTab('caja'); cerrarSheetMas()" data-tab="caja" style="--c:#84cc16" class="sheet-tile"><span class="ti">💵</span><span>Control de Caja</span></button>
-            <button onclick="cambiarTab('buscador'); cerrarSheetMas()" data-tab="buscador" style="--c:#ec4899" class="sheet-tile"><span class="ti">🔎</span><span>Buscador inteligente</span></button>
-            <button onclick="cambiarTab('impresiones'); cerrarSheetMas()" data-tab="impresiones" style="--c:#0ea5e9" class="sheet-tile"><span class="ti">🖨️</span><span>Auditoría de Impresiones</span></button>
-            <button onclick="cambiarTab('log'); cerrarSheetMas()" data-tab="log" style="--c:#64748b" class="sheet-tile"><span class="ti">📋</span><span>Log de actividad</span></button>
-                </div>
-            </div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Cuenta</p>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="toggleTheme()" class="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-100 cursor-pointer">🌓 Cambiar tema</button>
-                <button onclick="cerrarSesion()" class="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 dark:bg-red-950/50 text-sm font-semibold text-red-600 dark:text-red-300 cursor-pointer">🚪 Salir</button>
-            </div>
+    <!-- NAVEGACIÓN MÓVIL (barra inferior que se desliza hacia la izquierda; la última opción es Salir) -->
+    <nav id="nav-movil" class="md:hidden shrink-0 relative bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_14px_rgba(0,0,0,.06)]" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div id="nav-scroll" class="flex overflow-x-auto no-scrollbar" style="scroll-snap-type: x proximity;">
+            <button onclick="cambiarTab('ventas')" id="nm-ventas" data-tab="ventas" style="--c:#3b82f6" class="navbtn activa"><span class="ni">🛒</span><span>Venta</span></button>
+            <button onclick="cambiarTab('inventario')" id="nm-inventario" data-tab="inventario" style="--c:#f59e0b" class="navbtn"><span class="ni">📦</span><span>Inventario</span></button>
+            <button onclick="cambiarTab('retiros')" id="nm-retiros" data-tab="retiros" style="--c:#f43f5e" class="navbtn"><span class="ni">💸</span><span>Retiros</span></button>
+            <button onclick="cambiarTab('corte')" id="nm-corte" data-tab="corte" style="--c:#8b5cf6" class="navbtn"><span class="ni">📊</span><span>Corte</span></button>
+            <button onclick="cambiarTab('analisis')" id="nm-analisis" data-tab="analisis" style="--c:#10b981" class="navbtn hidden"><span class="ni">📈</span><span>Análisis</span></button>
+            <button onclick="cambiarTab('ventasPasadas')" id="nm-ventasPasadas" data-tab="ventasPasadas" style="--c:#06b6d4" class="navbtn hidden"><span class="ni">📜</span><span>Pasadas</span></button>
+            <button onclick="cambiarTab('inversion')" id="nm-inversion" data-tab="inversion" style="--c:#6366f1" class="navbtn hidden"><span class="ni">💼</span><span>Inversión</span></button>
+            <button onclick="cambiarTab('caja')" id="nm-caja" data-tab="caja" style="--c:#84cc16" class="navbtn hidden"><span class="ni">💵</span><span>Caja</span></button>
+            <button onclick="cambiarTab('buscador')" id="nm-buscador" data-tab="buscador" style="--c:#ec4899" class="navbtn hidden"><span class="ni">🔎</span><span>Buscador</span></button>
+            <button onclick="cambiarTab('impresiones')" id="nm-impresiones" data-tab="impresiones" style="--c:#0ea5e9" class="navbtn hidden"><span class="ni">🖨️</span><span>Impresiones</span></button>
+            <button onclick="cambiarTab('log')" id="nm-log" data-tab="log" style="--c:#64748b" class="navbtn hidden"><span class="ni">📋</span><span>Log</span></button>
+            <button onclick="cerrarSesion()" id="nm-salir" style="--c:#ef4444" class="navbtn salir"><span class="ni">🚪</span><span>Salir</span></button>
         </div>
-    </div>
+        <div id="nav-pista" class="pointer-events-none absolute top-0 right-0 bottom-0 w-8" style="background: linear-gradient(to left, rgba(120,120,120,.35), transparent); transition: opacity .2s;"></div>
+    </nav>
 
     <script>
         // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
@@ -1006,10 +990,11 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['grp-admin', 'sheet-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones'].forEach(id => {
+            ['grp-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones', 'nm-analisis', 'nm-inversion', 'nm-ventasPasadas', 'nm-log', 'nm-caja', 'nm-buscador', 'nm-impresiones'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
+            if (typeof actualizarPistaNav === 'function') setTimeout(actualizarPistaNav, 50);
             
             // Si la sesión pasa a un usuario SIN permiso de análisis (por ejemplo, al renovar la sesión), se cierran
             // las pestañas restringidas que estuvieran abiertas y se borran los datos que quedaron en memoria.
@@ -1034,21 +1019,19 @@
 
         function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
 
-        // Resalta la pestaña activa en la barra de arriba (computadora), la barra inferior y la hoja "Más" (móvil)
-        const TABS_PRINCIPALES = ['ventas', 'inventario', 'retiros', 'corte'];
-        const TABS_NOMBRE = { analisis: ['📈', 'Análisis'], ventasPasadas: ['📜', 'Pasadas'], inversion: ['💼', 'Inversión'], caja: ['💵', 'Caja'], buscador: ['🔎', 'Buscador'], impresiones: ['🖨️', 'Impresiones'], log: ['📋', 'Log'] };
+        // Resalta la pestaña activa en la barra de arriba (computadora) y en la barra inferior deslizable (móvil)
         function marcarTabActiva(tab) {
             document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('activa', b.dataset.tab === tab));
-            const mas = document.getElementById('nm-mas'), ic = document.getElementById('nm-mas-icono'), tx = document.getElementById('nm-mas-texto');
-            const enMas = !TABS_PRINCIPALES.includes(tab), n = TABS_NOMBRE[tab];
-            if (mas) mas.classList.toggle('activa', enMas);
-            if (ic) ic.textContent = enMas && n ? n[0] : '☰';
-            if (tx) tx.textContent = enMas && n ? n[1] : 'Más';
+            const sc = document.getElementById('nav-scroll'), nb = document.getElementById('nm-' + tab);
+            if (sc && nb) sc.scrollTo({ left: nb.offsetLeft - (sc.clientWidth - nb.offsetWidth) / 2, behavior: 'smooth' }); // centra el botón activo
             const bd = document.getElementById('btn-tab-' + tab); if (bd && bd.scrollIntoView) { try { bd.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {} }
         }
-        function abrirSheetMas() { const s = document.getElementById('sheet-mas'); if (!s) return; s.classList.remove('opacity-0', 'pointer-events-none'); requestAnimationFrame(() => s.classList.add('abierto')); }
-        function cerrarSheetMas() { const s = document.getElementById('sheet-mas'); if (!s) return; s.classList.remove('abierto'); s.classList.add('opacity-0', 'pointer-events-none'); }
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarSheetMas(); });
+        // Sombra en el borde derecho mientras haya más botones por ver
+        function actualizarPistaNav() {
+            const sc = document.getElementById('nav-scroll'), p = document.getElementById('nav-pista'); if (!sc || !p) return;
+            p.style.opacity = (sc.scrollWidth - sc.scrollLeft - sc.clientWidth > 6) ? '1' : '0';
+        }
+        (function () { const sc = document.getElementById('nav-scroll'); if (sc) { sc.addEventListener('scroll', actualizarPistaNav, { passive: true }); window.addEventListener('resize', actualizarPistaNav); setTimeout(actualizarPistaNav, 300); } })();
 
         function cambiarTab(tab) {
             if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
@@ -2658,10 +2641,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             try {
                 Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 let resp = await apiFetch("getMovimientosCaja");
-                let texto = await resp.text();
-                let datos;
-                try { datos = JSON.parse(texto); }
-                catch (pe) { throw new Error("El servidor no devolvió JSON (¿implementación desactualizada o sin permisos?): " + texto.substring(0, 120)); }
+                let datos = await resp.json();
                 if (!Array.isArray(datos)) {
                     throw new Error("Respuesta inesperada: " + JSON.stringify(datos).substring(0, 150) + " — Falta publicar una NUEVA VERSIÓN del Apps Script.");
                 }
