@@ -29,53 +29,79 @@
         html.dark .swal2-title, html.dark .swal2-html-container { color: #f9fafb !important; }
         html.dark .swal2-input, html.dark .swal2-select { background-color: #374151 !important; color: #f9fafb !important; border-color: #4b5563 !important; }
         html.dark .swal2-input::placeholder { color: #9ca3af !important; }
+
+        /* ===== Navegación v3.0 ===== */
+        body { height: 100vh; height: 100dvh; }
+        body.swal2-height-auto { height: 100vh !important; height: 100dvh !important; }
+        .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+        #titulo-app { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .appbar { background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(239,246,255,.95)); }
+        html.dark .appbar { background: linear-gradient(135deg, rgba(31,41,55,.98), rgba(30,41,59,.98)); }
+        .tabbtn { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .8rem .35rem .4rem; border-radius: .9rem; font-size: .75rem; font-weight: 600; white-space: nowrap; color: #4b5563; cursor: pointer; transition: all .18s ease; border: 1px solid transparent; }
+        html.dark .tabbtn { color: #cbd5e1; }
+        .tabbtn .ti { width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: .65rem; font-size: .95rem; background: color-mix(in srgb, var(--c) 15%, transparent); transition: all .18s ease; }
+        .tabbtn:hover { background: color-mix(in srgb, var(--c) 10%, transparent); transform: translateY(-1px); }
+        .tabbtn.activa { color: #fff; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 68%, #000)); box-shadow: 0 8px 18px -8px var(--c); transform: none; }
+        .tabbtn.activa .ti { background: rgba(255,255,255,.22); }
+        .tabbtn.hidden { display: none; }
+        #grp-admin:not(.hidden) { display: flex; }
+        .navbtn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: .45rem 0 .3rem; font-size: 10px; font-weight: 700; color: #6b7280; position: relative; cursor: pointer; background: none; border: 0; -webkit-tap-highlight-color: transparent; }
+        html.dark .navbtn { color: #9ca3af; }
+        .navbtn .ni { font-size: 1.3rem; line-height: 1.6rem; transition: transform .2s ease; }
+        .navbtn.activa { color: var(--c); }
+        .navbtn.activa .ni { transform: translateY(-2px) scale(1.18); }
+        .navbtn.activa::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 6px 6px; background: var(--c); }
+        .sheet-tile { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .7rem .25rem; border-radius: 1rem; font-size: 11px; font-weight: 700; text-align: center; color: #374151; background: color-mix(in srgb, var(--c) 10%, transparent); border: 1px solid color-mix(in srgb, var(--c) 25%, transparent); cursor: pointer; }
+        html.dark .sheet-tile { color: #e5e7eb; }
+        .sheet-tile .ti { font-size: 1.5rem; }
+        .sheet-tile.activa { background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 68%, #000)); color: #fff; border-color: transparent; }
+        #sheet-mas { transition: opacity .2s ease; } #sheet-mas .panel { transition: transform .25s ease; transform: translateY(100%); }
+        #sheet-mas.abierto .panel { transform: translateY(0); }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 overflow-hidden flex flex-col">
     <!-- Banner Flotante de Sin Conexión -->
     <div id="alerta-offline" class="hidden fixed top-0 left-0 w-full bg-red-600 text-white text-center py-2 z-50 shadow-lg font-bold text-sm transition-all duration-300">
         ⚠️ Sin conexión a Internet. Los cobros no se guardarán en la base de datos.
     </div>
     <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col flex-1 min-h-0">
         <!-- HEADER -->
-        <header class="mb-3 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 shrink-0">
-            <div class="flex items-center gap-3">
-                <img src="logo.jpeg" alt="Pixel y Papel" class="w-10 h-10 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 id="titulo-app" class="text-lg font-bold"></h1>
-                        <span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v2.7.0</span>
+        <header class="appbar mb-2 md:mb-3 flex justify-between items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
+            <div class="flex items-center gap-2.5 md:gap-3 min-w-0">
+                <img src="logo.jpeg" alt="Pixel y Papel" class="w-9 h-9 md:w-11 md:h-11 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 shrink-0">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h1 id="titulo-app" class="text-base md:text-lg font-bold"></h1>
+                        <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.0.0</span>
                     </div>
-                    <p id="label-sesion" class="text-xs text-gray-500 dark:text-gray-400">Usuario: Conectado</p>
+                    <p id="label-sesion" class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 truncate">Usuario: Conectado</p>
                 </div>
             </div>
-            <div class="mt-2 md:mt-0 flex gap-2 items-center">
-                <button onclick="toggleTheme()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5">
-                    <span id="icono-tema">🌙</span>
-                </button>
-                <button onclick="cerrarSesion()" class="bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-300 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">
-                    🚪 Salir
-                </button>
-                <button onclick="sincronizarDatos()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">
-                    🔄 Sincronizar
-                </button>
+            <div class="flex gap-1.5 md:gap-2 items-center shrink-0">
+                <button onclick="toggleTheme()" title="Cambiar tema" class="w-9 h-9 grid place-items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition cursor-pointer"><span id="icono-tema">🌙</span></button>
+                <button onclick="sincronizarDatos()" title="Sincronizar datos" class="h-9 px-2.5 md:px-3.5 flex items-center gap-1.5 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"><span>🔄</span><span class="hidden md:inline">Sincronizar</span></button>
+                <button onclick="cerrarSesion()" title="Cerrar sesión" class="hidden md:flex h-9 px-3 items-center gap-1.5 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-300 rounded-xl text-xs font-semibold transition cursor-pointer">🚪 Salir</button>
             </div>
         </header>
 
-        <!-- TABS -->
-        <div class="flex flex-wrap gap-2 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2 shrink-0">
-            <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" class="px-3 py-1.5 rounded-lg font-medium text-xs bg-blue-600 text-white cursor-pointer transition">🛒 Registrar Venta</button>
-            <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" class="px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📦 Inventario</button>
-            <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📜 Ventas Pasadas</button>
-            <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💼 Inversiones / Créditos</button>
-            <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" class="px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💸 Retiros / Gastos</button>
-            <button onclick="cambiarTab('corte')" id="btn-tab-corte" class="px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📊 Corte Diario</button>
-            <button onclick="cambiarTab('log')" id="btn-tab-log" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📋 Log</button>
-            <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">📈 Análisis</button>
-            <button onclick="cambiarTab('caja')" id="btn-tab-caja" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">💵 Control de Caja</button>
-            <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">🔎 Buscador</button>
-            <button onclick="cambiarTab('impresiones')" id="btn-tab-impresiones" class="hidden px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition">🖨️ Impresiones</button>
-        </div>
+        <!-- TABS (computadora y tablet) -->
+        <nav id="tabs-desktop" class="hidden md:flex items-center gap-1 mb-3 p-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700 shadow-sm shrink-0">
+                <button onclick="cambiarTab('ventas')" id="btn-tab-ventas" data-tab="ventas" title="Registrar Venta" style="--c:#3b82f6" class="tabbtn activa"><span class="ti">🛒</span><span>Venta</span></button>
+                <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" data-tab="inventario" title="Inventario" style="--c:#f59e0b" class="tabbtn"><span class="ti">📦</span><span>Inventario</span></button>
+                <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" data-tab="retiros" title="Retiros / Gastos" style="--c:#f43f5e" class="tabbtn"><span class="ti">💸</span><span>Retiros</span></button>
+                <button onclick="cambiarTab('corte')" id="btn-tab-corte" data-tab="corte" title="Corte Diario" style="--c:#8b5cf6" class="tabbtn"><span class="ti">📊</span><span>Corte</span></button>
+                <div id="grp-admin" class="hidden items-center gap-1">
+                    <span class="mx-1.5 h-6 w-px bg-gray-200 dark:bg-gray-600"></span>
+                    <span class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Admin</span>
+                <button onclick="cambiarTab('analisis')" id="btn-tab-analisis" data-tab="analisis" title="Análisis" style="--c:#10b981" class="tabbtn"><span class="ti">📈</span><span>Análisis</span></button>
+                <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" data-tab="ventasPasadas" title="Ventas Pasadas" style="--c:#06b6d4" class="tabbtn"><span class="ti">📜</span><span>Ventas pasadas</span></button>
+                <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" data-tab="inversion" title="Inversiones / Créditos" style="--c:#6366f1" class="tabbtn"><span class="ti">💼</span><span>Inversiones</span></button>
+                <button onclick="cambiarTab('caja')" id="btn-tab-caja" data-tab="caja" title="Control de Caja" style="--c:#84cc16" class="tabbtn"><span class="ti">💵</span><span>Caja</span></button>
+                <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" data-tab="buscador" title="Buscador inteligente" style="--c:#ec4899" class="tabbtn"><span class="ti">🔎</span><span>Buscador</span></button>
+                <button onclick="cambiarTab('impresiones')" id="btn-tab-impresiones" data-tab="impresiones" title="Auditoría de Impresiones" style="--c:#0ea5e9" class="tabbtn"><span class="ti">🖨️</span><span>Impresiones</span></button>
+                <button onclick="cambiarTab('log')" id="btn-tab-log" data-tab="log" title="Log de actividad" style="--c:#64748b" class="tabbtn"><span class="ti">📋</span><span>Log</span></button>
+                </div>
+        </nav>
 
         <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-start flex-1 min-h-0 overflow-hidden pb-3">
@@ -803,6 +829,37 @@
         </div>
     </div>
 
+    <!-- NAVEGACIÓN MÓVIL (barra inferior) -->
+    <nav id="nav-movil" class="md:hidden shrink-0 flex bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_14px_rgba(0,0,0,.06)]" style="padding-bottom: env(safe-area-inset-bottom);">
+        <button onclick="cambiarTab('ventas')" id="nm-ventas" data-tab="ventas" style="--c:#3b82f6" class="navbtn activa"><span class="ni">🛒</span><span>Venta</span></button>
+        <button onclick="cambiarTab('inventario')" id="nm-inventario" data-tab="inventario" style="--c:#f59e0b" class="navbtn"><span class="ni">📦</span><span>Inventario</span></button>
+        <button onclick="cambiarTab('retiros')" id="nm-retiros" data-tab="retiros" style="--c:#f43f5e" class="navbtn"><span class="ni">💸</span><span>Retiros</span></button>
+        <button onclick="cambiarTab('corte')" id="nm-corte" data-tab="corte" style="--c:#8b5cf6" class="navbtn"><span class="ni">📊</span><span>Corte</span></button>
+        <button onclick="abrirSheetMas()" id="nm-mas" style="--c:#6366f1" class="navbtn"><span class="ni" id="nm-mas-icono">☰</span><span id="nm-mas-texto">Más</span></button>
+    </nav>
+    <div id="sheet-mas" class="md:hidden fixed inset-0 z-[60] opacity-0 pointer-events-none flex items-end bg-black/50" onclick="if(event.target===this) cerrarSheetMas()">
+        <div class="panel w-full bg-white dark:bg-gray-800 rounded-t-3xl p-4 shadow-2xl max-h-[85vh] overflow-y-auto" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+            <div class="mx-auto mb-3 h-1.5 w-10 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+            <div id="sheet-admin" class="hidden mb-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Administración</p>
+                <div class="grid grid-cols-3 gap-2">
+            <button onclick="cambiarTab('analisis'); cerrarSheetMas()" data-tab="analisis" style="--c:#10b981" class="sheet-tile"><span class="ti">📈</span><span>Análisis</span></button>
+            <button onclick="cambiarTab('ventasPasadas'); cerrarSheetMas()" data-tab="ventasPasadas" style="--c:#06b6d4" class="sheet-tile"><span class="ti">📜</span><span>Ventas Pasadas</span></button>
+            <button onclick="cambiarTab('inversion'); cerrarSheetMas()" data-tab="inversion" style="--c:#6366f1" class="sheet-tile"><span class="ti">💼</span><span>Inversiones / Créditos</span></button>
+            <button onclick="cambiarTab('caja'); cerrarSheetMas()" data-tab="caja" style="--c:#84cc16" class="sheet-tile"><span class="ti">💵</span><span>Control de Caja</span></button>
+            <button onclick="cambiarTab('buscador'); cerrarSheetMas()" data-tab="buscador" style="--c:#ec4899" class="sheet-tile"><span class="ti">🔎</span><span>Buscador inteligente</span></button>
+            <button onclick="cambiarTab('impresiones'); cerrarSheetMas()" data-tab="impresiones" style="--c:#0ea5e9" class="sheet-tile"><span class="ti">🖨️</span><span>Auditoría de Impresiones</span></button>
+            <button onclick="cambiarTab('log'); cerrarSheetMas()" data-tab="log" style="--c:#64748b" class="sheet-tile"><span class="ti">📋</span><span>Log de actividad</span></button>
+                </div>
+            </div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Cuenta</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="toggleTheme()" class="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-100 cursor-pointer">🌓 Cambiar tema</button>
+                <button onclick="cerrarSesion()" class="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 dark:bg-red-950/50 text-sm font-semibold text-red-600 dark:text-red-300 cursor-pointer">🚪 Salir</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
         // Para cambiar de ambiente, deja ACTIVA una sola pareja de URL + TÍTULO y comenta (//) la otra.
@@ -949,7 +1006,7 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones'].forEach(id => {
+            ['grp-admin', 'sheet-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
@@ -977,18 +1034,33 @@
 
         function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
 
+        // Resalta la pestaña activa en la barra de arriba (computadora), la barra inferior y la hoja "Más" (móvil)
+        const TABS_PRINCIPALES = ['ventas', 'inventario', 'retiros', 'corte'];
+        const TABS_NOMBRE = { analisis: ['📈', 'Análisis'], ventasPasadas: ['📜', 'Pasadas'], inversion: ['💼', 'Inversión'], caja: ['💵', 'Caja'], buscador: ['🔎', 'Buscador'], impresiones: ['🖨️', 'Impresiones'], log: ['📋', 'Log'] };
+        function marcarTabActiva(tab) {
+            document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('activa', b.dataset.tab === tab));
+            const mas = document.getElementById('nm-mas'), ic = document.getElementById('nm-mas-icono'), tx = document.getElementById('nm-mas-texto');
+            const enMas = !TABS_PRINCIPALES.includes(tab), n = TABS_NOMBRE[tab];
+            if (mas) mas.classList.toggle('activa', enMas);
+            if (ic) ic.textContent = enMas && n ? n[0] : '☰';
+            if (tx) tx.textContent = enMas && n ? n[1] : 'Más';
+            const bd = document.getElementById('btn-tab-' + tab); if (bd && bd.scrollIntoView) { try { bd.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {} }
+        }
+        function abrirSheetMas() { const s = document.getElementById('sheet-mas'); if (!s) return; s.classList.remove('opacity-0', 'pointer-events-none'); requestAnimationFrame(() => s.classList.add('abierto')); }
+        function cerrarSheetMas() { const s = document.getElementById('sheet-mas'); if (!s) return; s.classList.remove('abierto'); s.classList.add('opacity-0', 'pointer-events-none'); }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarSheetMas(); });
+
         function cambiarTab(tab) {
             if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
             ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja', 'buscador', 'impresiones'].forEach(t => {
-                let eTab = document.getElementById(`tab-${t}`), eBtn = document.getElementById(`btn-tab-${t}`);
+                let eTab = document.getElementById(`tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
-                if(eBtn && eBtn.classList.contains('bg-blue-600')) eBtn.className = "px-3 py-1.5 rounded-lg font-medium text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition";
             });
             
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-tab-${tab}`).className = "px-3 py-1.5 rounded-lg font-medium text-xs bg-blue-600 text-white cursor-pointer transition";
+            marcarTabActiva(tab);
             
             if(tab === 'inventario') renderInventario();
             if(tab === 'ventasPasadas') renderVentasPasadas();
