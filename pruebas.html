@@ -353,10 +353,14 @@
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white">💼 Gestión de Gastos y Créditos</h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Registra gastos y cambia el estado de pago.</p>
                 </div>
-                <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
-                    + Registrar Gasto / Inversión
-                </button>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button id="btn-guardar-cats" onclick="guardarCategoriasAuto()" class="hidden bg-amber-100 hover:bg-amber-200 text-amber-800 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer" title="Escribe en la hoja la categoría que el sistema sugiere para los gastos que aún no la tienen">🏷️ Guardar categorías sugeridas</button>
+                    <button onclick="agregarInversionPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                        + Registrar Gasto / Inversión
+                    </button>
+                </div>
             </div>
+            <div id="inv-resumen-cat" class="flex flex-wrap gap-2 mb-4 shrink-0 text-xs"></div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 flex justify-between items-center">
@@ -385,6 +389,7 @@
                             <th class="py-2 px-3 text-center">Pagado?</th>
                             <th class="py-2 px-3">Fecha</th>
                             <th class="py-2 px-3">Persona</th>
+                            <th class="py-2 px-3" title="Resurtido = mercancía para vender (no cuenta como gasto en las métricas). Operativo = renta, sueldos, internet, consumibles. Inversión = equipo, local, mobiliario.">Categoría</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-inversiones-completa" class="divide-y divide-gray-100 dark:divide-gray-700/60 text-xs"></tbody>
@@ -631,12 +636,14 @@
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 shrink-0">
                 <!-- Finanzas Clásicas -->
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50 shadow-sm">
-                    <p class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Inversión (Gastos)</p>
+                    <p class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Gastos e Inversión</p>
                     <p id="ana-inversion-total" class="text-xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+                    <p id="ana-sub-inversion" class="text-[10px] text-amber-700/80 dark:text-amber-300/80 mt-0.5"></p>
                 </div>
                 <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-xl border border-purple-100 dark:border-purple-900/50 shadow-sm">
                     <p class="text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase">Ganancia Histórica</p>
                     <p id="ana-ganancia-total" class="text-xl font-bold text-purple-800 dark:text-purple-200">$0.00</p>
+                    <p id="ana-sub-ganancia" class="text-[10px] text-purple-700/80 dark:text-purple-300/80 mt-0.5"></p>
                 </div>
                 <div class="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-100 dark:border-blue-900/50 shadow-sm">
                     <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">Retorno (ROI)</p>
@@ -655,14 +662,62 @@
                 <div class="bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm">
                     <p class="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">Tasa de Recompra</p>
                     <p id="ana-tasa-recompra" class="text-xl font-bold text-rose-800 dark:text-rose-200">0%</p>
+                    <p id="ana-sub-recompra" class="text-[10px] text-rose-700/80 dark:text-rose-300/80 mt-0.5"></p>
                 </div>
                 <div class="bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
                     <p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase">Clientes Base (WA)</p>
                     <p id="ana-total-clientes" class="text-xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+                    <p id="ana-sub-clientes" class="text-[10px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5"></p>
                 </div>
                 <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-xl border border-teal-100 dark:border-teal-900/50 shadow-sm">
-                    <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase">Retención Datos</p>
+                    <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase">Tickets con Teléfono</p>
                     <p id="ana-proporcion-wa" class="text-xl font-bold text-teal-800 dark:text-teal-200">0%</p>
+                    <p id="ana-sub-wa" class="text-[10px] text-teal-700/80 dark:text-teal-300/80 mt-0.5"></p>
+                </div>
+            </div>
+
+
+            <!-- ROW 1B: SALUD DEL NEGOCIO (resumen de las gráficas) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 shrink-0">
+                <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-xl border border-red-100 dark:border-red-900/50 shadow-sm">
+                    <p class="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase">Agotados con Demanda</p>
+                    <p id="kx-agot" class="text-xl font-bold text-red-800 dark:text-red-200">—</p>
+                    <p id="kx-agot-sub" class="text-[10px] text-red-700/80 dark:text-red-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-xl border border-orange-100 dark:border-orange-900/50 shadow-sm">
+                    <p class="text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase">Por Surtir (aprox.)</p>
+                    <p id="kx-surtir" class="text-xl font-bold text-orange-800 dark:text-orange-200">—</p>
+                    <p id="kx-surtir-sub" class="text-[10px] text-orange-700/80 dark:text-orange-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-cyan-50 dark:bg-cyan-950/40 p-3 rounded-xl border border-cyan-100 dark:border-cyan-900/50 shadow-sm">
+                    <p class="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase">Dinero Parado 60+ días</p>
+                    <p id="kx-parado" class="text-xl font-bold text-cyan-800 dark:text-cyan-200">—</p>
+                    <p id="kx-parado-sub" class="text-[10px] text-cyan-700/80 dark:text-cyan-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-lime-50 dark:bg-lime-950/40 p-3 rounded-xl border border-lime-100 dark:border-lime-900/50 shadow-sm">
+                    <p class="text-[10px] text-lime-600 dark:text-lime-400 font-bold uppercase">Margen Bruto 90 días</p>
+                    <p id="kx-margen" class="text-xl font-bold text-lime-800 dark:text-lime-200">—</p>
+                    <p id="kx-margen-sub" class="text-[10px] text-lime-700/80 dark:text-lime-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-fuchsia-50 dark:bg-fuchsia-950/40 p-3 rounded-xl border border-fuchsia-100 dark:border-fuchsia-900/50 shadow-sm">
+                    <p class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase">Mejor Día de la Semana</p>
+                    <p id="kx-dia" class="text-xl font-bold text-fuchsia-800 dark:text-fuchsia-200">—</p>
+                    <p id="kx-dia-sub" class="text-[10px] text-fuchsia-700/80 dark:text-fuchsia-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">Flujo Neto 4 Semanas</p>
+                    <p id="kx-neto" class="text-xl font-bold text-blue-800 dark:text-blue-200">—</p>
+                    <p id="kx-neto-sub" class="text-[10px] text-blue-700/80 dark:text-blue-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-950/40 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/50 shadow-sm">
+                    <p class="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">Gasto Operativo / Mes</p>
+                    <p id="kx-opmes" class="text-xl font-bold text-yellow-800 dark:text-yellow-200">—</p>
+                    <p id="kx-opmes-sub" class="text-[10px] text-yellow-700/80 dark:text-yellow-300/80 mt-0.5"></p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-slate-900/50 shadow-sm">
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase">Punto de Equilibrio / Mes</p>
+                    <p id="kx-pe" class="text-xl font-bold text-slate-800 dark:text-slate-200">—</p>
+                    <p id="kx-pe-sub" class="text-[10px] text-slate-700/80 dark:text-slate-300/80 mt-0.5"></p>
                 </div>
             </div>
 
@@ -855,16 +910,34 @@
                 </div>
             </div>
 
+            <!-- ROW 4D2: GASTO OPERATIVO -->
+            <div class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm mb-1">🏪 Gasto Operativo y Punto de Equilibrio</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Renta, sueldos, internet, impresoras y consumibles (lo que cuesta operar cada mes), sin contar la mercancía que resurtes.</p>
+                    <div id="go-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+                    <div class="relative" style="height: 300px;"><canvas id="chartGastoOp"></canvas></div>
+                    <div class="overflow-x-auto mt-3">
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-500 dark:text-gray-400 border-b dark:border-gray-700"><tr><th class="py-2">Mes</th><th class="py-2 text-right">Ventas</th><th class="py-2 text-right">Ganancia bruta</th><th class="py-2 text-right">Gasto operativo</th><th class="py-2 text-right">Utilidad operativa</th><th class="py-2 pl-3">Detalle</th></tr></thead>
+                            <tbody id="go-tabla"></tbody>
+                        </table>
+                    </div>
+                    <p id="go-nota" class="text-[10px] text-gray-400 mt-2"></p>
+                </div>
+            </div>
+
             <!-- ROW 4E: FLUJO DE CAJA SEMANAL + PROYECCIÓN ROI (mitad y mitad) -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💵 Flujo de Caja Semanal</h3>
+                        <label class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1 cursor-pointer"><input id="chk-flujo-resurtido" type="checkbox" checked onchange="renderFlujoCaja()"> Incluir resurtido</label>
                         <select id="sel-flujo" onchange="renderFlujoCaja()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="8">Últimas 8 semanas</option><option value="12" selected>Últimas 12 semanas</option><option value="26">Últimas 26 semanas</option></select>
                     </div>
                     <div id="flujo-kpis" class="grid grid-cols-2 gap-2 mb-2"></div>
                     <div class="relative flex-1" style="min-height: 320px;"><canvas id="chartFlujo"></canvas></div>
-                    <p class="text-[10px] text-gray-400 mt-2">Semanas de lunes a domingo. Ventas = lo cobrado; Retiros = salidas de caja registradas; Gastos = compras/gastos ya pagados con fecha. Los gastos a crédito sin pagar no se cuentan. Si un mismo gasto lo capturaste como retiro y como gasto, aparece en ambos.</p>
+                    <p class="text-[10px] text-gray-400 mt-2">Semanas de lunes a domingo. Es dinero que entró y salió de caja: por eso el resurtido pagado sí cuenta aquí (desmárcalo para ver solo la operación). En las métricas de ganancia el resurtido nunca se resta, porque ya está en el costo de lo vendido. Gastos a crédito sin pagar y gastos sin fecha no se cuentan. Si un mismo gasto lo capturaste como retiro y como gasto, aparece en ambos.</p>
                 </div>
 
                 <!-- PROYECCIÓN INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) -->
@@ -1811,8 +1884,26 @@
 
         async function agregarInversionPrompt() {
             let f = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
-            const { value: v } = await Swal.fire({ title: 'Gasto / Inversión', html: '<input id="sw-con" class="swal2-input" placeholder="Concepto"><input id="sw-can" type="number" class="swal2-input" placeholder="Monto"><input id="sw-obs" class="swal2-input" placeholder="Notas"><select id="sw-pag" class="swal2-input"><option value="NO">No (Crédito)</option><option value="SI">Sí (Pagado)</option></select><input id="sw-fec" class="swal2-input" value="'+f+'"><input id="sw-per" class="swal2-input" placeholder="Persona">', focusConfirm: false, preConfirm: () => ({ concepto:document.getElementById('sw-con').value, cantidad:parseFloat(document.getElementById('sw-can').value)||0, observaciones:document.getElementById('sw-obs').value, pagado:document.getElementById('sw-pag').value, fecha:document.getElementById('sw-fec').value, persona:document.getElementById('sw-per').value }) });
+            const { value: v } = await Swal.fire({ title: 'Gasto / Inversión', html: '<input id="sw-con" class="swal2-input" placeholder="Concepto"><input id="sw-can" type="number" class="swal2-input" placeholder="Monto"><input id="sw-obs" class="swal2-input" placeholder="Notas"><select id="sw-pag" class="swal2-input"><option value="NO">No (Crédito)</option><option value="SI">Sí (Pagado)</option></select><select id="sw-cat" class="swal2-input"><option value="">Categoría: automática</option><option value="Resurtido">Resurtido (mercancía)</option><option value="Operativo">Operativo (renta, sueldos, internet, consumibles)</option><option value="Inversión">Inversión (equipo, local, mobiliario)</option></select><input id="sw-fec" class="swal2-input" value="'+f+'"><input id="sw-per" class="swal2-input" placeholder="Persona">', focusConfirm: false, preConfirm: () => ({ concepto:document.getElementById('sw-con').value, cantidad:parseFloat(document.getElementById('sw-can').value)||0, observaciones:document.getElementById('sw-obs').value, pagado:document.getElementById('sw-pag').value, fecha:document.getElementById('sw-fec').value, persona:document.getElementById('sw-per').value, categoria:document.getElementById('sw-cat').value }) });
+            if (v && !v.categoria) v.categoria = gastoCatAuto(v);
             if(v && v.concepto && v.cantidad) { Swal.fire({title:'Guardando...',didOpen:()=>Swal.showLoading()}); await enviarDatosAGoogleSheets({tipo:'nuevaInversion', ...v}); await cargarDatosAnalisis(); Swal.fire('¡Guardado!', '', 'success'); }
+        }
+
+        async function cambiarCategoriaGasto(rowIndex, actual) {
+            const { value: cat } = await Swal.fire({ title: 'Categoría del gasto', input: 'select', inputOptions: { 'Resurtido': 'Resurtido (mercancía para vender)', 'Operativo': 'Operativo (renta, sueldos, internet, consumibles)', 'Inversión': 'Inversión (equipo, local, mobiliario)' }, inputValue: actual, showCancelButton: true, confirmButtonText: 'Guardar' });
+            if (!cat || cat === actual) return;
+            Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
+            await enviarDatosAGoogleSheets({ tipo: 'actualizarCategoriaInversion', rowIndex: rowIndex, categoria: cat });
+            await cargarDatosAnalisis(); Swal.fire('¡Actualizado!', '', 'success');
+        }
+        async function guardarCategoriasAuto() {
+            const items = (cacheUltimoAnalisis && cacheUltimoAnalisis.inversion || []).filter(i => !gastoCatGuardada(i)).map(i => ({ rowIndex: i.rowIndex, categoria: gastoCategoria(i) }));
+            if (!items.length) return;
+            const ok = await Swal.fire({ title: `Guardar ${items.length} categorías`, text: 'Se escribirán en la hoja las categorías sugeridas. Luego puedes cambiar cualquiera tocando su etiqueta.', icon: 'question', showCancelButton: true, confirmButtonText: 'Guardar' });
+            if (!ok.isConfirmed) return;
+            Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
+            await enviarDatosAGoogleSheets({ tipo: 'guardarCategoriasInversion', items: items });
+            await cargarDatosAnalisis(); Swal.fire('¡Guardado!', '', 'success');
         }
 
         async function cambiarEstadoPago(r, act) {
@@ -1847,7 +1938,7 @@ async function cargarDatosAnalisis() {
             
             // Si no hay datos
             if(!invs || invs.length === 0) {
-                tb.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">No hay registros de gastos.</td></tr>`;
+                tb.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">No hay registros de gastos.</td></tr>`;
                 document.getElementById('inv-total-credito').innerText = `$0.00`;
                 document.getElementById('inv-total-pagado').innerText = `$0.00`;
                 return;
@@ -1871,8 +1962,15 @@ async function cargarDatosAnalisis() {
                     <td class="py-2 px-3 text-center">${btnPagado}</td>
                     <td class="py-2 px-3 text-gray-500">${i.fecha||'-'}</td>
                     <td class="py-2 px-3 text-gray-600 dark:text-gray-300 font-medium">${i.persona||'-'}</td>
+                    <td class="py-2 px-3">${badgeCategoriaGasto(i)}</td>
                 </tr>`;
             });
+            // Resumen por categoría y botón para guardar las sugeridas
+            let resCat = { 'Resurtido': 0, 'Operativo': 0, 'Inversión': 0 }, nAuto = 0;
+            invs.forEach(i => { resCat[gastoCategoria(i)] += Math.abs(parseFloat(i.cantidad) || 0); if (!gastoCatGuardada(i)) nAuto++; });
+            let elRes = document.getElementById('inv-resumen-cat');
+            if (elRes) elRes.innerHTML = Object.keys(resCat).map(c => `<span class="px-3 py-1 rounded-full font-semibold ${GASTO_COLORES[c]}">${c}: $${formatMiles(resCat[c])}</span>`).join('') + (nAuto ? `<span class="px-3 py-1 text-gray-500 dark:text-gray-400">* ${nAuto} con categoría sugerida (toca la etiqueta para cambiarla)</span>` : '');
+            let bg = document.getElementById('btn-guardar-cats'); if (bg) bg.classList.toggle('hidden', !nAuto);
             
             // Actualizamos los cuadros de la cabecera
             document.getElementById('inv-total-credito').innerText = `$${formatMiles(tC)}`;
@@ -2005,6 +2103,7 @@ function renderDineroParado() {
     });
     parados.sort((a, b) => b.capital - a.capital);
     let totalParado = parados.reduce((a, x) => a + x.capital, 0);
+    window.kpiParado = { total: totalParado, n: parados.length, umbral: umbral, totalInv: totalInv };
     let met = document.getElementById('parado-metricas');
     if (met) {
         const t = (tit, val, sub, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
@@ -2302,42 +2401,44 @@ function renderDiaSemana() {
     });
 }
 
-function calcFlujo(ventasPorDia, retiros, invs, hoy, nSem) {
+function calcFlujo(ventasPorDia, retiros, invs, hoy, nSem, inclResurtido) {
+    if (inclResurtido === undefined) inclResurtido = true;
     const lunHoy = anaLunes(hoy), ini = new Date(lunHoy.getFullYear(), lunHoy.getMonth(), lunHoy.getDate() - 7 * (nSem - 1));
-    const sem = []; for (let i = 0; i < nSem; i++) sem.push({ ini: new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 7 * i), v: 0, r: 0, g: 0 });
+    const sem = []; for (let i = 0; i < nSem; i++) sem.push({ ini: new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 7 * i), v: 0, r: 0, g: 0, rs: 0 });
     const idx = d => { if (!d || d < ini) return -1; const i = Math.floor(Math.round((anaLunes(d) - ini) / 86400000) / 7); return i >= 0 && i < nSem ? i : -1; };
     Object.keys(ventasPorDia || {}).forEach(k => { const i = idx(anaParseK(k)); if (i >= 0) sem[i].v += ventasPorDia[k]; });
     (retiros || []).forEach(r => { const i = idx(bParseVentaFecha(r)); if (i >= 0) sem[i].r += Math.abs(r.monto || 0); });
     (invs || []).forEach(g => {
         const p = String(g.pagado).toUpperCase(); if (p === 'NO' || p === 'FALSE') return;
-        const c = String(g.concepto || '').toLowerCase(); if (c.includes('inicial') || c.includes('inicio')) return;
-        const i = idx(bParseVentaFecha(g)); if (i >= 0) sem[i].g += Math.abs(g.cantidad || 0);
+        if (gastoEsInicial(g)) return;
+        const i = idx(anaParseFechaEs(g.fecha)); if (i < 0) return;
+        if (gastoCategoria(g) === 'Resurtido') sem[i].rs += Math.abs(g.cantidad || 0); else sem[i].g += Math.abs(g.cantidad || 0);
     });
-    sem.forEach(s => s.neto = s.v - s.r - s.g);
+    sem.forEach(s => s.neto = s.v - s.r - s.g - (inclResurtido ? s.rs : 0));
     return sem;
 }
 function renderFlujoCaja() {
     const ctx = document.getElementById('chartFlujo'); if (!ctx) return;
     if (window.chartFlujoInstance) window.chartFlujoInstance.destroy();
     const A = window.analisisCache || {}, n = parseInt((document.getElementById('sel-flujo') || {}).value) || 12;
-    const S = calcFlujo(A.ventasPorDia, A.retiros, A.invs, anaHoy(), n);
-    const tV = S.reduce((a, s) => a + s.v, 0), tR = S.reduce((a, s) => a + s.r, 0), tG = S.reduce((a, s) => a + s.g, 0), tN = tV - tR - tG;
+    const chk = document.getElementById('chk-flujo-resurtido'), incl = !chk || chk.checked;
+    const S = calcFlujo(A.ventasPorDia, A.retiros, A.invs, anaHoy(), n, incl);
+    const tV = S.reduce((a, s) => a + s.v, 0), tR = S.reduce((a, s) => a + s.r, 0), tG = S.reduce((a, s) => a + s.g, 0), tRs = S.reduce((a, s) => a + s.rs, 0), tN = S.reduce((a, s) => a + s.neto, 0);
     const kp = document.getElementById('flujo-kpis');
     if (kp) {
-        const t = (tit, val, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p></div>`;
-        kp.innerHTML = t('Ventas', '$' + formatMiles(tV), 'text-emerald-600 dark:text-emerald-400') + t('Retiros', '$' + formatMiles(tR), 'text-red-600 dark:text-red-400') + t('Gastos pagados', '$' + formatMiles(tG), 'text-orange-600 dark:text-orange-400') + t('Neto del periodo', (tN < 0 ? '-$' : '$') + formatMiles(Math.abs(tN)), tN >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400');
+        const t = (tit, val, cls, sub) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p>${sub ? `<p class="text-[10px] text-gray-400">${sub}</p>` : ''}</div>`;
+        kp.innerHTML = t('Ventas', '$' + formatMiles(tV), 'text-emerald-600 dark:text-emerald-400') + t('Retiros', '$' + formatMiles(tR), 'text-red-600 dark:text-red-400') + t('Gastos pagados', '$' + formatMiles(tG), 'text-orange-600 dark:text-orange-400', 'operativos e inversión') + t('Resurtido pagado', '$' + formatMiles(tRs), 'text-yellow-600 dark:text-yellow-400', incl ? 'incluido en el neto' : 'no incluido en el neto') + t('Neto del periodo', (tN < 0 ? '-$' : '$') + formatMiles(Math.abs(tN)), tN >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400');
     }
     const tc = anaTxtColor();
+    const ds = [
+        { type: 'bar', label: 'Ventas', data: S.map(s => s.v), backgroundColor: '#10b981', borderRadius: 3, stack: 'in', order: 2 },
+        { type: 'bar', label: 'Retiros', data: S.map(s => -s.r), backgroundColor: '#ef4444', borderRadius: 3, stack: 'out', order: 2 },
+        { type: 'bar', label: 'Gastos', data: S.map(s => -s.g), backgroundColor: '#f97316', borderRadius: 3, stack: 'out', order: 2 }
+    ];
+    if (incl) ds.push({ type: 'bar', label: 'Resurtido', data: S.map(s => -s.rs), backgroundColor: '#eab308', borderRadius: 3, stack: 'out', order: 2 });
+    ds.push({ type: 'line', label: 'Neto', data: S.map(s => s.neto), borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.25, pointRadius: 4, order: 1 });
     window.chartFlujoInstance = new Chart(ctx, {
-        data: {
-            labels: S.map(s => anaDiaCorto(s.ini)),
-            datasets: [
-                { type: 'bar', label: 'Ventas', data: S.map(s => s.v), backgroundColor: '#10b981', borderRadius: 3, stack: 'in' },
-                { type: 'bar', label: 'Retiros', data: S.map(s => -s.r), backgroundColor: '#ef4444', borderRadius: 3, stack: 'out' },
-                { type: 'bar', label: 'Gastos', data: S.map(s => -s.g), backgroundColor: '#f97316', borderRadius: 3, stack: 'out' },
-                { type: 'line', label: 'Neto', data: S.map(s => s.neto), borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.25, pointRadius: 4 }
-            ]
-        },
+        data: { labels: S.map(s => anaDiaCorto(s.ini)), datasets: ds },
         options: { responsive: true, maintainAspectRatio: false,
             plugins: { legend: { labels: { color: tc, boxWidth: 12 } }, tooltip: { callbacks: { title: i => 'Semana del ' + anaDiaCorto(S[i[0].dataIndex].ini), label: c => ' ' + c.dataset.label + ': ' + (c.parsed.y < 0 ? '-$' : '$') + formatMiles(Math.abs(c.parsed.y)) } } },
             scales: { x: { ticks: { color: tc } }, y: { ticks: { color: tc, callback: v => '$' + v.toLocaleString('en-US') } } } }
@@ -2409,17 +2510,146 @@ function renderBenchmark() {
     tb.innerHTML = rows.join('');
 }
 
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); }
+
+
+// ==========================================
+// CATEGORÍAS DE GASTOS (Resurtido / Operativo / Inversión)
+// ==========================================
+const GASTO_CATS = ['Resurtido', 'Operativo', 'Inversión'];
+const GASTO_COLORES = { 'Resurtido': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300', 'Operativo': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300', 'Inversión': 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300' };
+const anaNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function gastoEsInicial(g) { const c = String(g.concepto || '').toLowerCase(); return c.includes('inicial') || c.includes('inicio'); }
+// Categoría sugerida por palabras clave (concepto + observaciones)
+function gastoCatAuto(g) {
+    const t = anaNorm((g.concepto || '') + ' ' + (g.observaciones || ''));
+    if (/surtir|surtido/.test(t)) return 'Resurtido';
+    if (/instalacion|vitrina|\blocal\b|ventana|mano de obra|laptop|punto de acceso|mikrotik|switch|estante|repetidor|extension|impresora doble|regulador|silicon/.test(t)) return 'Inversión';
+    if (/renta|sueldo|miriam|pago semana|mensualidad|internet|toner|jeringa|tinta|fumigacion|consumible|limpieza|\bluz\b|\bagua\b/.test(t)) return 'Operativo';
+    if (/papeleria|lapicero|libreta|cuaderno|bond|folder|hojas|marcador|calculadora|globo|tabla periodica|broches|ganchos|munditela|articulos|tijeras|colores|corrector|diurex|kleenex|\bcontact\b/.test(t)) return 'Resurtido';
+    return 'Inversión';
+}
+function gastoCatGuardada(g) { const c = anaNorm(g.categoria); return c.startsWith('resurt') || c.startsWith('operat') || c.startsWith('inversi'); }
+function gastoCategoria(g) {
+    const c = anaNorm(g.categoria);
+    if (c.startsWith('resurt')) return 'Resurtido'; if (c.startsWith('operat')) return 'Operativo'; if (c.startsWith('inversi')) return 'Inversión';
+    return gastoCatAuto(g);
+}
+function badgeCategoriaGasto(g) {
+    const c = gastoCategoria(g), auto = !gastoCatGuardada(g);
+    return `<button onclick="cambiarCategoriaGasto(${g.rowIndex}, '${c}')" title="${auto ? 'Sugerida por el sistema. Toca para cambiarla.' : 'Toca para cambiarla'}" class="px-2 py-0.5 rounded-full font-semibold cursor-pointer ${GASTO_COLORES[c]}">${c}${auto ? ' *' : ''}</button>`;
+}
+// Subcategoría de los gastos operativos
+const GASTO_SUBS = ['Renta', 'Sueldos', 'Internet', 'Impresoras', 'Consumibles', 'Otros'];
+const GASTO_SUB_COLOR = { 'Renta': '#6366f1', 'Sueldos': '#10b981', 'Internet': '#06b6d4', 'Impresoras': '#f59e0b', 'Consumibles': '#ec4899', 'Otros': '#9ca3af' };
+function gastoSub(g) {
+    const t = anaNorm((g.concepto || '') + ' ' + (g.observaciones || ''));
+    if (/impresora/.test(t)) return 'Impresoras';
+    if (/renta|mensualidad/.test(t)) return 'Renta';
+    if (/sueldo|miriam|pago semana/.test(t)) return 'Sueldos';
+    if (/internet/.test(t)) return 'Internet';
+    if (/toner|jeringa|tinta|consumible|limpieza/.test(t)) return 'Consumibles';
+    return 'Otros';
+}
+// Fechas de la hoja de gastos: "18-ago-2026", "24 de agosto de 2026", "28 ago 2026", ISO, dd/mm/aaaa
+function anaParseFechaEs(v) {
+    if (v instanceof Date) return isNaN(v) ? null : v;
+    let s = String(v == null ? '' : v).trim(); if (!s) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s) || /^\d{1,2}\/\d{1,2}\/\d{4}/.test(s)) return bParseVentaFecha({ fecha: s });
+    const n = anaNorm(s).replace(/\bde\b/g, ' ').replace(/[.,]/g, ' ');
+    const m = n.match(/(\d{1,2})[\s\-\/]+([a-z]{3,})[\s\-\/]+(\d{4})/); if (!m) return null;
+    const mi = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'].indexOf(m[2].substring(0, 3));
+    return mi < 0 ? null : new Date(+m[3], mi, +m[1]);
+}
+
+// Gasto operativo por mes, utilidad operativa y punto de equilibrio
+function calcGastoOperativo(invs, ingresoPorDia, gananciaPorDia, ventasPorDia, hoy) {
+    const porMes = {}; let sinFecha = 0;
+    (invs || []).forEach(g => {
+        if (gastoEsInicial(g) || gastoCategoria(g) !== 'Operativo') return;
+        const m = Math.abs(g.cantidad || 0), d = anaParseFechaEs(g.fecha);
+        if (!d) { sinFecha += m; return; }
+        const k = calKey(d).substring(0, 7), s = gastoSub(g), o = (porMes[k] = porMes[k] || { total: 0, sub: {} });
+        o.total += m; o.sub[s] = (o.sub[s] || 0) + m;
+    });
+    const claves = Object.keys(porMes).sort(); if (!claves.length) return { vacio: true, sinFecha };
+    const kHoy = calKey(hoy).substring(0, 7);
+    const sumMes = (obj, k) => Object.keys(obj || {}).reduce((a, d) => a + (d.startsWith(k) ? obj[d] : 0), 0);
+    const meses = []; let y = +claves[0].substring(0, 4), mo = +claves[0].substring(5, 7) - 1;
+    for (let guard = 0; guard < 36; guard++) {
+        const k = y + '-' + String(mo + 1).padStart(2, '0'); if (k > kHoy) break;
+        const o = porMes[k] || { total: 0, sub: {} };
+        const gan = sumMes(gananciaPorDia, k), ing = sumMes(ingresoPorDia, k), ven = sumMes(ventasPorDia, k);
+        meses.push({ k, y, mo, op: o.total, sub: o.sub, gan, ing, ven, util: gan - o.total, enCurso: k === kHoy, primero: k === claves[0] });
+        mo++; if (mo > 11) { mo = 0; y++; }
+    }
+    let base = meses.filter(m => !m.enCurso && !m.primero); if (!base.length) base = meses.filter(m => !m.enCurso); if (!base.length) base = meses;
+    const opProm = base.reduce((a, m) => a + m.op, 0) / base.length;
+    const ingB = base.reduce((a, m) => a + m.ing, 0), ganB = base.reduce((a, m) => a + m.gan, 0), venB = base.reduce((a, m) => a + m.ven, 0);
+    const margen = ingB > 0 ? ganB / ingB : null;
+    const pe = margen && margen > 0 ? opProm / margen : null;
+    const habMes = Math.max(1, calHabilesEntre(new Date(hoy.getFullYear(), hoy.getMonth(), 1), new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1)));
+    return { vacio: false, meses, nBase: base.length, opProm, margen, pe, peDia: pe ? pe / habMes : null, pctVentas: venB > 0 ? opProm / venB * 100 : null, sinFecha };
+}
+function renderGastoOperativo() {
+    const ctx = document.getElementById('chartGastoOp'); if (!ctx) return;
+    if (window.chartGastoOpInstance) window.chartGastoOpInstance.destroy();
+    const A = window.analisisCache || {}, R = calcGastoOperativo(A.invs, A.ingresoPorDia, A.gananciaPorDia, A.ventasPorDia, anaHoy());
+    window.kpiGastoOp = R;
+    const kp = document.getElementById('go-kpis'), tb = document.getElementById('go-tabla'), nota = document.getElementById('go-nota');
+    if (R.vacio) { if (kp) kp.innerHTML = ''; if (tb) tb.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-400 italic">Aún no hay gastos operativos con fecha. Registra renta, sueldos, internet o consumibles en la pestaña Gastos con categoría "Operativo".</td></tr>'; return; }
+    const $ = n => '$' + formatMiles(n), MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const t = (tit, val, sub, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+    const ult = R.meses.filter(m => !m.enCurso).slice(-1)[0] || R.meses[R.meses.length - 1];
+    if (kp) kp.innerHTML = t('Gasto operativo / mes', $(R.opProm), `promedio de ${R.nBase} mes${R.nBase === 1 ? '' : 'es'} completo${R.nBase === 1 ? '' : 's'}`, 'text-amber-600 dark:text-amber-400') +
+        t('% de tus ventas', R.pctVentas !== null ? R.pctVentas.toFixed(1) + '%' : '—', 'lo que se va en operar', 'text-rose-600 dark:text-rose-400') +
+        t('Punto de equilibrio', R.pe ? $(R.pe) + ' /mes' : '—', R.peDia ? `≈ ${$(R.peDia)} por día hábil` : 'falta margen', 'text-blue-600 dark:text-blue-400') +
+        t('Utilidad operativa ' + MES[ult.mo], (ult.util < 0 ? '-' : '') + $(Math.abs(ult.util)), 'ganancia bruta − gasto operativo' + (ult.enCurso ? ' (mes en curso)' : ''), ult.util >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400');
+    const ult6 = R.meses.slice(-6), tc = anaTxtColor();
+    const subs = GASTO_SUBS.filter(s => ult6.some(m => m.sub[s]));
+    window.chartGastoOpInstance = new Chart(ctx, {
+        data: { labels: ult6.map(m => MES[m.mo] + (m.enCurso ? ' *' : '')), datasets: subs.map(s => ({ type: 'bar', label: s, data: ult6.map(m => m.sub[s] || 0), backgroundColor: GASTO_SUB_COLOR[s], stack: 'op', order: 2 })).concat([{ type: 'line', label: 'Ganancia bruta', data: ult6.map(m => m.gan), borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.25, pointRadius: 4, order: 1 }]) },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tc, boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': $' + formatMiles(c.parsed.y) } } }, scales: { x: { stacked: true, ticks: { color: tc } }, y: { stacked: true, beginAtZero: true, ticks: { color: tc, callback: v => '$' + v.toLocaleString('en-US') } } } }
+    });
+    if (tb) tb.innerHTML = ult6.slice().reverse().map(m => `<tr class="border-b dark:border-gray-800"><td class="py-2 font-medium text-gray-800 dark:text-gray-200">${MES[m.mo]} ${m.y}${m.enCurso ? ' <span class="text-[10px] text-gray-400">(en curso)</span>' : ''}</td><td class="py-2 text-right">${$(m.ven)}</td><td class="py-2 text-right">${$(m.gan)}</td><td class="py-2 text-right text-amber-600 dark:text-amber-400">${$(m.op)}</td><td class="py-2 text-right font-bold ${m.util >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}">${m.util < 0 ? '-' : ''}${$(Math.abs(m.util))}</td><td class="py-2 pl-3 text-gray-500 dark:text-gray-400">${GASTO_SUBS.filter(s => m.sub[s]).map(s => s + ' ' + $(m.sub[s])).join(' · ')}</td></tr>`).join('');
+    if (nota) nota.innerText = 'Solo gastos con categoría Operativo, contados en el mes de su fecha (estén pagados o a crédito). No incluye resurtido ni inversión en equipo/local. El punto de equilibrio es lo que debes vender al mes para que tu ganancia bruta cubra el gasto operativo.' + (R.sinFecha > 0 ? ` Hay $${formatMiles(R.sinFecha)} de gasto operativo sin fecha que no entra en los meses.` : '') + ' El primer mes suele ser parcial y no entra en el promedio.';
+}
+
+// Resumen de las gráficas nuevas en la primera sección
+function renderKpisExtra() {
+    const A = window.analisisCache || {}, hoy = anaHoy();
+    const set = (id, t, cls) => { const e = document.getElementById(id); if (e) { e.innerText = t; } };
+    const cob = calcCobertura(A.inv, A.prodEventos, hoy, 30, 15), lista = cob.filter(f => f.pedir > 0);
+    const nAg = cob.filter(f => f.agotado).length, nCr = cob.filter(f => !f.agotado && f.dias <= 3).length;
+    set('kx-agot', String(nAg)); set('kx-agot-sub', `${nCr} más con ≤ 3 días de stock`);
+    set('kx-surtir', '$' + formatMiles(lista.reduce((a, f) => a + f.costoPedir, 0))); set('kx-surtir-sub', `${lista.length} producto${lista.length === 1 ? '' : 's'} para 15 días hábiles`);
+    const P = window.kpiParado;
+    if (P) { set('kx-parado', '$' + formatMiles(P.total)); set('kx-parado-sub', `${P.n} producto${P.n === 1 ? '' : 's'} · ${P.totalInv > 0 ? (P.total / P.totalInv * 100).toFixed(0) : 0}% del inventario`); }
+    const B = calcBenchmark(A, hoy, parseInt((document.getElementById('inp-matricula') || {}).value) || 1100);
+    if (B && B.margen !== null) { set('kx-margen', B.margen.toFixed(1) + '%'); set('kx-margen-sub', 'referencia papelería: 40–43%'); } else { set('kx-margen', '—'); set('kx-margen-sub', 'sin ventas suficientes'); }
+    const D = calcDiaSemana(A.ventasPorDia, hoy, '84'), nom = { 0: 'Domingo', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado' };
+    const act = (D || []).filter(x => x.prom > 0).sort((a, b) => b.prom - a.prom);
+    if (act.length) { set('kx-dia', nom[act[0].dow]); set('kx-dia-sub', `$${formatMiles(act[0].prom)} en promedio (12 sem.)`); } else { set('kx-dia', '—'); set('kx-dia-sub', ''); }
+    const S = calcFlujo(A.ventasPorDia, A.retiros, A.invs, hoy, 4, true), neto = S.reduce((a, s) => a + s.neto, 0);
+    const e = document.getElementById('kx-neto'); if (e) { e.innerText = (neto < 0 ? '-$' : '$') + formatMiles(Math.abs(neto)); }
+    set('kx-neto-sub', `incluye resurtido pagado`);
+    const GO = window.kpiGastoOp;
+    if (GO && !GO.vacio) { set('kx-opmes', '$' + formatMiles(GO.opProm)); set('kx-opmes-sub', GO.pctVentas !== null ? GO.pctVentas.toFixed(1) + '% de tus ventas' : 'promedio mensual'); set('kx-pe', GO.pe ? '$' + formatMiles(GO.pe) : '—'); set('kx-pe-sub', GO.peDia ? `≈ $${formatMiles(GO.peDia)} por día hábil` : 'ventas al mes para cubrir gastos'); }
+    else { set('kx-opmes', '—'); set('kx-opmes-sub', 'sin gastos operativos con fecha'); set('kx-pe', '—'); set('kx-pe-sub', ''); }
+}
+
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderKpisExtra(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
             // 1. INVERSIÓN Y GANANCIAS HISTÓRICAS
             // ==========================================
-            let iT = 0; // Inversión Total (Gastos)
+            let iT = 0; // Gastos e inversión (SIN resurtido: la mercancía ya está descontada en el costo de cada producto vendido)
+            let resurtidoT = 0;
             invs.forEach(i => { 
-                let c = (i.concepto || "").toLowerCase(); 
                 // Excluimos saldos iniciales o movimientos de caja base
-                if (!c.includes("inicial") && !c.includes("inicio")) iT += Math.abs(i.cantidad || 0); 
+                if (gastoEsInicial(i)) return;
+                if (gastoCategoria(i) === 'Resurtido') resurtidoT += Math.abs(i.cantidad || 0);
+                else iT += Math.abs(i.cantidad || 0); 
             });
 
             let gT = 0; // Ganancia Neta Total
@@ -2442,7 +2672,8 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let diasConVentaMesActual = new Set();
 
             // Variables para Retención (Recompra)
-            let comprasPorCliente = {}; // { "5512345678": 3 }
+            let comprasPorCliente = {}; // { "5512345678": Set de días en que compró }
+            let ticketsConTel = 0;
 
             // --- INICIO DEL CICLO DE VENTAS ---
             vts.forEach(v => {
@@ -2475,10 +2706,14 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 }
 
                 // Clientes (Teléfono)
-                let tel = v.telefono || ""; 
-                if (tel !== "N/A" && tel.length >= 10) {
+                // Sheets guarda el teléfono como número, así que se normaliza a texto y se toman los últimos 10 dígitos
+                let tel = String(v.telefono == null ? "" : v.telefono).replace(/\D/g, "");
+                if (tel.length >= 10) {
+                    tel = tel.slice(-10);
                     if (!cli[tel]) cli[tel] = fechaStr; 
-                    comprasPorCliente[tel] = (comprasPorCliente[tel] || 0) + 1;
+                    // una "recompra" es volver otro día distinto (dos tickets el mismo día cuentan como una visita)
+                    (comprasPorCliente[tel] = comprasPorCliente[tel] || new Set()).add(fechaStr || ('t' + comprasPorCliente[tel]));
+                    ticketsConTel++;
                 }
                 if (v.whatsappEnviado === "SI") wC++;
 
@@ -2553,12 +2788,19 @@ function procesarMetricasAnalisis(vts, inv, invs) {
 
             // Clientes Base y Retención
             let totalClientesUnicos = Object.keys(cli).length;
-            let clientesRecurrentes = Object.values(comprasPorCliente).filter(compras => compras > 1).length;
+            let clientesRecurrentes = Object.values(comprasPorCliente).filter(s => s.size > 1).length;
             let tasaRecompra = totalClientesUnicos > 0 ? (clientesRecurrentes / totalClientesUnicos) * 100 : 0;
             
             document.getElementById('ana-total-clientes').innerText = totalClientesUnicos;
             document.getElementById('ana-tasa-recompra').innerText = `${tasaRecompra.toFixed(1)}%`;
-            document.getElementById('ana-proporcion-wa').innerText = `${vts.length > 0 ? ((wC / vts.length) * 100).toFixed(1) : 0}%`;
+            document.getElementById('ana-proporcion-wa').innerText = `${vts.length > 0 ? ((ticketsConTel / vts.length) * 100).toFixed(1) : 0}%`;
+            const setT = (id, t) => { const e = document.getElementById(id); if (e) e.innerText = t; };
+            setT('ana-sub-recompra', `${clientesRecurrentes} de ${totalClientesUnicos} cliente${totalClientesUnicos === 1 ? '' : 's'} volvió otro día`);
+            setT('ana-sub-clientes', 'teléfonos distintos registrados');
+            setT('ana-sub-wa', `${ticketsConTel} de ${vts.length} tickets con teléfono`);
+            let porPagar = 0; invs.forEach(i => { const p = String(i.pagado).toUpperCase(); if ((p === 'NO' || p === 'FALSE') && !gastoEsInicial(i) && gastoCategoria(i) !== 'Resurtido') porPagar += Math.abs(i.cantidad || 0); });
+            setT('ana-sub-inversion', (porPagar > 0 ? `incluye $${formatMiles(porPagar)} por pagar` : 'todo pagado') + ` · sin $${formatMiles(resurtidoT)} de resurtido`);
+            setT('ana-sub-ganancia', `sobre $${formatMiles(Object.values(ingresoPorDia).reduce((a, x) => a + x, 0))} vendidos`);
 
 
             // ==========================================
@@ -2821,9 +3063,10 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         // sumCol = columna de monto para mostrar "Suma" de lo filtrado | tipos = tipo de cada columna para ordenar (null = no ordenable)
         const FILTROS_TABLAS = [
             { tbody: 'tabla-inversiones-completa', sumCol: 1, skipCols: [3],
-              tipos: ['texto', 'numero', 'texto', 'texto', 'fecha', 'texto'],
+              tipos: ['texto', 'numero', 'texto', 'texto', 'fecha', 'texto', 'texto'],
               selects: [
                 { col: 3, label: 'Pagado', opciones: [['si', 'Pagado: Sí'], ['no', 'Pagado: No (crédito)']] },
+                { col: 6, label: 'Categoría', opciones: [['resurtido', 'Resurtido'], ['operativo', 'Operativo'], ['inversion', 'Inversión']] },
                 { col: 5, label: 'Persona', dinamico: true } ] },
             { tbody: 'tabla-retiros-historial', sumCol: 2, tipos: ['fecha', 'texto', 'numero'] },
             { tbody: 'tabla-resumen-articulos', sumCol: 3, tipos: ['texto', 'numero', 'numero', 'numero'] },
