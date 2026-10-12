@@ -881,6 +881,26 @@
                 </div>
             </div>
 
+            <!-- ROW 6: BENCHMARK -->
+            <div class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🧭 Comparativo contra el Mercado (papelería escolar)</h3>
+                        <label class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">Matrícula de la escuela
+                            <input id="inp-matricula" type="number" min="1" value="1100" onchange="renderBenchmark()" class="w-20 text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">No existe un benchmark oficial para una papelería dentro de una preparatoria técnica. Aquí usamos los datos públicos más cercanos y, donde no hay referencia, solo te mostramos tu cifra para que la sigas mes a mes.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-500 dark:text-gray-400 border-b dark:border-gray-700"><tr><th class="py-2">Indicador</th><th class="py-2 text-right">Tu negocio</th><th class="py-2 pl-3">Referencia</th><th class="py-2 pl-3">Lectura</th></tr></thead>
+                            <tbody id="tabla-benchmark"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-2">Fuentes: Censo Económico 2019 INEGI / DataMéxico, rama 4653 (ingreso total ÷ establecimientos, en pesos de 2019, incluye libros y revistas); márgenes y gasto por alumno: rangos de guías de negocio (modelosdeplandenegocios.com), sin fuente primaria, tómalos como orientativos. Tu margen usa el costo capturado en el inventario.</p>
+                </div>
+            </div>
+
         </div>
     <!-- Contenedores ocultos (Impresión) -->
     <div style="position: absolute; left: -9999px; top: -9999px;">
@@ -2324,7 +2344,72 @@ function renderFlujoCaja() {
     });
 }
 
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); }
+
+// ==========================================
+// BENCHMARK CONTRA EL MERCADO
+// ==========================================
+const BENCH = { ventasMesCenso2019: 61289e6 / 128916 / 12, margenMin: 40, margenMax: 43, gastoAlumnoMin: 1000, gastoAlumnoMax: 3000 };
+function calcBenchmark(A, hoy, matricula) {
+    const ventas = A.ventasPorDia || {}, ing = A.ingresoPorDia || {}, gan = A.gananciaPorDia || {}, tk = A.ticketsPorDia || {};
+    let primera = null; Object.keys(ventas).forEach(k => { const d = anaParseK(k); if (d && (!primera || d < primera)) primera = d; });
+    if (!primera) return null;
+    // meses completos (hasta 12 hacia atrás, sin el mes en curso ni el primer mes si quedó incompleto)
+    const meses = [];
+    for (let i = 1; i <= 12; i++) {
+        const ini = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1), fin = new Date(hoy.getFullYear(), hoy.getMonth() - i + 1, 1);
+        const m0 = new Date(primera.getFullYear(), primera.getMonth(), 1);
+        if (ini < m0 || (ini.getTime() === m0.getTime() && primera.getDate() > 3)) break;
+        let s = 0; for (let d = new Date(ini); d < fin; d = calSig(d)) s += ventas[calKey(d)] || 0;
+        meses.push({ ini, s });
+    }
+    const out = { nMeses: meses.length, matricula };
+    out.ventasMes = meses.length ? meses.reduce((a, m) => a + m.s, 0) / meses.length : null;
+    // ventana de 90 días (sin hoy)
+    const ini90 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 90);
+    let i90 = 0, g90 = 0, t90 = 0, v90 = 0;
+    for (let d = new Date(ini90); d < hoy; d = calSig(d)) { const k = calKey(d); i90 += ing[k] || 0; g90 += gan[k] || 0; t90 += tk[k] || 0; v90 += ventas[k] || 0; }
+    out.margen = i90 > 0 ? g90 / i90 * 100 : null;
+    const hab90 = Math.max(1, calHabilesEntre(ini90, hoy));
+    out.ticketsDia = t90 / hab90; out.pctAlumnos = matricula > 0 ? out.ticketsDia / matricula * 100 : null;
+    out.ticketProm = t90 > 0 ? v90 / t90 : null;
+    out.ventaAlumnoMes = out.ventasMes !== null && matricula > 0 ? out.ventasMes / matricula : null;
+    // inventario
+    let invCosto = 0; (A.inv || []).forEach(p => { if (!VINCULOS_STOCK[p.codigo] && p.stock > 0) invCosto += p.stock * (p.costo || 0); });
+    const cogsDia = (i90 - g90) / hab90;
+    out.diasInv = cogsDia > 0 ? invCosto / cogsDia : null;
+    // mezcla impresión
+    let impI = 0, totI = 0;
+    Object.keys(A.prodEventos || {}).forEach(c => (A.prodEventos[c] || []).forEach(e => { const d = anaParseK(e.k); if (!d || d < ini90 || d >= hoy) return; totI += e.i; if (/^IMP/i.test(c)) impI += e.i; }));
+    out.pctImp = totI > 0 ? impI / totI * 100 : null;
+    // estacionalidad
+    if (meses.length >= 3) { const prom = out.ventasMes, mx = meses.slice().sort((a, b) => b.s - a.s)[0], mn = meses.slice().sort((a, b) => a.s - b.s)[0]; out.pico = { ini: mx.ini, x: prom ? mx.s / prom : 0 }; out.valle = { ini: mn.ini, x: prom ? mn.s / prom : 0 }; }
+    return out;
+}
+function renderBenchmark() {
+    const tb = document.getElementById('tabla-benchmark'); if (!tb) return;
+    let mat = parseInt((document.getElementById('inp-matricula') || {}).value) || 1100;
+    try { const inp = document.getElementById('inp-matricula'); if (inp && !inp.dataset.t) { inp.dataset.t = 1; const g = localStorage.getItem('bench_matricula'); if (g) { inp.value = g; mat = parseInt(g) || mat; } } else if (inp) localStorage.setItem('bench_matricula', mat); } catch (e) {}
+    const R = calcBenchmark(window.analisisCache || {}, anaHoy(), mat);
+    if (!R) { tb.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-gray-400 italic">Aún no hay ventas para comparar.</td></tr>'; return; }
+    const $ = n => '$' + (Math.abs(n) < 100 ? formatMiles(n) : Math.round(n).toLocaleString('en-US')), MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const ok = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', mid = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300', bad = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', na = 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300';
+    const badge = (c, t) => `<span class="px-2 py-0.5 rounded-full font-bold ${c}">${t}</span>`;
+    const rows = [];
+    const row = (n, tu, ref, lec) => rows.push(`<tr class="border-b dark:border-gray-800"><td class="py-2 font-medium text-gray-800 dark:text-gray-200">${n}</td><td class="py-2 text-right font-bold">${tu}</td><td class="py-2 pl-3 text-gray-500 dark:text-gray-400">${ref}</td><td class="py-2 pl-3">${lec}</td></tr>`);
+    const nd = '—';
+    if (R.ventasMes !== null) { const x = R.ventasMes / BENCH.ventasMesCenso2019; row('Ventas mensuales promedio', $(R.ventasMes), `Papelería promedio en México ≈ ${$(BENCH.ventasMesCenso2019)}/mes (Censo 2019)`, badge(x >= 1 ? ok : x >= 0.6 ? mid : bad, x >= 1 ? 'Arriba del promedio' : x >= 0.6 ? 'Cerca del promedio' : 'Debajo del promedio') + ` <span class="text-gray-400">(${R.nMeses} mes${R.nMeses === 1 ? '' : 'es'} completos)</span>`); }
+    else row('Ventas mensuales promedio', nd, `≈ ${$(BENCH.ventasMesCenso2019)}/mes (Censo 2019)`, badge(na, 'Falta un mes completo'));
+    if (R.margen !== null) row('Margen bruto (90 días)', R.margen.toFixed(1) + '%', `${BENCH.margenMin}–${BENCH.margenMax}% papelería general; servicios de impresión >50%`, badge(R.margen >= BENCH.margenMin ? ok : R.margen >= 35 ? mid : bad, R.margen >= BENCH.margenMin ? 'En rango o mejor' : R.margen >= 35 ? 'Algo bajo' : 'Bajo'));
+    if (R.ventaAlumnoMes !== null) { const anual = R.ventaAlumnoMes * 12, pct = anual / BENCH.gastoAlumnoMin * 100; row('Venta por alumno', $(R.ventaAlumnoMes) + ' /mes', `Un alumno gasta $${BENCH.gastoAlumnoMin}–${BENCH.gastoAlumnoMax}/año en útiles (todas las tiendas)`, badge(na, '≈ ' + $(anual) + '/año') + ` <span class="text-gray-400">${pct.toFixed(0)}% del piso de gasto</span>`); }
+    if (R.pctAlumnos !== null) row('Tickets por día hábil', R.ticketsDia.toFixed(0) + ` (${R.pctAlumnos.toFixed(0)}% de la matrícula)`, 'Sin benchmark publicado', badge(na, 'Síguelo mes a mes'));
+    if (R.ticketProm !== null) row('Ticket promedio', $(R.ticketProm), 'Sin benchmark para tienda escolar', badge(na, 'Referencia propia'));
+    if (R.diasInv !== null) row('Días de inventario', Math.round(R.diasInv) + ' días', 'Sin benchmark; menos = capital más libre', badge(R.diasInv <= 90 ? ok : R.diasInv <= 180 ? mid : bad, R.diasInv <= 90 ? 'Sano' : R.diasInv <= 180 ? 'Algo alto' : 'Mucho inventario'));
+    if (R.pctImp !== null) row('Peso de impresión/copias', R.pctImp.toFixed(0) + '% del ingreso', 'Servicio de mayor margen', badge(na, 'Informativo'));
+    if (R.pico) row('Estacionalidad', `Pico ${MESES[R.pico.ini.getMonth()]}: ${R.pico.x.toFixed(1)}× · Valle ${MESES[R.valle.ini.getMonth()]}: ${R.valle.x.toFixed(1)}×`, 'Inicio de ciclo escolar: 35–46% de las ventas anuales en papelerías generales', badge(na, 'Tu patrón'));
+    tb.innerHTML = rows.join('');
+}
+
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
@@ -2348,6 +2433,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let hoyL = new Date();
             let mesActual = calKey(hoyL).substring(0, 7);
             let ventasPorDia = {};      // ventas de cada día (fecha local)
+            let ticketsPorDia = {};     // número de tickets de cada día
             let gananciaPorDia = {};    // ganancia de cada día (fecha local)
             let ingresoPorDia = {};     // ingreso por productos de cada día (para el margen)
             let ultimaVentaStock = {};  // última venta de cada producto con stock (incluye lo que se vende por vínculo)
@@ -2364,6 +2450,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 let fechaStr = fvDate ? calKey(fvDate) : "";
                 let mesVenta = fechaStr ? fechaStr.substring(0, 7) : "";
                 if (fechaStr) ventasPorDia[fechaStr] = (ventasPorDia[fechaStr] || 0) + (v.total || 0);
+                if (fechaStr) ticketsPorDia[fechaStr] = (ticketsPorDia[fechaStr] || 0) + 1;
                 
                 // Horas Pico (Extracción inteligente de fecha/hora)
                 let h = -1;
@@ -2581,7 +2668,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // Ventas diarias (por defecto desde la primera venta). Se redibuja al cambiar el selector.
             window.ventasPorDiaCache = ventasPorDia;
             renderGraficoVentasDiarias();
-            window.analisisCache = { ventasPorDia, ingresoPorDia, gananciaPorDia, ultimaVentaStock, prodEventos, inv, invs, retiros: (cacheUltimoAnalisis && cacheUltimoAnalisis.retiros) || [] };
+            window.analisisCache = { ticketsPorDia, ventasPorDia, ingresoPorDia, gananciaPorDia, ultimaVentaStock, prodEventos, inv, invs, retiros: (cacheUltimoAnalisis && cacheUltimoAnalisis.retiros) || [] };
             renderGraficosExtra();
 
             let catLabels = ['Impresión', 'Hojas', 'Papelería', 'Misceláneo'];
