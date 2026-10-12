@@ -855,29 +855,27 @@
                 </div>
             </div>
 
-            <!-- ROW 4E: FLUJO DE CAJA SEMANAL -->
-            <div class="pb-6 shrink-0">
+            <!-- ROW 4E: FLUJO DE CAJA SEMANAL + PROYECCIÓN ROI (mitad y mitad) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💵 Flujo de Caja Semanal</h3>
                         <select id="sel-flujo" onchange="renderFlujoCaja()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="8">Últimas 8 semanas</option><option value="12" selected>Últimas 12 semanas</option><option value="26">Últimas 26 semanas</option></select>
                     </div>
-                    <div id="flujo-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2"></div>
-                    <div class="relative" style="height: 340px;"><canvas id="chartFlujo"></canvas></div>
+                    <div id="flujo-kpis" class="grid grid-cols-2 gap-2 mb-2"></div>
+                    <div class="relative flex-1" style="min-height: 320px;"><canvas id="chartFlujo"></canvas></div>
                     <p class="text-[10px] text-gray-400 mt-2">Semanas de lunes a domingo. Ventas = lo cobrado; Retiros = salidas de caja registradas; Gastos = compras/gastos ya pagados con fecha. Los gastos a crédito sin pagar no se cuentan. Si un mismo gasto lo capturaste como retiro y como gasto, aparece en ambos.</p>
                 </div>
-            </div>
 
-            <!-- ROW 5: PROYECCIÓN INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) -->
-            <div class="shrink-0 pb-6">
-                <div class="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                <!-- PROYECCIÓN INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) -->
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                         <div>
-                            <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-base">🚀 Proyección de Retorno de Inversión (Punto de Equilibrio)</h3>
+                            <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">🚀 Proyección de Retorno de Inversión (Punto de Equilibrio)</h3>
                             <p id="txt-break-even" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Calculando proyecciones...</p>
                         </div>
                     </div>
-                    <div style="height: 280px; position: relative; width: 100%;">
+                    <div class="flex-1" style="min-height: 320px; position: relative; width: 100%;">
                         <canvas id="chartProyeccionROI"></canvas>
                     </div>
                 </div>
