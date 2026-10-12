@@ -35,8 +35,33 @@
         body.swal2-height-auto { height: 100vh !important; height: 100dvh !important; }
         .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
         #titulo-app { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .appbar { background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(239,246,255,.95)); }
-        html.dark .appbar { background: linear-gradient(135deg, rgba(31,41,55,.98), rgba(30,41,59,.98)); }
+        /* ===== Encabezado v3.0 ===== */
+        .appbar { position: relative; overflow: hidden; background: linear-gradient(120deg, #ffffff 0%, #eef4ff 55%, #dfeaff 100%); color: #3b6fd8; }
+        html.dark .appbar { background: linear-gradient(120deg, #111827 0%, #15233f 60%, #1b2d52 100%); color: #7fb0ff; }
+        .appbar .hdr-top { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, #3b82f6, #22d3ee 45%, #fbbf24 80%, #f97316); }
+        .appbar .hdr-pixels { position: absolute; right: 0; top: 0; height: 100%; width: 340px; max-width: 70%; pointer-events: none; -webkit-mask-image: linear-gradient(to left, #000 20%, transparent); mask-image: linear-gradient(to left, #000 20%, transparent); }
+        .appbar .hdr-plane { position: absolute; right: 440px; top: 50%; width: 190px; height: 56px; margin-top: -26px; pointer-events: none; opacity: .75; display: none; }
+        @media (min-width: 1100px) { .appbar .hdr-plane { display: block; } }
+        .appbar .hdr-estela { animation: estela 3s linear infinite; }
+        .appbar .hdr-avion { animation: flota 3.2s ease-in-out infinite; transform-box: fill-box; }
+        @keyframes estela { to { stroke-dashoffset: -16; } }
+        @keyframes flota { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+        @media (prefers-reduced-motion: reduce) { .appbar .hdr-estela, .appbar .hdr-avion { animation: none; } }
+        .appbar.modo-pruebas::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: repeating-linear-gradient(135deg, #f59e0b 0 10px, #1f2937 10px 20px); opacity: .9; }
+        .mascota { position: relative; flex-shrink: 0; width: 46px; height: 46px; padding: 2.5px; border-radius: 9999px; border: 0; cursor: pointer; background: conic-gradient(from 200deg, #60a5fa, #22d3ee, #fbbf24, #60a5fa); box-shadow: 0 8px 18px -8px rgba(59,130,246,.8); transition: transform .25s cubic-bezier(.3,1.6,.5,1); -webkit-tap-highlight-color: transparent; }
+        .mascota .cara { display: block; width: 100%; height: 100%; border-radius: 9999px; overflow: hidden; border: 2px solid #fff; background: #f3f4f6; }
+        .mascota img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 0; transform: scale(1.7); transform-origin: 50% 13%; }
+        .mascota:hover { transform: rotate(-7deg) scale(1.1); } .mascota:active { transform: scale(.94); }
+        @media (min-width: 768px) { .mascota { width: 58px; height: 58px; } }
+        .mascota .punto { position: absolute; right: 1px; bottom: 2px; width: 12px; height: 12px; border-radius: 9999px; background: #22c55e; border: 2px solid #fff; }
+        html.dark .mascota .punto { border-color: #111827; }
+        .kicker { font-size: 9px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: #5b82c9; line-height: 1; margin-bottom: 2px; }
+        html.dark .kicker { color: #8fb4f0; }
+        .appbar:not(.modo-pruebas) #titulo-app { background: linear-gradient(90deg, #1d4ed8, #0891b2); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; letter-spacing: -.01em; }
+        html.dark .appbar:not(.modo-pruebas) #titulo-app { background: linear-gradient(90deg, #93c5fd, #67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hdr-reloj { text-align: right; line-height: 1.15; padding-right: .5rem; }
+        .hdr-reloj .hora { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #1f2937; } html.dark .hdr-reloj .hora { color: #f3f4f6; }
+        .hdr-reloj .fecha { font-size: 10px; font-weight: 600; color: #6b7280; } .hdr-reloj .fecha::first-letter { text-transform: uppercase; } html.dark .hdr-reloj .fecha { color: #9ca3af; }
         .tabbtn { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .8rem .35rem .4rem; border-radius: .9rem; font-size: .75rem; font-weight: 600; white-space: nowrap; color: #4b5563; cursor: pointer; transition: all .18s ease; border: 1px solid transparent; }
         html.dark .tabbtn { color: #cbd5e1; }
         .tabbtn .ti { width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: .65rem; font-size: .95rem; background: color-mix(in srgb, var(--c) 15%, transparent); transition: all .18s ease; }
@@ -62,21 +87,31 @@
     </div>
     <div class="max-w-[99%] w-full mx-auto p-2 md:p-3 flex flex-col flex-1 min-h-0">
         <!-- HEADER -->
-        <header class="appbar mb-2 md:mb-3 flex justify-between items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
-            <div class="flex items-center gap-2.5 md:gap-3 min-w-0">
-                <img src="logo.jpeg" alt="Pixel y Papel" class="w-9 h-9 md:w-11 md:h-11 object-cover rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 shrink-0">
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2 min-w-0">
-                        <h1 id="titulo-app" class="text-base md:text-lg font-bold"></h1>
-                        <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.0.0</span>
+        <header id="app-header" class="appbar mb-2 md:mb-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0">
+            <div class="hdr-top"></div>
+            <svg class="hdr-pixels" viewBox="0 0 340 100" preserveAspectRatio="xMaxYMid slice" aria-hidden="true"><rect x="70" y="80" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.24"/><rect x="100" y="50" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.24"/><rect x="120" y="70" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.16"/><rect x="130" y="10" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="140" y="10" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="150" y="40" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.24"/><rect x="180" y="10" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.16"/><rect x="180" y="70" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.1"/><rect x="180" y="90" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.16"/><rect x="190" y="10" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.1"/><rect x="190" y="80" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.1"/><rect x="190" y="90" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.16"/><rect x="200" y="40" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.16"/><rect x="200" y="50" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.16"/><rect x="200" y="90" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.16"/><rect x="210" y="10" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.24"/><rect x="210" y="40" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.34"/><rect x="220" y="0" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.1"/><rect x="220" y="50" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="220" y="70" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="230" y="30" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.24"/><rect x="230" y="40" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="250" y="0" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.16"/><rect x="250" y="20" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="250" y="40" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="250" y="50" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.1"/><rect x="250" y="70" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.16"/><rect x="250" y="80" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="250" y="90" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="260" y="10" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.16"/><rect x="260" y="60" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="260" y="70" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.34"/><rect x="260" y="90" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.24"/><rect x="270" y="10" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.1"/><rect x="270" y="20" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.1"/><rect x="270" y="40" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="280" y="20" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.1"/><rect x="280" y="40" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="280" y="80" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.1"/><rect x="280" y="90" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="290" y="0" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.34"/><rect x="290" y="20" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.1"/><rect x="290" y="40" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.16"/><rect x="290" y="50" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.16"/><rect x="290" y="90" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.16"/><rect x="300" y="0" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="300" y="10" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.16"/><rect x="300" y="30" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.1"/><rect x="310" y="0" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.16"/><rect x="310" y="10" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.34"/><rect x="310" y="50" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.34"/><rect x="310" y="60" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="310" y="90" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.24"/><rect x="320" y="0" width="8" height="8" rx="1.5" fill="#22d3ee" opacity="0.16"/><rect x="320" y="10" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="320" y="20" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.24"/><rect x="320" y="30" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.16"/><rect x="320" y="40" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.24"/><rect x="320" y="50" width="8" height="8" rx="1.5" fill="#60a5fa" opacity="0.24"/><rect x="320" y="70" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.1"/><rect x="320" y="80" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.16"/><rect x="320" y="90" width="8" height="8" rx="1.5" fill="#3b82f6" opacity="0.34"/><rect x="330" y="0" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.16"/><rect x="330" y="10" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.16"/><rect x="330" y="50" width="8" height="8" rx="1.5" fill="#fbbf24" opacity="0.34"/><rect x="330" y="60" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.16"/><rect x="330" y="70" width="8" height="8" rx="1.5" fill="#6366f1" opacity="0.34"/></svg>
+            <svg class="hdr-plane" viewBox="0 0 190 56" fill="none" aria-hidden="true">
+                <path class="hdr-estela" d="M2 46 C 38 52, 62 14, 104 26 S 150 30, 160 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 7"/>
+                <g class="hdr-avion" transform="translate(150 6) rotate(-8)"><path d="M0 12 L30 0 L22 26 L15 15 Z" fill="currentColor" opacity=".85"/><path d="M15 15 L30 0" stroke="#fff" stroke-opacity=".7" stroke-width="1.4"/></g>
+            </svg>
+            <div class="relative z-10 flex justify-between items-center gap-2 px-3 md:px-4 py-2.5 md:py-3 pt-3.5">
+                <div class="flex items-center gap-2.5 md:gap-3.5 min-w-0">
+                    <button class="mascota" onclick="saludoMascota()" title="¡Hola!" aria-label="Mascota Pixel y Papel"><span class="cara"><img src="logo.jpeg" alt="Pixel y Papel"></span><span class="punto"></span></button>
+                    <div class="min-w-0">
+                        <p class="kicker">Papelería</p>
+                        <div class="flex items-center gap-2 min-w-0">
+                            <h1 id="titulo-app" class="text-base md:text-xl font-bold"></h1>
+                            <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.0.0</span>
+                        </div>
+                        <p id="label-sesion" class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">Usuario: Conectado</p>
                     </div>
-                    <p id="label-sesion" class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 truncate">Usuario: Conectado</p>
                 </div>
-            </div>
-            <div class="flex gap-1.5 md:gap-2 items-center shrink-0">
-                <button onclick="toggleTheme()" title="Cambiar tema" class="w-9 h-9 grid place-items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition cursor-pointer"><span id="icono-tema">🌙</span></button>
-                <button onclick="sincronizarDatos()" title="Sincronizar datos" class="h-9 px-2.5 md:px-3.5 flex items-center gap-1.5 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"><span>🔄</span><span class="hidden md:inline">Sincronizar</span></button>
-                <button onclick="cerrarSesion()" title="Cerrar sesión" class="hidden md:flex h-9 px-3 items-center gap-1.5 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-300 rounded-xl text-xs font-semibold transition cursor-pointer">🚪 Salir</button>
+                <div class="flex gap-1.5 md:gap-2 items-center shrink-0">
+                    <div class="hdr-reloj hidden lg:block"><div class="hora" id="hdr-hora">--:--</div><div class="fecha" id="hdr-fecha"></div></div>
+                    <button onclick="toggleTheme()" title="Cambiar tema" class="w-9 h-9 grid place-items-center bg-white/70 dark:bg-gray-700/80 hover:bg-white dark:hover:bg-gray-600 border border-gray-200/70 dark:border-gray-600 rounded-xl transition cursor-pointer"><span id="icono-tema">🌙</span></button>
+                    <button onclick="sincronizarDatos()" title="Sincronizar datos" class="h-9 px-2.5 md:px-3.5 flex items-center gap-1.5 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"><span>🔄</span><span class="hidden md:inline">Sincronizar</span></button>
+                    <button onclick="cerrarSesion()" title="Cerrar sesión" class="hidden md:flex h-9 px-3 items-center gap-1.5 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-300 rounded-xl text-xs font-semibold transition cursor-pointer">🚪 Salir</button>
+                </div>
             </div>
         </header>
 
@@ -858,7 +893,7 @@
         // const TITULO_APP = "Pixel y Papel";
         // const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
 
-        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } })();
+        (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } let hd = document.getElementById('app-header'); if (hd && /PRUEBAS/i.test(TITULO_APP)) hd.classList.add('modo-pruebas'); })();
         // ===== CAPA DE SEGURIDAD =====
         // Todas las llamadas al servidor llevan un "token" de sesión que entrega el Apps Script al iniciar sesión.
         // Las contraseñas ya no viajan al navegador: el usuario y la contraseña se validan en el servidor.
@@ -1020,6 +1055,20 @@
         function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
 
         // Resalta la pestaña activa en la barra de arriba (computadora) y en la barra inferior deslizable (móvil)
+        // Reloj y fecha del encabezado (solo pantallas grandes)
+        function actualizarReloj() {
+            const hh = document.getElementById('hdr-hora'), ff = document.getElementById('hdr-fecha'); if (!hh) return;
+            const d = new Date();
+            hh.textContent = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+            if (ff) ff.textContent = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+        actualizarReloj(); setInterval(actualizarReloj, 20000);
+        // Al tocar a la mascota: saludo según la hora
+        function saludoMascota() {
+            const hr = new Date().getHours(), saludo = hr < 12 ? '¡Buenos días' : (hr < 19 ? '¡Buenas tardes' : '¡Buenas noches');
+            Swal.fire({ title: saludo + (typeof usuarioActual !== 'undefined' && usuarioActual ? ', ' + usuarioActual : '') + '!', text: 'Pixel y Papel · v3.0.0', imageUrl: 'logo.jpeg', imageHeight: 260, imageAlt: 'Pixel y Papel', confirmButtonText: 'A vender 🚀', showClass: { popup: 'swal2-show' } });
+        }
+
         function marcarTabActiva(tab) {
             document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('activa', b.dataset.tab === tab));
             const sc = document.getElementById('nav-scroll'), nb = document.getElementById('nm-' + tab);
