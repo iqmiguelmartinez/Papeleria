@@ -799,6 +799,75 @@
                 </div>
             </div>
 
+            <!-- ROW 4C: COBERTURA DE INVENTARIO -->
+            <div class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📦 Cobertura de Inventario y Qué Surtir</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="sel-cob-ventana" onchange="renderCobertura()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                                <option value="30" selected>Ritmo: últimos 30 días</option>
+                                <option value="60">Ritmo: últimos 60 días</option>
+                                <option value="90">Ritmo: últimos 90 días</option>
+                            </select>
+                            <select id="sel-cob-horizonte" onchange="renderCobertura()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                                <option value="7">Surtir para 7 días hábiles</option>
+                                <option value="15" selected>Surtir para 15 días hábiles</option>
+                                <option value="30">Surtir para 30 días hábiles</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="cob-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-500 dark:text-gray-400 border-b dark:border-gray-700"><tr>
+                                <th class="py-2">Producto</th><th class="py-2 text-right">Stock</th><th class="py-2 text-right">Vende/día</th><th class="py-2 text-right">Alcanza</th><th class="py-2 pl-3">Se agota</th><th class="py-2 text-right">Pedir</th><th class="py-2 text-right">Costo aprox.</th>
+                            </tr></thead>
+                            <tbody id="tabla-cobertura"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-2">Ritmo = piezas vendidas ÷ días hábiles (tu calendario). Si el producto es nuevo, solo cuenta desde su primera venta; se usa el mayor entre el ritmo del periodo y el de las últimas 2 semanas para no quedarte corto si va subiendo. Incluye agotados con demanda y excluye descontinuados. ▲ va subiendo · ▼ va bajando.</p>
+                </div>
+            </div>
+
+            <!-- ROW 4D: PARETO Y DIA DE LA SEMANA -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🏆 Pareto 80/20 de Productos</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="sel-pareto-metrica" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="g" selected>Por ganancia</option><option value="i">Por ingreso</option></select>
+                            <select id="sel-pareto-periodo" onchange="renderPareto()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="30">30 días</option><option value="90" selected>90 días</option><option value="todo">Desde el inicio</option></select>
+                        </div>
+                    </div>
+                    <p id="txt-pareto" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div class="relative" style="height: 380px;"><canvas id="chartPareto"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Barras = lo que aporta cada producto (los 20 principales). Línea = % acumulado. Los productos A (hasta 80%) son los que nunca deben faltar.</p>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📅 Ventas por Día de la Semana</h3>
+                        <select id="sel-dow" onchange="renderDiaSemana()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="28">Últimas 4 semanas</option><option value="84" selected>Últimas 12 semanas</option><option value="todo">Desde el inicio</option></select>
+                    </div>
+                    <p id="txt-dow" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
+                    <div class="relative" style="height: 380px;"><canvas id="chartDow"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Promedio de venta por cada día que se trabajó (según tu calendario). Barras grises: día que normalmente no abres.</p>
+                </div>
+            </div>
+
+            <!-- ROW 4E: FLUJO DE CAJA SEMANAL -->
+            <div class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">💵 Flujo de Caja Semanal</h3>
+                        <select id="sel-flujo" onchange="renderFlujoCaja()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="8">Últimas 8 semanas</option><option value="12" selected>Últimas 12 semanas</option><option value="26">Últimas 26 semanas</option></select>
+                    </div>
+                    <div id="flujo-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2"></div>
+                    <div class="relative" style="height: 340px;"><canvas id="chartFlujo"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">Semanas de lunes a domingo. Ventas = lo cobrado; Retiros = salidas de caja registradas; Gastos = compras/gastos ya pagados con fecha. Los gastos a crédito sin pagar no se cuentan. Si un mismo gasto lo capturaste como retiro y como gasto, aparece en ambos.</p>
+                </div>
+            </div>
+
             <!-- ROW 5: PROYECCIÓN INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) -->
             <div class="shrink-0 pb-6">
                 <div class="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
@@ -2067,7 +2136,197 @@ function abrirVolMargenGrande() {
     pintar();
 }
 
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); }
+
+// ==========================================
+// ANÁLISIS: COBERTURA, PARETO, DÍA DE LA SEMANA, FLUJO DE CAJA
+// ==========================================
+function anaHoy() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function anaParseK(k) { const m = String(k || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function anaLunes(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function anaDiaCorto(d) { return d.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; }
+function anaTxtColor() { return document.documentElement.classList.contains('dark') ? '#d1d5db' : '#4b5563'; }
+
+// Cálculo puro de cobertura (se puede probar sin pantalla)
+function calcCobertura(inv, prodEventos, hoy, ventana, horizonte) {
+    const ini = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ventana);
+    const ini14 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 14);
+    const porBase = {};
+    Object.keys(prodEventos || {}).forEach(cod => (prodEventos[cod] || []).forEach(e => {
+        const d = anaParseK(e.k); if (!d) return;
+        const b = (porBase[e.cr] = porBase[e.cr] || { c: 0, c14: 0, primera: d });
+        if (d < b.primera) b.primera = d;
+        if (d >= ini && d < hoy) b.c += e.c;
+        if (d >= ini14 && d < hoy) b.c14 += e.c;
+    }));
+    const filas = [];
+    (inv || []).forEach(p => {
+        if (VINCULOS_STOCK[p.codigo] || p.noActivo) return;
+        const b = porBase[p.codigo]; if (!b || b.c <= 0) return;
+        const desde = b.primera > ini ? b.primera : ini;
+        const hab = Math.max(1, calHabilesEntre(desde, hoy));
+        const desde14 = b.primera > ini14 ? b.primera : ini14;
+        const hab14 = Math.max(1, calHabilesEntre(desde14, hoy));
+        const r30 = b.c / hab, r14 = b.c14 / hab14, rate = Math.max(r30, r14);
+        const stock = Math.max(0, p.stock || 0);
+        const dias = stock / rate;
+        const pedir = Math.ceil(Math.max(0, rate * horizonte - stock));
+        const tend = r30 > 0 ? r14 / r30 : 1;
+        filas.push({ cod: p.codigo, n: p.nombre, stock, rate, dias, pedir, costoPedir: pedir * (p.costo || 0), tend, agotado: stock <= 0 });
+    });
+    filas.sort((a, b) => a.dias - b.dias);
+    return filas;
+}
+function renderCobertura() {
+    const tb = document.getElementById('tabla-cobertura'); if (!tb) return;
+    const A = window.analisisCache || {};
+    const vent = parseInt((document.getElementById('sel-cob-ventana') || {}).value) || 30;
+    const hor = parseInt((document.getElementById('sel-cob-horizonte') || {}).value) || 15;
+    const hoy = anaHoy();
+    const todas = calcCobertura(A.inv, A.prodEventos, hoy, vent, hor);
+    const lista = todas.filter(f => f.pedir > 0);
+    const nAgot = todas.filter(f => f.agotado).length, nCrit = todas.filter(f => !f.agotado && f.dias <= 3).length;
+    const costoTot = lista.reduce((a, f) => a + f.costoPedir, 0);
+    const kp = document.getElementById('cob-kpis');
+    if (kp) {
+        const t = (tit, val, sub, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+        kp.innerHTML = t('Agotados con demanda', nAgot, 'se vendían y ya no hay', nAgot ? 'text-red-600 dark:text-red-400' : 'text-emerald-600') +
+            t('Críticos (≤ 3 días)', nCrit, 'días hábiles de stock', nCrit ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600') +
+            t('Productos por surtir', lista.length, `para cubrir ${hor} días hábiles`, 'text-blue-600 dark:text-blue-400') +
+            t('Inversión aprox.', '$' + formatMiles(costoTot), 'al costo registrado', 'text-amber-600 dark:text-amber-400');
+    }
+    if (!lista.length) { tb.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-400 italic">Todo tu inventario con movimiento alcanza para ${hor} días hábiles. 🎉</td></tr>`; return; }
+    tb.innerHTML = lista.slice(0, 40).map(f => {
+        let cls, alc;
+        if (f.agotado) { cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'; alc = 'Agotado'; }
+        else {
+            cls = f.dias <= 3 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : f.dias <= 7 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+            const d = f.dias < 1 ? '< 1' : Math.floor(f.dias);
+            alc = d + (d === 1 ? ' día' : ' días');
+        }
+        let fecha = '—';
+        if (f.agotado) fecha = 'Ya';
+        else { const n = Math.max(1, Math.ceil(f.dias)); const fd = calFechaHabilN(hoy, n); fecha = fd ? anaDiaCorto(fd) : '—'; }
+        const flecha = f.tend >= 1.25 ? '<span class="text-red-500" title="Vende más rápido en las últimas 2 semanas">▲</span>' : f.tend <= 0.75 ? '<span class="text-emerald-500" title="Vende más lento en las últimas 2 semanas">▼</span>' : '';
+        const nom = f.n.length > 34 ? f.n.substring(0, 33) + '…' : f.n;
+        return `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 font-medium text-gray-800 dark:text-gray-200" title="${f.n}">${nom}</td><td class="py-2 text-right">${formatMiles(f.stock).replace(/\.00$/, '')}</td><td class="py-2 text-right">${f.rate.toFixed(1)} ${flecha}</td><td class="py-2 text-right"><span class="px-2 py-0.5 rounded-full font-bold ${cls}">${alc}</span></td><td class="py-2 pl-3 text-gray-600 dark:text-gray-300">${fecha}</td><td class="py-2 text-right font-bold text-blue-600 dark:text-blue-400">${f.pedir}</td><td class="py-2 text-right">$${formatMiles(f.costoPedir)}</td></tr>`;
+    }).join('') + (lista.length > 40 ? `<tr><td colspan="7" class="py-2 text-center text-gray-400">… y ${lista.length - 40} más</td></tr>` : '');
+}
+
+function calcPareto(prodEventos, hoy, periodo, metrica) {
+    const ini = periodo === 'todo' ? null : new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - parseInt(periodo));
+    const agr = {};
+    Object.keys(prodEventos || {}).forEach(cod => (prodEventos[cod] || []).forEach(e => {
+        const d = anaParseK(e.k); if (!d || (ini && d < ini)) return;
+        const a = (agr[cod] = agr[cod] || { n: e.n, v: 0 });
+        a.v += Math.max(0, metrica === 'i' ? e.i : e.g);
+    }));
+    const arr = Object.keys(agr).map(k => ({ cod: k, n: agr[k].n, v: agr[k].v })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+    const total = arr.reduce((a, x) => a + x.v, 0); let acum = 0, nA = 0;
+    arr.forEach(x => { acum += x.v; x.pct = total ? acum / total * 100 : 0; });
+    nA = arr.findIndex(x => x.pct >= 80) + 1; if (nA === 0) nA = arr.length;
+    return { arr, total, nA };
+}
+function renderPareto() {
+    const ctx = document.getElementById('chartPareto'); if (!ctx) return;
+    if (window.chartParetoInstance) window.chartParetoInstance.destroy();
+    const A = window.analisisCache || {};
+    const met = (document.getElementById('sel-pareto-metrica') || {}).value || 'g', per = (document.getElementById('sel-pareto-periodo') || {}).value || '90';
+    const P = calcPareto(A.prodEventos, anaHoy(), per, met), etiq = met === 'g' ? 'ganancia' : 'ingreso';
+    const txt = document.getElementById('txt-pareto');
+    if (!P.arr.length) { if (txt) txt.innerHTML = 'Sin ventas en este periodo.'; return; }
+    if (txt) txt.innerHTML = `<b>${P.nA}</b> de tus <b>${P.arr.length}</b> productos vendidos (${(P.nA / P.arr.length * 100).toFixed(0)}%) generan el <b>80%</b> de la ${etiq} ($${formatMiles(P.total)} en total). Esos son tus productos clase A.`;
+    const top = P.arr.slice(0, 20), tc = anaTxtColor();
+    window.chartParetoInstance = new Chart(ctx, {
+        data: {
+            labels: top.map(x => x.n.length > 16 ? x.n.substring(0, 15) + '…' : x.n),
+            datasets: [
+                { type: 'bar', label: etiq.charAt(0).toUpperCase() + etiq.slice(1) + ' ($)', data: top.map(x => x.v), backgroundColor: top.map((x, i) => i < P.nA ? '#3b82f6' : '#9ca3af'), borderRadius: 3, yAxisID: 'y', order: 2 },
+                { type: 'line', label: '% acumulado', data: top.map(x => x.pct), borderColor: '#f97316', backgroundColor: '#f97316', pointRadius: 3, tension: 0.2, yAxisID: 'y2', order: 1 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: tc, boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { title: i => top[i[0].dataIndex].n, label: c => c.dataset.yAxisID === 'y2' ? ' Acumulado: ' + c.parsed.y.toFixed(1) + '%' : ' $' + formatMiles(c.parsed.y) } } },
+            scales: { x: { ticks: { color: tc, font: { size: 9 }, maxRotation: 60, minRotation: 45 } }, y: { beginAtZero: true, ticks: { color: tc } }, y2: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: tc, callback: v => v + '%' } } } }
+    });
+}
+
+function calcDiaSemana(ventasPorDia, hoy, periodo) {
+    const ini = periodo === 'todo' ? null : new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - parseInt(periodo));
+    let primera = null;
+    Object.keys(ventasPorDia || {}).forEach(k => { const d = anaParseK(k); if (d && (!primera || d < primera)) primera = d; });
+    if (!primera) return null;
+    const desde = ini && ini > primera ? ini : primera;
+    const tot = [0, 0, 0, 0, 0, 0, 0], dias = [0, 0, 0, 0, 0, 0, 0];
+    for (let d = new Date(desde); d < hoy; d = calSig(d)) {
+        const v = ventasPorDia[calKey(d)] || 0;
+        if (calEsHabil(d) || v > 0) { tot[d.getDay()] += v; dias[d.getDay()]++; }
+    }
+    return [1, 2, 3, 4, 5, 6, 0].map(i => ({ dow: i, prom: dias[i] ? tot[i] / dias[i] : 0, dias: dias[i], total: tot[i] }));
+}
+function renderDiaSemana() {
+    const ctx = document.getElementById('chartDow'); if (!ctx) return;
+    if (window.chartDowInstance) window.chartDowInstance.destroy();
+    const A = window.analisisCache || {}, per = (document.getElementById('sel-dow') || {}).value || '84';
+    const R = calcDiaSemana(A.ventasPorDia, anaHoy(), per), txt = document.getElementById('txt-dow');
+    if (!R) { if (txt) txt.innerHTML = 'Sin ventas registradas.'; return; }
+    const nombres = { 0: 'Domingo', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado' };
+    const act = R.filter(x => x.dias > 0 && x.prom > 0);
+    if (txt && act.length) {
+        const mejor = act.slice().sort((a, b) => b.prom - a.prom)[0], peor = act.slice().sort((a, b) => a.prom - b.prom)[0];
+        txt.innerHTML = `Tu mejor día es el <b>${nombres[mejor.dow].toLowerCase()}</b> ($${formatMiles(mejor.prom)} en promedio) y el más flojo el <b>${nombres[peor.dow].toLowerCase()}</b> ($${formatMiles(peor.prom)}).`;
+    }
+    const tc = anaTxtColor();
+    window.chartDowInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: R.map(x => nombres[x.dow]), datasets: [{ label: 'Promedio por día ($)', data: R.map(x => x.prom), backgroundColor: R.map(x => x.dias === 0 ? '#9ca3af' : '#10b981'), borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' $' + formatMiles(c.parsed.y) + ' promedio', afterLabel: c => R[c.dataIndex].dias ? R[c.dataIndex].dias + ' día(s) contados' : 'Día no laborable' } } },
+            scales: { x: { ticks: { color: tc } }, y: { beginAtZero: true, ticks: { color: tc } } } }
+    });
+}
+
+function calcFlujo(ventasPorDia, retiros, invs, hoy, nSem) {
+    const lunHoy = anaLunes(hoy), ini = new Date(lunHoy.getFullYear(), lunHoy.getMonth(), lunHoy.getDate() - 7 * (nSem - 1));
+    const sem = []; for (let i = 0; i < nSem; i++) sem.push({ ini: new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 7 * i), v: 0, r: 0, g: 0 });
+    const idx = d => { if (!d || d < ini) return -1; const i = Math.floor(Math.round((anaLunes(d) - ini) / 86400000) / 7); return i >= 0 && i < nSem ? i : -1; };
+    Object.keys(ventasPorDia || {}).forEach(k => { const i = idx(anaParseK(k)); if (i >= 0) sem[i].v += ventasPorDia[k]; });
+    (retiros || []).forEach(r => { const i = idx(bParseVentaFecha(r)); if (i >= 0) sem[i].r += Math.abs(r.monto || 0); });
+    (invs || []).forEach(g => {
+        const p = String(g.pagado).toUpperCase(); if (p === 'NO' || p === 'FALSE') return;
+        const c = String(g.concepto || '').toLowerCase(); if (c.includes('inicial') || c.includes('inicio')) return;
+        const i = idx(bParseVentaFecha(g)); if (i >= 0) sem[i].g += Math.abs(g.cantidad || 0);
+    });
+    sem.forEach(s => s.neto = s.v - s.r - s.g);
+    return sem;
+}
+function renderFlujoCaja() {
+    const ctx = document.getElementById('chartFlujo'); if (!ctx) return;
+    if (window.chartFlujoInstance) window.chartFlujoInstance.destroy();
+    const A = window.analisisCache || {}, n = parseInt((document.getElementById('sel-flujo') || {}).value) || 12;
+    const S = calcFlujo(A.ventasPorDia, A.retiros, A.invs, anaHoy(), n);
+    const tV = S.reduce((a, s) => a + s.v, 0), tR = S.reduce((a, s) => a + s.r, 0), tG = S.reduce((a, s) => a + s.g, 0), tN = tV - tR - tG;
+    const kp = document.getElementById('flujo-kpis');
+    if (kp) {
+        const t = (tit, val, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p></div>`;
+        kp.innerHTML = t('Ventas', '$' + formatMiles(tV), 'text-emerald-600 dark:text-emerald-400') + t('Retiros', '$' + formatMiles(tR), 'text-red-600 dark:text-red-400') + t('Gastos pagados', '$' + formatMiles(tG), 'text-orange-600 dark:text-orange-400') + t('Neto del periodo', (tN < 0 ? '-$' : '$') + formatMiles(Math.abs(tN)), tN >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400');
+    }
+    const tc = anaTxtColor();
+    window.chartFlujoInstance = new Chart(ctx, {
+        data: {
+            labels: S.map(s => anaDiaCorto(s.ini)),
+            datasets: [
+                { type: 'bar', label: 'Ventas', data: S.map(s => s.v), backgroundColor: '#10b981', borderRadius: 3, stack: 'in' },
+                { type: 'bar', label: 'Retiros', data: S.map(s => -s.r), backgroundColor: '#ef4444', borderRadius: 3, stack: 'out' },
+                { type: 'bar', label: 'Gastos', data: S.map(s => -s.g), backgroundColor: '#f97316', borderRadius: 3, stack: 'out' },
+                { type: 'line', label: 'Neto', data: S.map(s => s.neto), borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.25, pointRadius: 4 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: tc, boxWidth: 12 } }, tooltip: { callbacks: { title: i => 'Semana del ' + anaDiaCorto(S[i[0].dataIndex].ini), label: c => ' ' + c.dataset.label + ': ' + (c.parsed.y < 0 ? '-$' : '$') + formatMiles(Math.abs(c.parsed.y)) } } },
+            scales: { x: { ticks: { color: tc } }, y: { ticks: { color: tc, callback: v => '$' + v.toLocaleString('en-US') } } } }
+    });
+}
+
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             // ==========================================
@@ -2324,7 +2583,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             // Ventas diarias (por defecto desde la primera venta). Se redibuja al cambiar el selector.
             window.ventasPorDiaCache = ventasPorDia;
             renderGraficoVentasDiarias();
-            window.analisisCache = { ventasPorDia, ingresoPorDia, gananciaPorDia, ultimaVentaStock, prodEventos, inv };
+            window.analisisCache = { ventasPorDia, ingresoPorDia, gananciaPorDia, ultimaVentaStock, prodEventos, inv, invs, retiros: (cacheUltimoAnalisis && cacheUltimoAnalisis.retiros) || [] };
             renderGraficosExtra();
 
             let catLabels = ['Impresión', 'Hojas', 'Papelería', 'Misceláneo'];
