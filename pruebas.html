@@ -728,15 +728,16 @@
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                     <div class="flex justify-between items-center mb-1">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🎯 Volumen vs Margen por Producto</h3>
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🎯 Volumen vs Margen por Producto <button onclick="abrirVolMargenGrande()" class="ml-2 text-[11px] px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 cursor-pointer">⛶ Ampliar</button></h3>
                         <select id="sel-volmargen" onchange="renderVolumenMargen()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
                             <option value="30">Últimos 30 días</option>
                             <option value="90" selected>Últimos 90 días</option>
                             <option value="todo">Desde el inicio</option>
                         </select>
                     </div>
-                    <div style="height: 300px; position: relative;"><canvas id="chartVolMargen"></canvas></div>
-                    <p id="txt-volmargen-nota" class="text-[10px] text-gray-400 mt-2"></p>
+                    <div id="vm-chips" class="grid grid-cols-2 gap-2 mb-2"></div>
+                    <div style="height: 440px; position: relative; cursor: zoom-in;" onclick="abrirVolMargenGrande()" title="Clic para ampliar"><canvas id="chartVolMargen"></canvas></div>
+                    <p id="txt-volmargen-nota" class="text-[11px] text-gray-500 dark:text-gray-400 mt-2"></p>
                 </div>
             </div>
 
@@ -1817,10 +1818,9 @@ function renderDineroParado() {
     });
 }
 
-function renderVolumenMargen() {
-    let ctx = document.getElementById('chartVolMargen'); if (!ctx) return;
+// Datos del gráfico Volumen vs Margen (se usan en la tarjeta y en la ventana ampliada)
+function volMargenDatos() {
     let A = window.analisisCache || {}, ev = A.prodEventos || {}, inv = A.inv || [];
-    if (window.chartVolMargenInstance) window.chartVolMargenInstance.destroy();
     let sel = document.getElementById('sel-volmargen'), modo = (sel && sel.value) || '90';
     let h0 = new Date(); h0 = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate());
     let limK = modo === 'todo' ? '' : calKey(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - parseInt(modo)));
@@ -1833,30 +1833,115 @@ function renderVolumenMargen() {
         if (!(pInv.costo > 0)) { sinCosto++; return; } // sin costo capturado el margen no es confiable
         pts.push({ x: u, y: (g / ingr) * 100, g: g, n: nombre });
     });
-    let nota = document.getElementById('txt-volmargen-nota');
-    if (!pts.length) { if (nota) nota.innerText = 'Sin datos suficientes para este periodo.'; return; }
+    if (!pts.length) return { pts: pts, sinCosto: sinCosto };
     let xs = pts.map(p => p.x).sort((a, b) => a - b), medX = xs[Math.floor(xs.length / 2)];
     let margenG = pts.reduce((a, p) => a + p.y, 0) / pts.length; // margen típico por producto
     let gMax = Math.max(...pts.map(p => Math.abs(p.g)), 1);
-    let rad = p => 3 + Math.sqrt(Math.max(p.g, 0) / gMax) * 11;
     let grupos = [
-        { t: '⭐ Estrellas (venden mucho y dejan buen margen)', c: '#10b981', f: p => p.x >= medX && p.y >= margenG },
-        { t: '⚠️ Mucho volumen, poco margen (revisa precio o costo)', c: '#f97316', f: p => p.x >= medX && p.y < margenG },
-        { t: '💎 Buen margen, poco volumen (promuévelos)', c: '#3b82f6', f: p => p.x < medX && p.y >= margenG },
-        { t: '🔍 Poco volumen y poco margen (candidatos a revisar)', c: '#9ca3af', f: p => p.x < medX && p.y < margenG }
+        { k: 'est', t: '⭐ Estrellas', d: 'venden mucho y dejan buen margen', c: '#10b981', f: p => p.x >= medX && p.y >= margenG },
+        { k: 'rev', t: '⚠️ Revisa precio o costo', d: 'venden mucho pero dejan poco margen', c: '#f97316', f: p => p.x >= medX && p.y < margenG },
+        { k: 'pro', t: '💎 Promuévelos', d: 'buen margen pero se venden poco', c: '#3b82f6', f: p => p.x < medX && p.y >= margenG },
+        { k: 'baj', t: '🔍 Poco movimiento', d: 'se venden poco y dejan poco margen', c: '#9ca3af', f: p => p.x < medX && p.y < margenG }
     ];
-    let ys = pts.map(p => p.y), yMin = Math.min(0, ...ys) - 5, yMax = Math.max(...ys) + 5, xMin = Math.min(...xs) / 1.5, xMax = Math.max(...xs) * 1.5;
-    let datasets = grupos.map(gr => { let sub = pts.filter(gr.f); return { type: 'scatter', label: gr.t, data: sub, backgroundColor: gr.c + 'cc', borderColor: gr.c, pointRadius: sub.map(rad), pointHoverRadius: sub.map(p => rad(p) + 2) }; });
-    datasets.push({ type: 'line', label: '_mediana', data: [{ x: medX, y: yMin }, { x: medX, y: yMax }], borderColor: '#6b7280', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 });
-    datasets.push({ type: 'line', label: '_margen', data: [{ x: xMin, y: margenG }, { x: xMax, y: margenG }], borderColor: '#6b7280', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 });
-    if (nota) nota.innerText = `Cada punto es un producto (el tamaño indica su ganancia total). Las líneas punteadas marcan la mediana de volumen (${bFmt(medX)} pzs) y el margen típico (${margenG.toFixed(0)}%).` + (sinCosto ? ` No se incluyen ${sinCosto} producto(s) sin costo capturado.` : '');
-    window.chartVolMargenInstance = new Chart(ctx, {
-        data: { datasets: datasets },
+    grupos.forEach(gr => { gr.pts = pts.filter(gr.f); });
+    pts.forEach(p => { p.grupo = grupos.find(gr => gr.f(p)); });
+    let ys = pts.map(p => p.y);
+    return { pts: pts, sinCosto: sinCosto, medX: medX, margenG: margenG, gMax: gMax, grupos: grupos, modo: modo,
+        yMin: Math.floor((Math.min(0, ...ys) - 5) / 10) * 10, yMax: Math.ceil((Math.max(...ys) + 5) / 10) * 10,
+        xMin: Math.min(...xs) / 1.5, xMax: Math.max(...xs) * 1.5 };
+}
+
+function volMargenChips(d) {
+    return d.grupos.map(gr => `<div class="flex items-start gap-2 rounded-lg border dark:border-gray-700 px-2 py-1.5 bg-gray-50 dark:bg-gray-800/60"><span style="background:${gr.c}" class="mt-1 inline-block w-3 h-3 rounded-full shrink-0"></span><div class="leading-tight"><p class="text-[11px] font-bold text-gray-700 dark:text-gray-200">${gr.t} · ${gr.pts.length}</p><p class="text-[10px] text-gray-500 dark:text-gray-400">${gr.d}</p></div></div>`).join('');
+}
+
+// grande = true en la ventana ampliada (letras más grandes y más nombres sobre las burbujas)
+function dibujarVolMargen(ctx, d, grande) {
+    const fs = grande ? 13 : 10, rad = p => (grande ? 5 : 4) + Math.sqrt(Math.max(p.g, 0) / d.gMax) * (grande ? 20 : 13);
+    const sombreado = { id: 'vmCuadrantes', beforeDatasetsDraw(ch) {
+        const { ctx: c, chartArea: a, scales: { x, y } } = ch; if (!a) return;
+        const px = Math.min(Math.max(x.getPixelForValue(d.medX), a.left), a.right), py = Math.min(Math.max(y.getPixelForValue(d.margenG), a.top), a.bottom);
+        const caja = (x0, y0, x1, y1, col) => { c.fillStyle = col + '14'; c.fillRect(x0, y0, x1 - x0, y1 - y0); };
+        caja(px, a.top, a.right, py, '#10b981'); caja(px, py, a.right, a.bottom, '#f97316'); caja(a.left, a.top, px, py, '#3b82f6'); caja(a.left, py, px, a.bottom, '#9ca3af');
+    }, afterDatasetsDraw(ch) {
+        const { ctx: c, chartArea: a, scales: { x, y } } = ch; if (!a) return;
+        const px = Math.min(Math.max(x.getPixelForValue(d.medX), a.left), a.right), py = Math.min(Math.max(y.getPixelForValue(d.margenG), a.top), a.bottom);
+        c.save(); c.font = `bold ${fs + 1}px sans-serif`; c.textBaseline = 'top';
+        const rot = (t, col, xx, yy, der) => { c.fillStyle = col; c.textAlign = der ? 'right' : 'left'; c.fillText(t, xx, yy); };
+        rot('⭐ ESTRELLAS', '#10b981', a.right - 8, a.top + 6, true); rot('⚠️ REVISA PRECIO O COSTO', '#f97316', a.right - 8, a.bottom - fs - 10, true);
+        rot('💎 PROMUÉVELOS', '#3b82f6', a.left + 8, a.top + 6, false); rot('🔍 POCO MOVIMIENTO', '#9ca3af', a.left + 8, a.bottom - fs - 10, false);
+        // nombres de los productos que más ganancia dejan, evitando que se encimen
+        const top = d.pts.slice().sort((p, q) => q.g - p.g).slice(0, grande ? 16 : 4), usados = [];
+        c.font = `${fs}px sans-serif`; c.textBaseline = 'middle'; c.textAlign = 'left';
+        top.forEach(p => {
+            const nom = p.n.length > (grande ? 30 : 18) ? p.n.substring(0, (grande ? 29 : 17)) + '…' : p.n, w = c.measureText(nom).width, r = rad(p);
+            let xx = x.getPixelForValue(p.x) + r + 3, yy = y.getPixelForValue(p.y);
+            if (xx + w > a.right) xx = x.getPixelForValue(p.x) - r - 3 - w;
+            const caja = { x0: xx, x1: xx + w, y0: yy - fs / 2 - 1, y1: yy + fs / 2 + 1 };
+            if (usados.some(u => caja.x0 < u.x1 && caja.x1 > u.x0 && caja.y0 < u.y1 && caja.y1 > u.y0)) return;
+            usados.push(caja); c.fillStyle = p.grupo ? p.grupo.c : '#9ca3af'; c.fillText(nom, xx, yy);
+        });
+        c.restore();
+    } };
+    const datasets = d.grupos.map(gr => ({ type: 'scatter', label: gr.t, data: gr.pts, backgroundColor: gr.c + 'cc', borderColor: gr.c, pointRadius: gr.pts.map(rad), pointHoverRadius: gr.pts.map(p => rad(p) + 3) }));
+    datasets.push({ type: 'line', label: '_mediana', data: [{ x: d.medX, y: d.yMin }, { x: d.medX, y: d.yMax }], borderColor: '#6b7280', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0 });
+    datasets.push({ type: 'line', label: '_margen', data: [{ x: d.xMin, y: d.margenG }, { x: d.xMax, y: d.margenG }], borderColor: '#6b7280', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0 });
+    return new Chart(ctx, {
+        data: { datasets: datasets }, plugins: [sombreado],
         options: { responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { boxWidth: 10, font: { size: 9 }, filter: it => !it.text.startsWith('_') } },
-                tooltip: { filter: it => !it.dataset.label.startsWith('_'), callbacks: { title: it => it[0].raw.n, label: c => `${bFmt(c.raw.x)} pzs · margen ${c.raw.y.toFixed(0)}% · ganancia $${formatMiles(c.raw.g)}` } } },
-            scales: { x: { type: 'logarithmic', min: xMin, max: xMax, title: { display: true, text: 'Unidades vendidas (escala logarítmica)', font: { size: 10 } } }, y: { min: yMin, max: yMax, title: { display: true, text: 'Margen (%)', font: { size: 10 } }, ticks: { callback: v => v + '%' } } } }
+            plugins: { legend: { display: false },
+                tooltip: { filter: it => !it.dataset.label.startsWith('_'), titleFont: { size: fs + 1 }, bodyFont: { size: fs }, callbacks: { title: it => it[0].raw.n, label: c => [`Vendió: ${bFmt(c.raw.x)} piezas`, `Margen: ${c.raw.y.toFixed(0)}%`, `Ganancia total: $${formatMiles(c.raw.g)}`], afterLabel: c => c.raw.grupo ? c.raw.grupo.t : '' } } },
+            scales: {
+                x: { type: 'logarithmic', min: d.xMin, max: d.xMax, title: { display: true, text: 'Piezas vendidas →  (más a la derecha = se vende más)', font: { size: fs } },
+                    afterBuildTicks: ax => { const t = []; for (let e = 0; e < 7; e++) [1, 2, 5].forEach(m => { const v = m * Math.pow(10, e); if (v >= d.xMin && v <= d.xMax) t.push({ value: v }); }); ax.ticks = t; },
+                    ticks: { font: { size: fs }, callback: v => Number(v).toLocaleString('es-MX') } },
+                y: { min: d.yMin, max: d.yMax, title: { display: true, text: 'Margen de ganancia →  (más arriba = deja más)', font: { size: fs } }, ticks: { stepSize: 10, font: { size: fs }, callback: v => Math.round(v) + '%' } } } }
     });
+}
+
+function renderVolumenMargen() {
+    let ctx = document.getElementById('chartVolMargen'); if (!ctx) return;
+    if (window.chartVolMargenInstance) window.chartVolMargenInstance.destroy();
+    let d = volMargenDatos(), nota = document.getElementById('txt-volmargen-nota'), chips = document.getElementById('vm-chips');
+    if (!d.pts.length) { if (nota) nota.innerText = 'Sin datos suficientes para este periodo.'; if (chips) chips.innerHTML = ''; return; }
+    if (chips) chips.innerHTML = volMargenChips(d);
+    if (nota) nota.innerText = `Cómo leerlo: cada burbuja es un producto. Más a la derecha vende más piezas, más arriba deja más margen y más grande deja más ganancia total. Las líneas punteadas son la mediana de piezas (${bFmt(d.medX)}) y el margen típico (${d.margenG.toFixed(0)}%). Toca el gráfico para verlo en grande.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '');
+    window.chartVolMargenInstance = dibujarVolMargen(ctx, d, false);
+}
+
+// Ventana emergente casi a pantalla completa
+function abrirVolMargenGrande() {
+    if (document.getElementById('vm-modal')) return;
+    const m = document.createElement('div');
+    m.id = 'vm-modal'; m.className = 'fixed inset-0 z-[9999] bg-black/60 p-2 sm:p-4 flex';
+    m.innerHTML = `<div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full h-full flex flex-col p-4 min-h-0">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-2 shrink-0">
+            <h3 class="font-bold text-gray-800 dark:text-white">🎯 Volumen vs Margen por Producto</h3>
+            <div class="flex items-center gap-2">
+                <select id="sel-volmargen2" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="todo">Desde el inicio</option></select>
+                <button id="vm-cerrar" class="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 text-sm font-bold cursor-pointer">✕ Cerrar</button>
+            </div>
+        </div>
+        <div id="vm-chips-g" class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2 shrink-0"></div>
+        <div class="flex-1 min-h-0 relative"><canvas id="chartVolMargenGrande"></canvas></div>
+        <p id="vm-nota-g" class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 shrink-0"></p></div>`;
+    document.body.appendChild(m);
+    const cerrar = () => { if (window.chartVolMargenGrandeInstance) { window.chartVolMargenGrandeInstance.destroy(); window.chartVolMargenGrandeInstance = null; } document.removeEventListener('keydown', esc); m.remove(); };
+    const esc = e => { if (e.key === 'Escape') cerrar(); };
+    document.addEventListener('keydown', esc);
+    m.addEventListener('click', e => { if (e.target === m) cerrar(); });
+    document.getElementById('vm-cerrar').onclick = cerrar;
+    const sel2 = document.getElementById('sel-volmargen2'), sel1 = document.getElementById('sel-volmargen');
+    sel2.value = (sel1 && sel1.value) || '90';
+    const pintar = () => {
+        if (window.chartVolMargenGrandeInstance) window.chartVolMargenGrandeInstance.destroy();
+        const d = volMargenDatos(); if (!d.pts.length) { document.getElementById('vm-nota-g').innerText = 'Sin datos suficientes para este periodo.'; return; }
+        document.getElementById('vm-chips-g').innerHTML = volMargenChips(d);
+        document.getElementById('vm-nota-g').innerText = `Cada burbuja es un producto; más grande = más ganancia total. Líneas punteadas: mediana de piezas (${bFmt(d.medX)}) y margen típico (${d.margenG.toFixed(0)}%). Pasa el cursor sobre una burbuja para ver el detalle.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '');
+        window.chartVolMargenGrandeInstance = dibujarVolMargen(document.getElementById('chartVolMargenGrande'), d, true);
+    };
+    sel2.onchange = () => { if (sel1) sel1.value = sel2.value; renderVolumenMargen(); pintar(); };
+    pintar();
 }
 
 function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); }
