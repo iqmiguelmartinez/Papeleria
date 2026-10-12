@@ -722,8 +722,9 @@
                             <option value="90">Sin ventas 90+ días</option>
                         </select>
                     </div>
+                    <div id="parado-metricas" class="grid grid-cols-2 gap-2 mb-2"></div>
                     <p id="txt-parado" class="text-xs text-gray-600 dark:text-gray-300 mb-2"></p>
-                    <div style="height: 260px; position: relative;"><canvas id="chartDineroParado"></canvas></div>
+                    <div class="flex-1 relative" style="min-height: 300px;"><canvas id="chartDineroParado"></canvas></div>
                     <p class="text-[10px] text-gray-400 mt-2">Capital = stock × costo. Rojo: nunca se ha vendido. 🚫 = producto descontinuado que aún tiene stock.</p>
                 </div>
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
@@ -1792,9 +1793,10 @@ function renderDineroParado() {
     if (window.chartParadoInstance) window.chartParadoInstance.destroy();
     let sel = document.getElementById('sel-parado'), umbral = parseInt(sel && sel.value) || 60;
     let h0 = new Date(); h0 = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate());
-    let totalInv = 0, parados = [];
+    let totalInv = 0, totalPrecio = 0, nConStock = 0, parados = [];
     inv.forEach(p => {
         if (VINCULOS_STOCK[p.codigo]) return; // los productos de impresión no tienen stock propio
+        if ((p.stock || 0) > 0) { totalPrecio += p.stock * (p.precio || 0); nConStock++; }
         let capital = (p.stock || 0) * (p.costo || 0);
         if (capital <= 0) return;
         totalInv += capital;
@@ -1803,11 +1805,17 @@ function renderDineroParado() {
     });
     parados.sort((a, b) => b.capital - a.capital);
     let totalParado = parados.reduce((a, x) => a + x.capital, 0);
+    let met = document.getElementById('parado-metricas');
+    if (met) {
+        const t = (tit, val, sub, cls) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+        met.innerHTML = t('Inventario a costo', '$' + formatMiles(totalInv), `${nConStock} producto${nConStock === 1 ? '' : 's'} con stock (lo que te costó)`, 'text-amber-600 dark:text-amber-400') +
+            t('Inventario a precio de venta', '$' + formatMiles(totalPrecio), `ganancia potencial: $${formatMiles(totalPrecio - totalInv)}`, 'text-emerald-600 dark:text-emerald-400');
+    }
     let txt = document.getElementById('txt-parado');
     if (txt) txt.innerHTML = parados.length
         ? `<b>$${formatMiles(totalParado)}</b> parados en <b>${parados.length}</b> producto${parados.length === 1 ? '' : 's'} sin ventas en ${umbral}+ días (${totalInv > 0 ? ((totalParado / totalInv) * 100).toFixed(0) : 0}% de tu inventario a costo, que suma $${formatMiles(totalInv)}).`
         : `Ningún producto con stock lleva ${umbral} días o más sin venderse. 🎉`;
-    let top = parados.slice(0, 10);
+    let top = parados.slice(0, 15);
     if (!top.length) return;
     window.chartParadoInstance = new Chart(ctx, {
         type: 'bar',
