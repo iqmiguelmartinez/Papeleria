@@ -1824,16 +1824,17 @@ function volMargenDatos() {
     let sel = document.getElementById('sel-volmargen'), modo = (sel && sel.value) || '90';
     let h0 = new Date(); h0 = new Date(h0.getFullYear(), h0.getMonth(), h0.getDate());
     let limK = modo === 'todo' ? '' : calKey(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - parseInt(modo)));
-    let pts = [], sinCosto = 0;
+    let pts = [], sinCosto = 0, descont = 0;
     Object.keys(ev).forEach(cod => {
         let u = 0, ingr = 0, g = 0, cr = null, nombre = cod;
         ev[cod].forEach(e => { if (!limK || (e.k && e.k >= limK)) { u += e.c; ingr += e.i; g += e.g; } cr = e.cr; nombre = e.n || nombre; });
         if (u <= 0 || ingr <= 0) return;
         let pInv = inv.find(x => x.codigo === cr) || {};
+        if (pInv.noActivo) { descont++; return; } // los productos descontinuados no se muestran en este gráfico
         if (!(pInv.costo > 0)) { sinCosto++; return; } // sin costo capturado el margen no es confiable
         pts.push({ x: u, y: (g / ingr) * 100, g: g, n: nombre });
     });
-    if (!pts.length) return { pts: pts, sinCosto: sinCosto };
+    if (!pts.length) return { pts: pts, sinCosto: sinCosto, descont: descont };
     let xs = pts.map(p => p.x).sort((a, b) => a - b), medX = xs[Math.floor(xs.length / 2)];
     let margenG = pts.reduce((a, p) => a + p.y, 0) / pts.length; // margen típico por producto
     let gMax = Math.max(...pts.map(p => Math.abs(p.g)), 1);
@@ -1846,7 +1847,7 @@ function volMargenDatos() {
     grupos.forEach(gr => { gr.pts = pts.filter(gr.f); });
     pts.forEach(p => { p.grupo = grupos.find(gr => gr.f(p)); });
     let ys = pts.map(p => p.y);
-    return { pts: pts, sinCosto: sinCosto, medX: medX, margenG: margenG, gMax: gMax, grupos: grupos, modo: modo,
+    return { pts: pts, sinCosto: sinCosto, descont: descont, medX: medX, margenG: margenG, gMax: gMax, grupos: grupos, modo: modo,
         yMin: Math.floor((Math.min(0, ...ys) - 5) / 10) * 10, yMax: Math.ceil((Math.max(...ys) + 5) / 10) * 10,
         xMin: Math.min(...xs) / 1.5, xMax: Math.max(...xs) * 1.5 };
 }
@@ -1905,7 +1906,7 @@ function renderVolumenMargen() {
     let d = volMargenDatos(), nota = document.getElementById('txt-volmargen-nota'), chips = document.getElementById('vm-chips');
     if (!d.pts.length) { if (nota) nota.innerText = 'Sin datos suficientes para este periodo.'; if (chips) chips.innerHTML = ''; return; }
     if (chips) chips.innerHTML = volMargenChips(d);
-    if (nota) nota.innerText = `Cómo leerlo: cada burbuja es un producto. Más a la derecha vende más piezas, más arriba deja más margen y más grande deja más ganancia total. Las líneas punteadas son la mediana de piezas (${bFmt(d.medX)}) y el margen típico (${d.margenG.toFixed(0)}%). Toca el gráfico para verlo en grande.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '');
+    if (nota) nota.innerText = `Cómo leerlo: cada burbuja es un producto. Más a la derecha vende más piezas, más arriba deja más margen y más grande deja más ganancia total. Las líneas punteadas son la mediana de piezas (${bFmt(d.medX)}) y el margen típico (${d.margenG.toFixed(0)}%). Toca el gráfico para verlo en grande.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '') + (d.descont ? ` Tampoco los ${d.descont} descontinuado(s).` : '');
     window.chartVolMargenInstance = dibujarVolMargen(ctx, d, false);
 }
 
@@ -1937,7 +1938,7 @@ function abrirVolMargenGrande() {
         if (window.chartVolMargenGrandeInstance) window.chartVolMargenGrandeInstance.destroy();
         const d = volMargenDatos(); if (!d.pts.length) { document.getElementById('vm-nota-g').innerText = 'Sin datos suficientes para este periodo.'; return; }
         document.getElementById('vm-chips-g').innerHTML = volMargenChips(d);
-        document.getElementById('vm-nota-g').innerText = `Cada burbuja es un producto; más grande = más ganancia total. Líneas punteadas: mediana de piezas (${bFmt(d.medX)}) y margen típico (${d.margenG.toFixed(0)}%). Pasa el cursor sobre una burbuja para ver el detalle.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '');
+        document.getElementById('vm-nota-g').innerText = `Cada burbuja es un producto; más grande = más ganancia total. Líneas punteadas: mediana de piezas (${bFmt(d.medX)}) y margen típico (${d.margenG.toFixed(0)}%). Pasa el cursor sobre una burbuja para ver el detalle.` + (d.sinCosto ? ` No se incluyen ${d.sinCosto} producto(s) sin costo capturado.` : '') + (d.descont ? ` Tampoco los ${d.descont} descontinuado(s).` : '');
         window.chartVolMargenGrandeInstance = dibujarVolMargen(document.getElementById('chartVolMargenGrande'), d, true);
     };
     sel2.onchange = () => { if (sel1) sel1.value = sel2.value; renderVolumenMargen(); pintar(); };
