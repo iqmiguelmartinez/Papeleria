@@ -395,7 +395,6 @@
                 </div>
             </div>
 
-            <div id="corte-impresiones" class="hidden mb-4 shrink-0 bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-4"></div>
 
             <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Resumen de Artículos Vendidos</h3>
             <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl mb-4 flex-1 min-h-[16rem]">
@@ -494,7 +493,7 @@
             <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 shrink-0"></div>
             <div style="height: 220px; position: relative;" class="mt-4 shrink-0"><canvas id="chartImpresiones"></canvas></div>
             <div id="imp-tabla" class="mt-4"></div>
-            <p class="text-[10px] text-gray-400 mt-3">Cada día se compara la ventana entre la última lectura del día anterior y la última del día. Diferencias pequeñas son normales (pruebas, atascos, copias propias). Para que cuadre mejor, que la última lectura del día sea después de la última venta.</p>
+            <p class="text-[10px] text-gray-400 mt-3">El lector revisa la impresora cada 5 minutos y solo guarda cuando el contador cambia. Cada corte se compara con el corte anterior: páginas que contó la impresora entre uno y otro contra las páginas cobradas en ese turno. Si hay varios cortes en un día se suman; un fin de semana cae en el corte del lunes. Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
         </div>
 
         <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
@@ -963,9 +962,7 @@
                     });
                     IMP.lecturas = []; IMP.cargado = false; BUS.logs = []; BUS.ventas = []; BUS.cargado = false;
                     cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
-                    ['imp-resumen', 'imp-tabla', 'bus-resultado', 'corte-impresiones'].forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
-                    const bxCorte = document.getElementById('corte-impresiones'); if (bxCorte) bxCorte.classList.add('hidden');
-                    ultimoCorteImpresiones = null;
+                    ['imp-resumen', 'imp-tabla', 'bus-resultado'].forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
                     ['imp-overlay', 'cal-overlay'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
                 } catch (e) { console.warn(e); }
             }
@@ -995,7 +992,7 @@
             if(tab === 'ventasPasadas') renderVentasPasadas();
             if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
-            if(tab === 'corte') { renderCorte(); cargarImpresionesCorte(); }
+            if(tab === 'corte') renderCorte();
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja();
             if(tab === 'buscador') iniciarBuscador();
@@ -1205,7 +1202,7 @@
                 if(p) p.stock -= i.cantidad; 
             });
             
-            ventasActivas.push({ hora: new Date().toLocaleTimeString(), t: new Date().toISOString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
             
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
@@ -1491,12 +1488,6 @@
         async function realizarCorteTurno() {
             if(ventasActivas.length===0 && retirosActivos.length===0) return;
 
-            // Solo con permiso de análisis: compara lo que contó la impresora contra lo vendido en este turno
-            let cmpCorte = null;
-            if (tienePermisoAnalisis) {
-                try { await impCargarLecturas(true); cmpCorte = impCompararVentana(IMP.lecturas, ventasActivas, impFactor, IMP.tolPct, IMP.tolMin); } catch (e) { console.warn(e); }
-            }
-            
             let tV = ventasActivas.reduce((a,v)=>a+v.total, 0);
             let tR = retirosActivos.reduce((a,r)=>a+r.monto, 0);
             
@@ -1525,8 +1516,7 @@
                 totalRetiros: tR, 
                 efectivoNeto: tV-tR, 
                 promedioVenta: promVenta, 
-                articulos: articulosVendidos, 
-                impresiones: cmpCorte ? impTextoCorte(cmpCorte) : ''
+                articulos: articulosVendidos
             });
             await enviarDatosAGoogleSheets({
                 tipo: 'movimientoCaja',
@@ -1541,11 +1531,9 @@
             ventasActivas = []; 
             retirosActivos = []; 
             
-            if (cmpCorte) ultimoCorteImpresiones = { hora: new Date().toLocaleTimeString(), texto: impTextoCorte(cmpCorte) };
             renderCorte(); 
             renderRetiros(); 
-            renderImpresionesCorte();
-            Swal.fire({ title: 'Corte Realizado', html: 'El turno se ha reiniciado y el ticket se descargó correctamente.' + (cmpCorte ? `<div style="margin-top:10px;font-size:13px;text-align:left;border-top:1px solid #ddd;padding-top:8px">🖨️ ${bEsc(impTextoCorte(cmpCorte))}</div>` : ''), icon: 'success' });
+            Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
         }
 
         async function verHistorialCortes(usarCache = false) {
@@ -2853,7 +2841,7 @@ async function calGuardar() {
 // contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
 // Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
 // ==========================================================================
-const IMP = { lecturas: [], factores: {}, tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+const IMP = {cortes: [], visto: null,  lecturas: [], factores: {}, tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
 
 function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
 // Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
@@ -2868,28 +2856,43 @@ function impFactor(cod) {
     return IMP.factores[cod] !== undefined ? IMP.factores[cod] : impFactorDefecto(cod);
 }
 
-// dias: lista de fechas (medianoche). Devuelve una fila por día.
-function impCalcular(lecturas, ventas, dias, factorDe, tolPct, tolMin) {
+// Compara, por corte de caja, las páginas que contó la impresora contra las que se cobraron en ese turno.
+// Ventana de un corte = desde el corte anterior hasta este corte. El contador en un instante T es la última lectura con t <= T
+// (el lector solo guarda cuando el contador cambia, así que esa lectura sigue vigente hasta la siguiente).
+// cortes: [{fecha, usuario, articulos:[{codigo,cantidad,total}]}]; dias: fechas (medianoche) a mostrar.
+function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora) {
     const L = lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
-    const V = [];
-    ventas.forEach(v => {
-        const d = bParseVentaFecha(v); if (!d || !Array.isArray(v.productos)) return;
-        v.productos.forEach(p => { const f = factorDe(p.codigo), c = Number(p.cantidad) || 0; if (f > 0 && c) V.push({ t: d, pag: c * f, ing: (Number(p.precio) || 0) * c }); });
+    const C = cortes.map(c => ({ t: new Date(c.fecha), usuario: c.usuario, arts: Array.isArray(c.articulos) ? c.articulos : [] })).filter(c => !isNaN(c.t.getTime())).sort((a, b) => a.t - b.t);
+    const contadorEn = T => { let r = null; for (const l of L) { if (l.t <= T) r = l; else break; } return r; };
+    C.forEach((c, i) => {
+        c.pos = 0; c.ing = 0;
+        c.arts.forEach(a => { const f = factorDe(a.codigo), q = Number(a.cantidad) || 0; if (f > 0 && q) { c.pos += q * f; c.ing += Number(a.total) || 0; } });
+        c.estado = 'ok'; c.delta = null;
+        if (i === 0) { c.estado = 'sinprevia'; return; }
+        const a = contadorEn(C[i - 1].t), b = contadorEn(c.t);
+        if (!a || !b) { c.estado = 'sinlectura'; return; }
+        c.delta = b.total - a.total;
+        if (c.delta < 0) c.estado = 'reinicio';
     });
+    const ult = C.length ? C[C.length - 1] : null;
     return dias.map(d0 => {
-        const fin = calSig(d0); let S = null, E = null;
-        for (const l of L) { if (l.t < d0) S = l; else if (l.t < fin) E = l; else break; }
-        const fila = { dia: d0, S: S, E: E, delta: null, pos: 0, ing: 0, diff: null, pct: null, estado: '', incluye: 0 };
-        if (!E) { fila.estado = 'sinlectura'; return fila; }
-        if (!S) { fila.estado = 'sinprevia'; return fila; }
-        fila.delta = E.total - S.total;
-        if (fila.delta < 0) { fila.estado = 'reinicio'; return fila; }
-        V.forEach(v => { if (v.t > S.t && v.t <= E.t) { fila.pos += v.pag; fila.ing += v.ing; } });
+        const fin = calSig(d0), delDia = C.filter(c => c.t >= d0 && c.t < fin);
+        const fila = { dia: d0, cortes: delDia, delta: null, pos: 0, ing: 0, diff: null, pct: null, estado: '' };
+        if (!delDia.length) {
+            const esHoy = ahora >= d0 && ahora < fin;
+            if (esHoy && ult) { const b = L.length ? L[L.length - 1] : null, a = contadorEn(ult.t); if (a && b && b.total >= a.total) fila.delta = b.total - a.total; fila.estado = 'hoy'; }
+            else fila.estado = 'sincorte';
+            return fila;
+        }
+        const validos = delDia.filter(c => c.delta !== null && c.delta >= 0);
+        if (!validos.length) { fila.estado = delDia.some(c => c.estado === 'reinicio') ? 'reinicio' : delDia[0].estado; return fila; }
+        validos.forEach(c => { fila.delta += c.delta; fila.pos += c.pos; fila.ing += c.ing; });
+        fila.delta = validos.reduce((s, c) => s + c.delta, 0);
+        fila.parcial = validos.length < delDia.length;
         fila.diff = fila.delta - fila.pos;
         fila.pct = fila.pos > 0 ? (fila.diff / fila.pos) * 100 : null;
         const umbral = Math.max(tolMin, (tolPct / 100) * fila.pos);
         fila.estado = Math.abs(fila.diff) <= umbral ? 'ok' : (fila.diff > 0 ? 'sobra' : 'falta');
-        fila.incluye = Math.max(0, Math.round((d0 - new Date(S.t.getFullYear(), S.t.getMonth(), S.t.getDate())) / 86400000) - 1);
         return fila;
     });
 }
@@ -2898,16 +2901,11 @@ async function iniciarImpresiones(forzar) {
     const est = document.getElementById('imp-estado');
     if (IMP.cargando) return;
     if (IMP.cargado && !forzar) { impRender(); return; }
-    IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y ventas...';
+    IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
-        const hayVentas = !forzar && cacheUltimoAnalisis && cacheUltimoAnalisis.ventas && cacheUltimoAnalisis.ventas.length > 0;
-        const pedidos = [apiFetch('getImpresiones')];
-        if (!hayVentas) pedidos.push(apiFetch('getDataAnalisis'));
-        const res = await Promise.all(pedidos);
-        const d = await res[0].json(), c = d.config || {};
-        IMP.lecturas = d.lecturas || []; IMP.factores = c.factores || {}; IMP.ts = Date.now();
+        const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
+        IMP.lecturas = d.lecturas || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.factores = c.factores || {};
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
-        if (!hayVentas) cacheUltimoAnalisis = await res[1].json();
         await cargarCalendario();
         IMP.cargado = true; impRender();
     } catch (e) { console.error(e); if (est) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
@@ -2917,11 +2915,11 @@ async function iniciarImpresiones(forzar) {
 const impEstados = {
     ok: ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'],
     sobra: ['⚠️ Imprimió de más', 'text-red-600 dark:text-red-400 font-bold'],
-    falta: ['🔎 Vendió de más', 'text-amber-600 dark:text-amber-400 font-bold'],
+    falta: ['🔎 Cobró de más', 'text-amber-600 dark:text-amber-400 font-bold'],
     sinlectura: ['— Sin lecturas', 'text-gray-400'],
-    sinprevia: ['— Sin lectura previa', 'text-gray-400'],
-    sinventas: ['— Sin ventas en el turno', 'text-gray-400'],
-    sinnueva: ['⏳ Esperando lectura nueva', 'text-gray-500'],
+    sinprevia: ['— Primer corte (sin referencia)', 'text-gray-400'],
+    sincorte: ['— Sin corte este día', 'text-amber-600 dark:text-amber-400'],
+    hoy: ['⏳ Turno en curso', 'text-gray-500'],
     reinicio: ['⚙️ Contador reiniciado', 'text-gray-500']
 };
 const impSigno = n => (n > 0 ? '+' : (n < 0 ? '−' : '')) + bFmt(Math.abs(n));
@@ -2930,18 +2928,22 @@ function impRender() {
     const sel = document.getElementById('sel-imp-dias'), nDias = parseInt(sel && sel.value) || 30;
     const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const dias = []; for (let i = nDias - 1; i >= 0; i--) dias.push(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - i));
-    const ventas = (cacheUltimoAnalisis && cacheUltimoAnalisis.ventas) || [];
-    const filas = impCalcular(IMP.lecturas, ventas, dias, impFactor, IMP.tolPct, IMP.tolMin);
+    const filas = impCalcular(IMP.lecturas, IMP.cortes || [], dias, impFactor, IMP.tolPct, IMP.tolMin, hoy);
     IMP.filas = filas;
 
-    // Estado de las lecturas
+    // Estado del lector (se reporta cada 5 min aunque el contador no cambie)
     const est = document.getElementById('imp-estado');
-    const ult = IMP.lecturas.map(l => new Date(l.t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
     if (est) {
-        if (!ult) est.innerHTML = '<span class="text-red-500 font-bold">Aún no hay lecturas.</span> Instala el programa lector en la PC o captura una lectura manual.';
+        const visto = IMP.visto ? new Date(IMP.visto) : null;
+        const lect = IMP.lecturas.map(l => new Date(l.t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
+        const hace = f => { const m = Math.round((hoy - f) / 60000); return m < 1 ? 'hace menos de 1 minuto' : (m < 60 ? `hace ${m} min` : (m < 2880 ? `hace ${Math.floor(m / 60)} h` : `hace ${Math.floor(m / 1440)} días`)); };
+        if (!visto && !lect) est.innerHTML = '<span class="text-red-500 font-bold">Aún no hay lecturas.</span> Instala el programa lector en la PC.';
         else {
-            const horas = (hoy - ult) / 3600000;
-            est.innerHTML = `Última lectura: <b>${ult.toLocaleString('es-MX')}</b> (hace ${horas < 1 ? 'menos de 1 hora' : Math.floor(horas) + ' h'})` + (horas > 26 && calEsHabil(h0) ? ' <span class="text-red-500 font-bold">· El lector lleva más de un día sin reportar.</span>' : '') + ` · ${IMP.lecturas.length} lecturas guardadas`;
+            const ref = visto && !isNaN(visto.getTime()) ? visto : lect;
+            const horasDia = hoy.getHours() >= 8 && hoy.getHours() < 21;
+            const caido = (hoy - ref) > 2 * 3600000 && calEsHabil(h0) && horasDia;
+            est.innerHTML = `Lector: último contacto <b>${hace(ref)}</b>` + (caido ? ' <span class="text-red-500 font-bold">· El lector no está reportando. Revisa que la PC esté encendida.</span>' : ' <span class="text-emerald-600">· activo</span>') +
+                (lect ? ` · Último cambio del contador: ${lect.toLocaleString('es-MX')}` : '') + ` · ${IMP.lecturas.length} cambios guardados`;
         }
     }
 
@@ -2950,25 +2952,29 @@ function impRender() {
     const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
     const diff = sDelta - sPos, porPag = sPos > 0 ? sIng / sPos : 0;
     const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
+    const sinCorte = filas.filter(f => f.estado === 'sincorte' && calEsHabil(f.dia)).length;
     const tarjeta = (t, v, sub, clase) => `<div class="bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-3"><p class="text-[10px] uppercase text-gray-500 font-bold">${t}</p><p class="text-xl font-bold ${clase || 'text-gray-800 dark:text-gray-100'}">${v}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
     const res = document.getElementById('imp-resumen');
     if (res) res.innerHTML = con.length
-        ? tarjeta('Páginas que contó la impresora', bFmt(sDelta), `en ${con.length} día${con.length === 1 ? '' : 's'} con lecturas`) +
-          tarjeta('Páginas vendidas en el punto de venta', bFmt(sPos), 'según las equivalencias configuradas') +
+        ? tarjeta('Páginas que contó la impresora', bFmt(sDelta), `en ${con.length} día${con.length === 1 ? '' : 's'} con corte`) +
+          tarjeta('Páginas cobradas en los cortes', bFmt(sPos), 'según las equivalencias configuradas') +
           tarjeta('Diferencia', impSigno(diff), diff > 0 ? 'imprimió más de lo que se cobró' : (diff < 0 ? 'se cobró más de lo que imprimió' : 'cuadra'), diff > 0 ? 'text-red-600' : (diff < 0 ? 'text-amber-600' : 'text-emerald-600')) +
-          tarjeta('Dinero en juego', diff > 0 ? '$' + formatMiles(diff * porPag) : '$0.00', diff > 0 ? `≈ ${bFmt(diff)} págs × $${formatMiles(porPag)} promedio por página` : `${alertas} día${alertas === 1 ? '' : 's'} fuera de tolerancia`, diff > 0 ? 'text-red-600' : '')
-        : '<p class="text-sm text-gray-500 col-span-4">Todavía no hay días con dos lecturas para comparar. Con una lectura por hora, el primer día completo aparece mañana.</p>';
+          tarjeta('Dinero en juego', diff > 0 ? '$' + formatMiles(diff * porPag) : '$0.00', diff > 0 ? `≈ ${bFmt(diff)} págs × $${formatMiles(porPag)} promedio por página` : `${alertas} día${alertas === 1 ? '' : 's'} fuera de tolerancia` + (sinCorte ? ` · ${sinCorte} día(s) hábil(es) sin corte` : ''), diff > 0 ? 'text-red-600' : '')
+        : '<p class="text-sm text-gray-500 col-span-4">Todavía no hay cortes con lecturas para comparar. Cada corte se compara con el anterior, así que el primer resultado aparece en el segundo corte.</p>';
 
-    // Tabla (más reciente primero). Los días de descanso sin lecturas no se muestran.
-    const visibles = filas.filter(f => f.estado !== 'sinlectura' || calEsHabil(f.dia)).reverse();
+    // Tabla (más reciente primero). Los días de descanso sin corte no se muestran.
+    const visibles = filas.filter(f => !['sincorte', 'sinlectura'].includes(f.estado) || calEsHabil(f.dia) || f.cortes.length).reverse();
     const tab = document.getElementById('imp-tabla');
-    if (tab) tab.innerHTML = bTabla(['Día', 'Lecturas usadas', 'Impresora', 'Punto de venta', 'Diferencia', 'Estado'], visibles.map(f => {
+    const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    if (tab) tab.innerHTML = bTabla(['Día', 'Cortes', 'Impresora', 'Cobrado en cortes', 'Diferencia', 'Estado'], visibles.map(f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
-        const hora = d => d.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const lect = f.S && f.E ? `${hora(f.S.t)} → ${hora(f.E.t)}` : (f.E ? hora(f.E.t) : '');
-        return [bEsc(bFechaLarga(f.dia, true)), `<span class="text-gray-500">${bEsc(lect)}</span>`, f.delta === null ? '—' : bFmt(f.delta), f.delta === null || f.estado === 'reinicio' ? '—' : bFmt(f.pos),
+        const cortes = f.cortes.length ? f.cortes.map(c => `${hhmm(c.t)}${c.usuario ? ' · ' + bEsc(c.usuario) : ''}`).join('<br>') : '';
+        const enCurso = f.estado === 'hoy';
+        return [bEsc(bFechaLarga(f.dia, true)), `<span class="text-gray-500">${cortes}</span>`,
+            f.delta === null ? '—' : bFmt(f.delta) + (enCurso ? ' <span class="text-[10px] text-gray-400">desde el último corte</span>' : ''),
+            f.diff === null ? '—' : bFmt(f.pos),
             f.diff === null ? '—' : `<b>${impSigno(f.diff)}</b>${f.pct !== null ? ` <span class="text-gray-400">(${f.diff >= 0 ? '+' : '−'}${Math.abs(f.pct).toFixed(0)}%)</span>` : ''}`,
-            `<span class="${cls}">${txt}</span>${f.incluye > 0 ? `<br><span class="text-[10px] text-gray-400">incluye ${f.incluye} día(s) previos sin lectura</span>` : ''}`];
+            `<span class="${cls}">${txt}</span>${f.parcial ? '<br><span class="text-[10px] text-gray-400">algún corte del día no tuvo referencia</span>' : ''}`];
     }));
 
     // Gráfico
@@ -2979,13 +2985,14 @@ function impRender() {
             type: 'bar',
             data: { labels: con.map(f => f.dia.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })), datasets: [
                 { label: 'Impresora (contador)', data: con.map(f => f.delta), backgroundColor: '#3b82f6', borderRadius: 3 },
-                { label: 'Punto de venta', data: con.map(f => f.pos), backgroundColor: '#10b981', borderRadius: 3 }
+                { label: 'Cobrado en cortes', data: con.map(f => f.pos), backgroundColor: '#10b981', borderRadius: 3 }
             ] },
             options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
         });
     }
 }
 
+// Solo como respaldo (por ejemplo, el primer día antes de que el lector esté instalado). El corte ya no pide el contador.
 async function capturarLecturaManual() {
     const { value } = await Swal.fire({ title: 'Lectura manual del contador', html: '<p style="font-size:13px;margin-bottom:6px">En la página de la impresora: Información del dispositivo → Contador → <b>Total</b>.</p>', input: 'number', inputAttributes: { min: 0, step: 1 }, showCancelButton: true, confirmButtonText: 'Guardar' });
     if (value === undefined || value === '') return;
@@ -2994,88 +3001,8 @@ async function capturarLecturaManual() {
     const r = await enviarDatosAGoogleSheets({ tipo: 'contadorManual', total });
     if (!r || r.status !== 'success') return;
     IMP.lecturas.push({ t: new Date().toISOString(), total: total, origen: 'manual:' + usuarioActual });
-    IMP.ts = Date.now(); impRender(); renderImpresionesCorte();
+    impRender();
     Swal.fire({ title: 'Lectura guardada', icon: 'success', timer: 1200, showConfirmButton: false });
-}
-
-// ---------- Comparación del turno actual (se ve en "Corte Diario" y al hacer el corte) ----------
-// Compara las páginas que contó la impresora desde que empezó el turno contra las páginas vendidas en el turno.
-let ultimoCorteImpresiones = null;
-function ventaTurnoFecha(v) {
-    const d = v.t ? new Date(v.t) : new Date(v.hora);   // las ventas de este navegador traen "t"; las del servidor traen la fecha completa en "hora"
-    return isNaN(d.getTime()) ? null : d;
-}
-async function impCargarLecturas(forzar) {
-    if (!forzar && IMP.ts && (Date.now() - IMP.ts) < 120000) return;
-    const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
-    IMP.lecturas = d.lecturas || []; IMP.factores = c.factores || {};
-    IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
-    IMP.ts = Date.now();
-}
-// ventas: las del turno. Inicio del turno = primera venta; se usa la última lectura anterior a esa venta.
-function impCompararVentana(lecturas, ventas, factorDe, tolPct, tolMin) {
-    const L = lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
-    const V = [], fechas = [];
-    ventas.forEach(v => {
-        const d = ventaTurnoFecha(v); if (!d || !Array.isArray(v.productos)) return;
-        fechas.push(d);
-        v.productos.forEach(p => { const f = factorDe(p.codigo), c = Number(p.cantidad) || 0; if (f > 0 && c) V.push({ t: d, pag: c * f, ing: (Number(p.precio) || 0) * c }); });
-    });
-    const r = { S: null, E: null, delta: null, pos: 0, ing: 0, tarde: 0, diff: null, pct: null, estado: '' };
-    if (!fechas.length) { r.estado = 'sinventas'; return r; }
-    if (!L.length) { r.estado = 'sinlectura'; return r; }
-    const t0 = fechas.sort((a, b) => a - b)[0];
-    for (const l of L) if (l.t <= t0) r.S = l;
-    r.E = L[L.length - 1];
-    if (!r.S) { r.estado = 'sinprevia'; return r; }
-    if (r.E.t <= r.S.t) { r.estado = 'sinnueva'; return r; }
-    r.delta = r.E.total - r.S.total;
-    if (r.delta < 0) { r.estado = 'reinicio'; return r; }
-    V.forEach(v => { if (v.t > r.S.t && v.t <= r.E.t) { r.pos += v.pag; r.ing += v.ing; } else if (v.t > r.E.t) r.tarde += v.pag; });
-    r.diff = r.delta - r.pos;
-    r.pct = r.pos > 0 ? (r.diff / r.pos) * 100 : null;
-    r.estado = Math.abs(r.diff) <= Math.max(tolMin, (tolPct / 100) * r.pos) ? 'ok' : (r.diff > 0 ? 'sobra' : 'falta');
-    return r;
-}
-const impExplica = {
-    sinventas: 'Todavía no hay ventas en este turno.',
-    sinlectura: 'Aún no hay lecturas de la impresora (instala el lector o captura una lectura manual).',
-    sinprevia: 'No hay una lectura anterior al inicio del turno, por eso no se puede comparar.',
-    sinnueva: 'Aún no hay una lectura nueva desde que empezó el turno (el lector toma una cada hora). Puedes capturar el contador ahora.',
-    reinicio: 'El contador de la impresora bajó (¿se reinició?), no se compara.'
-};
-// Texto corto para el Log y el aviso del corte
-function impTextoCorte(r) {
-    if (r.delta === null) return 'Impresiones: sin comparación (' + (impExplica[r.estado] || r.estado).replace(/\s*\(.*?\)/g, '') + ')';
-    const est = { ok: 'cuadra', sobra: 'imprimió de más', falta: 'vendió de más' }[r.estado];
-    return `Impresiones: impresora ${r.delta} pág., punto de venta ${r.pos} pág., diferencia ${r.diff > 0 ? '+' : ''}${r.diff} (${est})`;
-}
-async function cargarImpresionesCorte() {
-    const box = document.getElementById('corte-impresiones'); if (!box) return;
-    if (!tienePermisoAnalisis) { box.classList.add('hidden'); box.innerHTML = ''; return; }
-    box.classList.remove('hidden');
-    if (!IMP.lecturas.length) box.innerHTML = '<p class="text-xs text-gray-400">⏳ Revisando impresiones...</p>';
-    try { await impCargarLecturas(false); } catch (e) { console.error(e); box.innerHTML = '<p class="text-xs text-red-500">No se pudieron cargar las lecturas de la impresora.</p>'; return; }
-    renderImpresionesCorte();
-}
-function renderImpresionesCorte() {
-    const box = document.getElementById('corte-impresiones'); if (!box || !tienePermisoAnalisis) return;
-    const r = impCompararVentana(IMP.lecturas, ventasActivas, impFactor, IMP.tolPct, IMP.tolMin);
-    const hm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const cifra = (t, v, sub, cls) => `<div><p class="text-[10px] uppercase text-gray-500 font-bold">${t}</p><p class="text-xl font-bold ${cls || 'text-gray-800 dark:text-gray-100'}">${v}</p>${sub ? `<p class="text-[10px] text-gray-400">${sub}</p>` : ''}</div>`;
-    let cuerpo;
-    if (r.delta === null) cuerpo = `<p class="text-sm text-gray-500">${bEsc(impExplica[r.estado] || '')}</p>`;
-    else {
-        const [txt, cls] = impEstados[r.estado], porPag = r.pos > 0 ? r.ing / r.pos : 0;
-        cuerpo = `<div class="grid grid-cols-2 md:grid-cols-4 gap-3">` +
-            cifra('Impresora contó', bFmt(r.delta), `${hm(r.S.t)} → ${hm(r.E.t)}`) +
-            cifra('Punto de venta', bFmt(r.pos), 'según las equivalencias') +
-            cifra('Diferencia', impSigno(r.diff), r.pct !== null ? (r.diff >= 0 ? '+' : '−') + Math.abs(r.pct).toFixed(0) + '%' : '', r.estado === 'ok' ? 'text-emerald-600' : (r.estado === 'sobra' ? 'text-red-600' : 'text-amber-600')) +
-            `<div><p class="text-[10px] uppercase text-gray-500 font-bold">Estado</p><p class="text-sm ${cls}">${txt}</p>${r.diff > 0 && r.estado === 'sobra' ? `<p class="text-[10px] text-gray-400">≈ $${formatMiles(r.diff * porPag)} sin cobrar</p>` : ''}</div></div>` +
-            (r.tarde > 0 ? `<p class="text-[10px] text-gray-400 mt-2">Hay ${bFmt(r.tarde)} pág. vendidas después de la última lectura (${hm(r.E.t)}) que aún no se comparan.</p>` : '');
-    }
-    const previo = ultimoCorteImpresiones ? `<p class="text-[11px] text-gray-500 mt-2 border-t dark:border-gray-700 pt-2">Último corte (${bEsc(ultimoCorteImpresiones.hora)}): ${bEsc(ultimoCorteImpresiones.texto)}</p>` : '';
-    box.innerHTML = `<div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🖨️ Impresiones de este turno</h3><button onclick="capturarLecturaManual()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-1 rounded-lg text-[11px] cursor-pointer">✍️ Capturar contador ahora</button></div>${cuerpo}${previo}`;
 }
 
 // ---------- Equivalencias (páginas del contador por unidad vendida) ----------
