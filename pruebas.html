@@ -52,17 +52,19 @@
         .v-stock.low { background:#fef3c7; color:#92400e; font-weight:700; padding:1px 5px; border-radius:999px; }
         .v-stock.zero { background:#fee2e2; color:#991b1b; font-weight:700; padding:1px 5px; border-radius:999px; }
         .v-badge { position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 5px; box-sizing:border-box; border-radius:10px; background:#2563eb; color:#ffffff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
-        .v-list { display:flex; flex-direction:column; gap:6px; }
-        .v-sec { display:flex; flex-direction:column; gap:3px; scroll-margin-top:46px; }
-        .v-sgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:4px 6px; }
-        /* Divisor por letra: discreto, una letra pequeña con una línea fina */
-        .v-letra { height:18px; display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--v-mut); opacity:.85; }
+        .v-list { display:block; }
+        /* Columnas tipo directorio: se llena la primera columna hacia abajo y sigue la de su derecha, en orden alfabético */
+        .v-cols { column-width:220px; column-gap:10px; column-fill:balance; }
+        .v-cols > .v-row { width:100%; margin:0 0 4px; min-height:var(--v-h,34px); break-inside:avoid; }
+        /* Divisor por letra: discreto, una letra pequeña con una línea fina (siempre acompañada de al menos un producto) */
+        .v-letra { height:18px; margin-top:8px; display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--v-mut); opacity:.9; break-after:avoid; break-inside:avoid; scroll-margin-top:46px; border-radius:4px; }
+        .v-cols > .v-letra:first-child { margin-top:0; }
         .v-letra::after { content:""; flex:1; height:1px; background:var(--v-bd); }
-        /* Tira A-Z: se queda pegada arriba al hacer scroll; las letras sin productos se ven apagadas */
-        .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:1px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
+        .v-letra.flash { background:var(--v-sel-bg); color:var(--v-sel-bd); opacity:1; }
+        /* Tira de letras: solo las que tienen productos; se queda pegada arriba al hacer scroll */
+        .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:2px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
         .v-az button { min-width:22px; height:22px; padding:0 3px; border:0; border-radius:6px; background:transparent; color:var(--v-ink); font-size:12px; font-weight:700; line-height:1; font-family:inherit; cursor:pointer; }
         .v-az button:hover:not(:disabled) { background:var(--v-sel-bg); color:var(--v-sel-bd); }
-        .v-az button:disabled { color:var(--v-mut); opacity:.35; cursor:default; }
         /* El panel de "Todos los productos" crece hasta el final de la pantalla y sus filas se reparten el espacio; si hay muchas, la columna hace scroll */
         .v-fill { flex:1 0 auto; display:flex; flex-direction:column; }
         .v-fill .v-list { flex:1; align-content:start; }
@@ -1515,20 +1517,20 @@
             document.getElementById('v-sin-resultados').classList.toggle('hidden', filtrados.length > 0);
             const htmlE = e => e.grupo ? htmlGrupoVenta(e) : htmlProductoVenta(e.p, 'row');
             const az = document.getElementById('v-az');
-            if (q) {   // resultados de búsqueda: lista plana, sin divisores
-                lista.innerHTML = entradasVista.length ? `<div class="v-sec"><div class="v-sgrid">${entradasVista.map(htmlE).join('')}</div></div>` : '';
+            if (q) {   // resultados de búsqueda: lista sin divisores
+                lista.innerHTML = entradasVista.length ? `<div class="v-cols">${entradasVista.map(htmlE).join('')}</div>` : '';
                 az.classList.add('hidden'); az.innerHTML = '';
             } else {
-                const secs = [], letras = new Set();
+                const letras = [];
+                let html = '', ultima = null;
                 entradasVista.forEach(e => {
                     const nom = e.grupo ? e.label : e.p.nombre, c = (normV(nom).trim()[0] || '#').toUpperCase(), L = /[A-Z]/.test(c) ? c : '#';
-                    if (!secs.length || secs[secs.length - 1].L !== L) secs.push({ L, items: [] });
-                    secs[secs.length - 1].items.push(e); letras.add(L);
+                    if (L !== ultima) { ultima = L; letras.push(L); html += `<div class="v-letra" id="v-sec-${L === '#' ? 'num' : L}">${L}</div>`; }
+                    html += htmlE(e);
                 });
-                lista.innerHTML = secs.map(s => `<div class="v-sec" id="v-sec-${s.L === '#' ? 'num' : s.L}"><div class="v-letra">${s.L}</div><div class="v-sgrid">${s.items.map(htmlE).join('')}</div></div>`).join('');
-                const abc = (letras.has('#') ? ['#'] : []).concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
-                az.innerHTML = abc.map(L => `<button type="button" data-l="${L}" ${letras.has(L) ? '' : 'disabled '}onclick="irALetra(this.dataset.l)" aria-label="Ir a la letra ${L}">${L}</button>`).join('');
-                az.classList.toggle('hidden', !secs.length);
+                lista.innerHTML = html ? `<div class="v-cols">${html}</div>` : '';
+                az.innerHTML = letras.map(L => `<button type="button" data-l="${L}" onclick="irALetra(this.dataset.l)" aria-label="Ir a la letra ${L}">${L}</button>`).join('');
+                az.classList.toggle('hidden', !letras.length);
             }
             ajustarFilasLista();
             renderPopGrupo();
@@ -1536,22 +1538,19 @@
         // Las filas se estiran para cubrir el alto disponible (con un tope para que no queden gigantes si hay pocas)
         function ajustarFilasLista() {
             const l = document.getElementById('v-lista'); if (!l) return;
-            const grids = [...l.querySelectorAll('.v-sgrid')]; if (!grids.length) return;
-            grids.forEach(g => g.style.gridAutoRows = '34px');
-            const cols = Math.max(1, getComputedStyle(grids[0]).gridTemplateColumns.split(' ').length);
-            const gapF = parseFloat(getComputedStyle(grids[0]).rowGap) || 0, gapS = parseFloat(getComputedStyle(l).rowGap) || 0;
-            let filas = 0, fijo = gapS * (grids.length - 1);
-            grids.forEach(g => {
-                const f = Math.ceil(g.children.length / cols); filas += f; fijo += gapF * (f - 1);
-                const sec = g.parentElement, enc = sec.querySelector('.v-letra');
-                if (enc) fijo += enc.offsetHeight + (parseFloat(getComputedStyle(sec).rowGap) || 0);
-            });
-            const h = Math.max(34, Math.min(110, Math.floor((l.clientHeight - fijo) / filas)));
-            grids.forEach(g => g.style.gridAutoRows = 'minmax(' + h + 'px, auto)');   // mínimo estirado; si un nombre largo necesita más, la fila crece
+            const cols = l.querySelector('.v-cols'); if (!cols) return;
+            cols.style.setProperty('--v-h', '34px');
+            const alto = l.clientHeight;   // espacio disponible (o el alto del contenido si no cabe)
+            // Se busca la fila más alta (hasta 110px) con la que todas las columnas siguen cabiendo en pantalla
+            let h = 34;
+            for (let t = 110; t > 34; t -= 4) { cols.style.setProperty('--v-h', t + 'px'); if (cols.offsetHeight <= alto) { h = t; break; } }
+            cols.style.setProperty('--v-h', h + 'px');
             l.classList.toggle('v-grande', h >= 64);
         }
         function irALetra(L) {
-            const s = document.getElementById('v-sec-' + (L === '#' ? 'num' : L)); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const s = document.getElementById('v-sec-' + (L === '#' ? 'num' : L)); if (!s) return;
+            s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            s.classList.add('flash'); setTimeout(() => s.classList.remove('flash'), 1400);
         }
         window.addEventListener('resize', () => { if (document.getElementById('v-lista')) ajustarFilasLista(); });
         // ---- Ventanita con los tipos de un grupo (FOLDERS: azul, verde...) ----
