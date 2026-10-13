@@ -31,8 +31,8 @@
         html.dark .swal2-input::placeholder { color: #9ca3af !important; }
 
         /* ===== Pantalla de Venta (compacta) ===== */
-        :root { --v-bg:#ffffff; --v-bd:#e2e8f0; --v-ink:#0f172a; --v-mut:#64748b; --v-sel-bg:#eff6ff; --v-sel-bd:#2563eb; --v-soft:#f8fafc; --v-price:#047857; --v-grp-bg:#e6ebf2; --v-grp-bd:#8fa0b5; }
-        html.dark { --v-bg:#1f2937; --v-bd:#374151; --v-ink:#f3f4f6; --v-mut:#9ca3af; --v-sel-bg:#1e3a5f; --v-sel-bd:#3b82f6; --v-soft:#111827; --v-price:#34d399; --v-grp-bg:#27323f; --v-grp-bd:#52647a; }
+        :root { --v-bg:#ffffff; --v-bd:#e2e8f0; --v-ink:#0f172a; --v-mut:#64748b; --v-sel-bg:#eff6ff; --v-sel-bd:#2563eb; --v-soft:#f8fafc; --v-price:#047857; --v-grp-bg:#e6ebf2; --v-grp-bd:#8fa0b5; --v-let:#1e40af; --v-let-line:#94a3b8; }
+        html.dark { --v-bg:#1f2937; --v-bd:#374151; --v-ink:#f3f4f6; --v-mut:#9ca3af; --v-sel-bg:#1e3a5f; --v-sel-bd:#3b82f6; --v-soft:#111827; --v-price:#34d399; --v-grp-bg:#27323f; --v-grp-bd:#52647a; --v-let:#2563eb; --v-let-line:#64748b; }
         .v-panel { background:var(--v-bg); border:1px solid var(--v-bd); border-radius:12px; padding:10px; color:var(--v-ink); }
         .v-search { width:100%; box-sizing:border-box; font-size:16px; padding:9px 12px; border:2px solid #2563eb; border-radius:10px; background:var(--v-bg); color:var(--v-ink); outline:none; }
         .v-chip { font-size:12px; padding:5px 11px; border-radius:999px; border:1px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; }
@@ -57,10 +57,12 @@
         .v-cols { column-width:220px; column-gap:10px; column-fill:balance; }
         .v-cols > .v-row { width:100%; margin:0 0 4px; min-height:var(--v-h,34px); break-inside:avoid; }
         /* Divisor por letra: discreto, una letra pequeña con una línea fina (siempre acompañada de al menos un producto) */
-        .v-letra { height:18px; margin-top:8px; display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--v-mut); opacity:.9; break-after:avoid; break-inside:avoid; scroll-margin-top:46px; border-radius:4px; }
+        .v-letra { height:22px; margin-top:10px; margin-bottom:2px; display:flex; align-items:center; gap:8px; break-after:avoid; break-inside:avoid; scroll-margin-top:46px; }
         .v-cols > .v-letra:first-child { margin-top:0; }
-        .v-letra::after { content:""; flex:1; height:1px; background:var(--v-bd); }
-        .v-letra.flash { background:var(--v-sel-bg); color:var(--v-sel-bd); opacity:1; }
+        .v-letra b { min-width:24px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:6px; background:var(--v-let); color:#ffffff; font-size:13px; font-weight:800; line-height:22px; text-align:center; flex-shrink:0; }
+        .v-letra::after { content:""; flex:1; height:2px; border-radius:2px; background:var(--v-let-line); }
+        .v-letra.flash b { background:#d97706; }
+        .v-letra.flash::after { background:#d97706; }
         /* Tira de letras: solo las que tienen productos; se queda pegada arriba al hacer scroll */
         .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:2px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
         .v-az button { min-width:22px; height:22px; padding:0 3px; border:0; border-radius:6px; background:transparent; color:var(--v-ink); font-size:12px; font-weight:700; line-height:1; font-family:inherit; cursor:pointer; }
@@ -1525,7 +1527,7 @@
                 let html = '', ultima = null;
                 entradasVista.forEach(e => {
                     const nom = e.grupo ? e.label : e.p.nombre, c = (normV(nom).trim()[0] || '#').toUpperCase(), L = /[A-Z]/.test(c) ? c : '#';
-                    if (L !== ultima) { ultima = L; letras.push(L); html += `<div class="v-letra" id="v-sec-${L === '#' ? 'num' : L}">${L}</div>`; }
+                    if (L !== ultima) { ultima = L; letras.push(L); html += `<div class="v-letra" id="v-sec-${L === '#' ? 'num' : L}"><b>${L}</b></div>`; }
                     html += htmlE(e);
                 });
                 lista.innerHTML = html ? `<div class="v-cols">${html}</div>` : '';
