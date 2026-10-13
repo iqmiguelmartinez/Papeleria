@@ -1796,9 +1796,9 @@
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
                 let ahora = new Date();
                 let fechaActual = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
-                let lineasDetalle = carrito.map(i => `▫️ ${Number(i.cantidad.toFixed(2))} × ${i.nombre}  —  *$${(i.precio * i.cantidad).toFixed(2)}*`).join('\n');
+                let lineasDetalle = carrito.map(i => `- ${Number(i.cantidad.toFixed(2))} × ${i.nombre}  —  *$${(i.precio * i.cantidad).toFixed(2)}*`).join('\n');
                 let pago = ef !== null ? `\nEfectivo recibido: $${ef.toFixed(2)}\nCambio: $${cambio.toFixed(2)}` : '';
-                let textoWA = `🧾 *PIXEL Y PAPEL*\n_Ticket de compra_\n\n📅 ${fechaActual}\n\n*Detalle*\n${lineasDetalle}\n\n━━━━━━━━━━━━━━\n💰 *TOTAL: $${t.toFixed(2)}*${pago}\n━━━━━━━━━━━━━━\n\n¡Gracias por tu preferencia! 😊\n_Pixel y Papel_`;
+                let textoWA = `*PIXEL Y PAPEL*\n_Ticket de compra_\n\nFecha: ${fechaActual}\n\n*Detalle*\n${lineasDetalle}\n\n━━━━━━━━━━━━━━\n*TOTAL: $${t.toFixed(2)}*${pago}\n━━━━━━━━━━━━━━\n\n¡Gracias por tu preferencia!\n_Pixel y Papel_`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
