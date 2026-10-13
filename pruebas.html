@@ -2083,10 +2083,26 @@
         }
 
         async function realizarCorteTurno() {
-            if(ventasActivas.length===0 && retirosActivos.length===0) return;
+            if(ventasActivas.length===0 && retirosActivos.length===0) { Swal.fire({ icon: 'info', title: 'Sin movimientos', text: 'No hay ventas ni retiros en este turno para hacer el corte.', confirmButtonText: 'Entendido' }); return; }
 
             let tV = ventasActivas.reduce((a,v)=>a+v.total, 0);
             let tR = retirosActivos.reduce((a,r)=>a+r.monto, 0);
+
+            // Confirmación antes de cerrar el turno (evita un corte por clic accidental)
+            const conf = await Swal.fire({
+                icon: 'question',
+                title: '¿Realizar el corte y reiniciar el turno?',
+                html: `<div style="text-align:left;display:inline-block;font-size:15px;line-height:1.7">
+                        <div>Ventas del turno: <b>${ventasActivas.length}</b></div>
+                        <div>Total de ventas: <b>$${formatMiles(tV)}</b></div>
+                        <div>Retiros: <b>-$${formatMiles(tR)}</b></div>
+                        <div>Efectivo neto: <b style="color:#059669">$${formatMiles(tV - tR)}</b></div>
+                       </div>
+                       <p style="margin-top:12px;font-size:13px;color:#6b7280">El turno se cerrará y los contadores volverán a cero. Esta acción no se puede deshacer.</p>`,
+                showCancelButton: true, confirmButtonText: 'Sí, hacer el corte', cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#4f46e5', focusCancel: true, reverseButtons: true
+            });
+            if (!conf.isConfirmed) return;
             
             let mapa = {};
             ventasActivas.forEach(v => {
