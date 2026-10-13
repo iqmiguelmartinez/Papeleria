@@ -56,6 +56,12 @@
         /* Columnas tipo directorio: se llena la primera columna hacia abajo y sigue la de su derecha, en orden alfabético */
         .v-cols { column-width:220px; column-gap:10px; column-fill:balance; }
         .v-cols > .v-row { width:100%; margin:0 0 4px; min-height:var(--v-h,34px); break-inside:avoid; }
+        /* Aviso de venta registrada */
+        .swal2-popup.v-toast-ok { min-width:340px; padding:14px 22px !important; border-radius:14px !important; box-shadow:0 10px 30px rgba(4,120,87,.45) !important; }
+        .v-toast-ok .swal2-html-container { margin:0 0 0 6px !important; text-align:left; color:#fff !important; }
+        .v-toast-ok .v-t1 { font-size:22px; font-weight:800; line-height:1.15; }
+        .v-toast-ok .v-t2 { font-size:30px; font-weight:800; line-height:1.15; margin-top:2px; }
+        .v-toast-ok .swal2-timer-progress-bar { background:rgba(255,255,255,.7); height:5px; }
         /* Divisor por letra: discreto, una letra pequeña con una línea fina (siempre acompañada de al menos un producto) */
         .v-letra { height:22px; margin-top:10px; margin-bottom:2px; display:flex; align-items:center; gap:8px; break-after:avoid; break-inside:avoid; scroll-margin-top:46px; }
         .v-cols > .v-letra:first-child { margin-top:0; }
@@ -63,8 +69,11 @@
         .v-letra::after { content:""; flex:1; height:2px; border-radius:2px; background:var(--v-let-line); }
         .v-letra.flash b { background:#d97706; }
         .v-letra.flash::after { background:#d97706; }
+        /* Al elegir una letra se resaltan su etiqueta y todos los productos y grupos de esa letra */
+        .v-cols > .v-row.flash { background:#fef3c7 !important; border-color:#d97706 !important; border-style:solid !important; box-shadow:0 0 0 1px #d97706; }
+        html.dark .v-cols > .v-row.flash { background:#4a3412 !important; border-color:#f59e0b !important; box-shadow:0 0 0 1px #f59e0b; }
         /* Tira de letras: solo las que tienen productos; se queda pegada arriba al hacer scroll */
-        .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:2px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
+        .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
         .v-az button { min-width:22px; height:22px; padding:0 3px; border:0; border-radius:6px; background:transparent; color:var(--v-ink); font-size:12px; font-weight:700; line-height:1; font-family:inherit; cursor:pointer; }
         .v-az button:hover:not(:disabled) { background:var(--v-sel-bg); color:var(--v-sel-bd); }
         /* El panel de "Todos los productos" crece hasta el final de la pantalla y sus filas se reparten el espacio; si hay muchas, la columna hace scroll */
@@ -223,7 +232,6 @@
             <div class="flex-1 min-w-0 min-h-0 flex flex-col gap-2 overflow-hidden">
                 <div class="v-panel shrink-0">
                     <input type="text" id="buscar-producto" class="v-search" placeholder="Escribe el nombre o escanea el código y presiona Enter" autocomplete="off" onkeyup="filtrarProductos(event)">
-                    <div id="v-cats" class="flex flex-wrap gap-1.5 mt-2"></div>
                 </div>
                 <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-1">
                     <div id="v-estrellas-wrap" class="v-panel hidden shrink-0">
@@ -1504,7 +1512,6 @@
             const lista = document.getElementById('v-lista'); if (!lista) return;
             if (filtro === undefined) filtro = (document.getElementById('buscar-producto') || {}).value || '';
             let q = normV(filtro.trim());
-            document.getElementById('v-cats').innerHTML = CATS_VENTA.map(c => `<button type="button" class="v-chip${catVenta === c ? ' on' : ''}" onclick="seleccionarCatVenta('${c}')">${c}</button>`).join('');
             let activos = inventario.filter(p => !p.noActivo);
             let filtrados = activos.filter(p => (catVenta === 'Todos' || clasificarVenta(p).cat === catVenta) && (!q || normV(p.nombre).includes(q) || normV(p.codigo).includes(q)));
             // Más vendidos: solo sin búsqueda ni categoría; individuales y en el orden que manda el servidor
@@ -1549,10 +1556,15 @@
             cols.style.setProperty('--v-h', h + 'px');
             l.classList.toggle('v-grande', h >= 64);
         }
+        let letraTimer = null;
         function irALetra(L) {
             const s = document.getElementById('v-sec-' + (L === '#' ? 'num' : L)); if (!s) return;
+            clearTimeout(letraTimer);
+            document.querySelectorAll('#v-lista .flash').forEach(x => x.classList.remove('flash'));
+            // etiqueta + todos los elementos que siguen hasta la siguiente letra
+            for (let n = s; n && (n === s || !n.classList.contains('v-letra')); n = n.nextElementSibling) n.classList.add('flash');
             s.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            s.classList.add('flash'); setTimeout(() => s.classList.remove('flash'), 1400);
+            letraTimer = setTimeout(() => document.querySelectorAll('#v-lista .flash').forEach(x => x.classList.remove('flash')), 2500);
         }
         window.addEventListener('resize', () => { if (document.getElementById('v-lista')) ajustarFilasLista(); });
         // ---- Ventanita con los tipos de un grupo (FOLDERS: azul, verde...) ----
@@ -1753,8 +1765,17 @@
             } finally { cobrando = false; }
             renderCarrito();
             // Aviso sin bloquear la pantalla: el cajero ve el cambio y sigue con el siguiente cliente
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Venta registrada' + (cambio > 0 ? ` · Cambio $${cambio.toFixed(2)}` : ''), showConfirmButton: false, timer: 3500, timerProgressBar: true });
+            avisoVentaOk(cambio);
             let bp = document.getElementById('buscar-producto'); if (bp && window.innerWidth >= 1024) bp.focus();
+        }
+
+        // Aviso grande y verde, centrado arriba; se cierra solo a los 4 segundos
+        function avisoVentaOk(cambio) {
+            Swal.fire({
+                toast: true, position: 'top', icon: 'success', iconColor: '#ffffff', background: '#047857', color: '#ffffff',
+                html: `<div class="v-t1">Venta registrada</div>` + (cambio > 0 ? `<div class="v-t2">Cambio $${cambio.toFixed(2)}</div>` : ''),
+                showConfirmButton: false, timer: 4000, timerProgressBar: true, customClass: { popup: 'v-toast-ok' }
+            });
         }
 
         /* ======== INVENTARIO ======== */
