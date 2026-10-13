@@ -1265,6 +1265,7 @@
         async function verificarSesion() {
             if (tokenSesion) {
                 try {
+                    lanzarPrecarga();
                     const d = await (await apiFetch('validarSesion', true)).json();
                     usuarioActual = d.usuario; tienePermisoAnalisis = !!d.puedeAnalisis;
                     sessionStorage.setItem('usuario_activo', usuarioActual); sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
@@ -1274,7 +1275,7 @@
                         await Swal.fire({ title: 'Sin conexión', text: 'No se pudo verificar tu sesión. Revisa tu internet.', icon: 'error', confirmButtonText: 'Reintentar', allowOutsideClick: false });
                         return verificarSesion();
                     }
-                    tokenSesion = ''; sessionStorage.removeItem('token_sesion');
+                    precarga = null; tokenSesion = ''; sessionStorage.removeItem('token_sesion');
                 }
             }
             if (await pedirLogin()) cargarDatosIniciales();
@@ -1309,7 +1310,7 @@
             });
         }
 
-        function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); location.reload(); }, 400); }
+        function cerrarSesion() { try { fetch(URL_APPS_SCRIPT + '?action=logout&token=' + encodeURIComponent(tokenSesion), { keepalive: true }).catch(() => {}); } catch (e) {} setTimeout(() => { sessionStorage.clear(); try { localStorage.removeItem(CLAVE_CACHE_VENTA); } catch (e) {} location.reload(); }, 400); }
 
         // Resalta la pestaña activa en la barra de arriba (computadora) y en la barra inferior deslizable (móvil)
         // Reloj y fecha del encabezado (solo pantallas grandes)
@@ -1363,11 +1364,35 @@
             if(tab === 'impresiones') iniciarImpresiones();
         }
 
+        // Caché local del inventario y de los más vendidos: la pantalla de Venta se pinta al instante y luego se actualiza con lo del servidor
+        const CLAVE_CACHE_VENTA = 'pyp_cache_venta';
+        function guardarCacheVenta() {
+            try { localStorage.setItem(CLAVE_CACHE_VENTA, JSON.stringify({ inv: inventario.map(p => ({ codigo: p.codigo, nombre: p.nombre, precio: p.precio, stock: p.stock, noActivo: !!p.noActivo })), est: estrellas })); } catch (e) {}
+        }
+        function cargarCacheVenta() {
+            try {
+                const c = JSON.parse(localStorage.getItem(CLAVE_CACHE_VENTA) || 'null');
+                if (!c || !Array.isArray(c.inv) || !c.inv.length || inventario.length) return;
+                inventario = c.inv.map(p => ({ costo: 0, ...p })); estrellas = Array.isArray(c.est) ? c.est : [];
+                renderProductos();
+            } catch (e) {}
+        }
+        // Las peticiones se lanzan todas a la vez (antes iban una tras otra); verificarSesion las adelanta mientras valida la sesión
+        let precarga = null;
+        function lanzarPrecarga() {
+            precarga = {};
+            ['getInventario', 'getMasVendidos', 'getTelefonos', 'getDataTurno'].forEach(a => { precarga[a] = apiFetch(a, true); precarga[a].catch(() => {}); });
+        }
+        function pedirDato(a) { const p = precarga && precarga[a]; return p ? p.catch(() => apiFetch(a)) : apiFetch(a); }
         async function cargarDatosIniciales() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
+            cargarCacheVenta();
             try {
-                let resInv = await apiFetch("getInventario"); inventario = await resInv.json() || []; renderProductos(); cargarMasVendidos(); cargarTelefonos();
-                let resTur = await apiFetch("getDataTurno"); let t = await resTur.json();
+                const pMas = pedirDato('getMasVendidos'), pTel = pedirDato('getTelefonos'), pTur = pedirDato('getDataTurno');
+                let resInv = await pedirDato('getInventario'); inventario = await resInv.json() || []; renderProductos(); guardarCacheVenta();
+                cargarMasVendidos(pMas); cargarTelefonos(pTel);
+                let resTur = await pTur; let t = await resTur.json();
+                precarga = null;
                 if(t){ ventasActivas=t.ventasActivas||[]; retirosActivos=t.retirosActivos||[]; cortesRealizados=t.cortesRealizados||[]; }
                 renderRetiros(); renderCorte();
             } catch (e) { console.error(e); }
@@ -1550,7 +1575,7 @@
         }
         // Las filas se estiran para cubrir el alto disponible (con un tope para que no queden gigantes si hay pocas)
         function ajustarFilasLista() {
-            const l = document.getElementById('v-lista'); if (!l) return;
+            const l = document.getElementById('v-lista'); if (!l || !l.offsetParent) return;   // oculta (otra pestaña): se reajusta al mostrarse
             const cols = l.querySelector('.v-cols'); if (!cols) return;
             cols.style.setProperty('--v-h', '34px');
             const alto = l.clientHeight;   // espacio disponible (o el alto del contenido si no cabe)
@@ -1571,6 +1596,18 @@
             letraTimer = setTimeout(() => document.querySelectorAll('#v-lista .flash').forEach(x => x.classList.remove('flash')), 2500);
         }
         window.addEventListener('resize', () => { if (document.getElementById('v-lista')) ajustarFilasLista(); });
+        // El alto disponible puede cambiar sin que se vuelva a dibujar la lista (carga de estilos/fuentes, aparece la fila de pestañas de admin, cambia el tamaño de la ventana...): se reajusta solo
+        (function () {
+            let pend = false;
+            const reajustar = () => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; if (document.getElementById('v-lista')) ajustarFilasLista(); }); };
+            const l = document.getElementById('v-lista'); if (!l) return;
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(reajustar);
+                [l.closest('.overflow-y-auto'), document.getElementById('v-estrellas-wrap')].forEach(e => { if (e) ro.observe(e); });
+            }
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(reajustar);
+            window.addEventListener('load', reajustar);
+        })();
         // ---- Ventanita con los tipos de un grupo (FOLDERS: azul, verde...) ----
         function toggleGrupo(key, el) {
             if (grupoAbierto === key) { cerrarGrupo(); renderProductos(); return; }
@@ -1608,13 +1645,13 @@
             }
             cerrarGrupo(); renderProductos(inp.value);
         }
-        async function cargarMasVendidos() {
-            try { let r = await apiFetch('getMasVendidos'); let j = await r.json(); if (Array.isArray(j)) { estrellas = j; renderProductos(); } } catch (e) { /* sin ranking: solo se oculta la sección */ }
+        async function cargarMasVendidos(prom) {
+            try { let r = await (prom || apiFetch('getMasVendidos')); let j = await r.json(); if (Array.isArray(j)) { estrellas = j; renderProductos(); guardarCacheVenta(); } } catch (e) { /* sin ranking: solo se oculta la sección */ }
         }
 
         // ---- Teléfonos de clientes anteriores (autocompletar el WhatsApp) ----
-        async function cargarTelefonos() {
-            try { let r = await apiFetch('getTelefonos'); let j = await r.json(); if (Array.isArray(j)) telefonos = j.map(String); } catch (e) { /* sin sugerencias: se escribe a mano */ }
+        async function cargarTelefonos(prom) {
+            try { let r = await (prom || apiFetch('getTelefonos')); let j = await r.json(); if (Array.isArray(j)) telefonos = j.map(String); } catch (e) { /* sin sugerencias: se escribe a mano */ }
         }
         const fmtTel = t => t.length === 10 ? t.slice(0, 2) + ' ' + t.slice(2, 6) + ' ' + t.slice(6) : t;
         let telSug = [], telIdx = -1;
