@@ -68,6 +68,17 @@
         .v-cambio.falta { background:#fee2e2; color:#991b1b; }
         html.dark .v-cambio { background:#064e3b; color:#a7f3d0; }
         html.dark .v-cambio.falta { background:#7f1d1d; color:#fecaca; }
+        .v-grupo { border-style:dashed; }
+        .v-grupo.abierto { border-style:solid; border-color:#2563eb; }
+        .v-pop { position:fixed; z-index:60; width:330px; max-width:calc(100vw - 16px); max-height:min(60vh,460px); display:flex; flex-direction:column; background:var(--v-bg); color:var(--v-ink); border:1px solid var(--v-sel-bd); border-radius:12px; box-shadow:0 12px 32px rgba(15,23,42,.28); }
+        .v-pop-h { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--v-bd); font-size:13px; font-weight:700; }
+        .v-pop-h small { font-weight:400; font-size:11px; color:var(--v-mut); }
+        .v-pop-x { width:26px; height:26px; border:none; background:transparent; color:var(--v-mut); font-size:20px; line-height:1; cursor:pointer; }
+        .v-pop-b { padding:6px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+        .v-pop-b .v-row { min-height:36px; }
+        .v-sugs { position:absolute; left:0; right:0; bottom:100%; margin-bottom:4px; z-index:40; background:var(--v-bg); border:1px solid var(--v-sel-bd); border-radius:10px; box-shadow:0 8px 24px rgba(15,23,42,.25); overflow:hidden; }
+        .v-sug { display:block; width:100%; text-align:left; padding:8px 12px; border:none; background:transparent; color:var(--v-ink); font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; letter-spacing:.02em; }
+        .v-sug:hover, .v-sug.on { background:var(--v-sel-bg); }
         .v-cobrar { width:100%; font-size:18px; font-weight:800; padding:13px; border:none; border-radius:10px; color:#ffffff; background:#047857; cursor:pointer; font-family:inherit; }
         .v-cobrar:disabled { background:#94a3b8; cursor:not-allowed; }
 
@@ -220,14 +231,17 @@
                         <label class="v-pay"><span>$</span><input id="v-efectivo" type="text" inputmode="decimal" autocomplete="off" placeholder="Otro monto" oninput="actualizarCobroInline()" onkeydown="if(event.key==='Enter'){event.preventDefault();procesarVenta();}"></label>
                         <div id="v-cambio-box" class="v-cambio"><span id="v-cambio-lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em">Cambio</span><span id="v-cambio-txt" style="font-size:20px;font-weight:800">$0.00</span></div>
                     </div>
-                    <details class="text-xs" style="color:var(--v-mut)">
-                        <summary class="cursor-pointer select-none py-0.5">Enviar ticket por WhatsApp (opcional)</summary>
-                        <input id="v-tel" type="text" inputmode="numeric" autocomplete="off" placeholder="10 dígitos del cliente" class="v-search mt-1" style="font-size:14px;padding:6px 10px;border-width:1px">
-                    </details>
+                    <div class="relative">
+                        <label for="v-tel" class="text-xs font-semibold" style="color:var(--v-mut)">WhatsApp del cliente <span style="font-weight:400">(opcional)</span></label>
+                        <input id="v-tel" type="text" inputmode="numeric" autocomplete="off" placeholder="10 dígitos · sugiere conforme escribes" class="v-search mt-1" style="font-size:15px;padding:7px 10px;border-width:1px" oninput="sugerirTelefonos()" onkeydown="telefonoTecla(event)" onblur="setTimeout(()=>document.getElementById('v-tel-sug').classList.add('hidden'),120)">
+                        <div id="v-tel-sug" class="v-sugs hidden"></div>
+                    </div>
                     <button id="btn-cobrar" type="button" onclick="procesarVenta()" class="v-cobrar" disabled>Cobrar y registrar</button>
                 </div>
             </div>
         </div>
+
+        <div id="v-pop" class="v-pop hidden"></div>
 
         <!-- SECCIÓN: INVENTARIO -->
         <div id="tab-inventario" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-hidden pb-3">
@@ -1313,7 +1327,7 @@
         async function cargarDatosIniciales() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
             try {
-                let resInv = await apiFetch("getInventario"); inventario = await resInv.json() || []; renderProductos(); cargarMasVendidos();
+                let resInv = await apiFetch("getInventario"); inventario = await resInv.json() || []; renderProductos(); cargarMasVendidos(); cargarTelefonos();
                 let resTur = await apiFetch("getDataTurno"); let t = await resTur.json();
                 if(t){ ventasActivas=t.ventasActivas||[]; retirosActivos=t.retirosActivos||[]; cortesRealizados=t.cortesRealizados||[]; }
                 renderRetiros(); renderCorte();
@@ -1365,12 +1379,70 @@
         }
 
         /* ======== VENTAS ======== */
-        let catVenta = 'Todos', estrellas = [], cobrando = false;
-        const CATS_VENTA = [['Todos', 'Todos'], ['IMP', 'Impresión'], ['HOJ', 'Hojas'], ['PAP', 'Papelería'], ['MS', 'Misceláneo']];
+        let catVenta = 'Todos', estrellas = [], cobrando = false, grupoAbierto = null, grupoPos = null, telefonos = [];
+        const CATS_VENTA = ['Todos', 'Impresión', 'Hojas y papel', 'Escritura', 'Folders y sobres', 'Otros'];
         const escV = x => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const normV = x => String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-        function catDeProducto(cod) { let m = String(cod).toUpperCase().match(/^(IMP|HOJ|PAP)/); return m ? m[1] : 'MS'; }
-        function seleccionarCatVenta(c) { catVenta = c; renderProductos(); }
+        // Agrupación de la lista "Todos los productos": [nombre del grupo, patrón sobre el nombre sin acentos, categoría]. El primer patrón que coincide gana.
+        // Un producto nuevo cuyo nombre encaje en un patrón se agrupa solo; los demás se agrupan por su primera palabra si hay 2 o más.
+        const GRUPOS_VENTA = [
+            ['IMPRESIÓN COLOR DOBLE CARTA', /^impresion color doble carta/, 'Impresión'],
+            ['IMPRESIÓN COLOR', /^impresion color/, 'Impresión'],
+            ['IMPRESIÓN B/N', /^impresion (b\/n|saturada|ambos)/, 'Impresión'],
+            ['IMPRESIÓN TRÁMITES', /^impresion tramite/, 'Impresión'],
+            ['FOTOCOPIA B/N', /^fotocopia/, 'Impresión'],
+            ['HOJAS DE COLOR', /^hojas? (amarillo|azul|lila|naranja|negro|rojo|rosa|verde|opalina|cafe|color)/, 'Hojas y papel'],
+            ['HOJA BLANCA', /^hojas? blancas?/, 'Hojas y papel'],
+            ['HOJAS ESPECIALES', /^hoja (protectora|milimetrica)/, 'Hojas y papel'],
+            ['FICHAS DE TRABAJO', /^ficha trabajo/, 'Hojas y papel'],
+            ['PAPEL BOND', /^papel bond/, 'Hojas y papel'],
+            ['PAPEL CREPE Y CHINA', /^papel (crepe|china)/, 'Hojas y papel'],
+            ['CUADERNOS', /^cuaderno/, 'Hojas y papel'],
+            ['CARTULINA', /^cartulina/, 'Hojas y papel'],
+            ['FOLDERS', /^folder/, 'Folders y sobres'],
+            ['SOBRES', /^sobre/, 'Folders y sobres'],
+            ['ENGARGOLADO', /^engargolado/, 'Folders y sobres'],
+            ['CLIPS', /^clip/, 'Folders y sobres'],
+            ['LAPICEROS', /^lapicero/, 'Escritura'],
+            ['LÁPIZ ADHESIVO', /^lapiz adhesivo/, 'Otros'],
+            ['PUNTILLAS Y PORTAMINAS', /(puntilla|portaminas)/, 'Escritura'],
+            ['LÁPICES', /^lapiz/, 'Escritura'],
+            ['MARCADORES', /^(marcador|marcatexto|pqt marcador)/, 'Escritura'],
+            ['GOMAS', /^goma/, 'Escritura'],
+            ['CORRECTORES', /^corrector/, 'Escritura'],
+            ['CAJAS DE COLORES', /^caja colores/, 'Escritura'],
+            ['MICA TÉRMICA', /^mica termica/, 'Otros'],
+            ['TIJERAS', /^tijera/, 'Otros'],
+            ['PINTURA VINCI', /^pintura vinci/, 'Otros'],
+            ['PINCELES', /^pincel/, 'Otros'],
+            ['LISTÓN 1 M', /^liston/, 'Otros'],
+            ['POST-IT', /^post-?it/, 'Otros'],
+            ['CONTACT ADHESIVO', /^contact/, 'Otros'],
+            ['SILICÓN', /silicon/, 'Otros'],
+            ['TABLA PERIÓDICA', /^tabla periodica/, 'Otros'],
+            ['EXTRAS', /^extra \d/, 'Otros'],
+            ['ENGRAPADORAS Y GRAPAS', /^(engrapadora|grapa)/, 'Otros']
+        ];
+        function clasificarVenta(p) {
+            const n = normV(p.nombre);
+            for (const r of GRUPOS_VENTA) if (r[1].test(n)) return { g: r[0], cat: r[2] };
+            const cat = { IMP: 'Impresión', HOJ: 'Hojas y papel', LAP: 'Escritura' }[String(p.codigo).toUpperCase().slice(0, 3)] || 'Otros';
+            const w = n.split(/\s+/)[0];
+            return { g: null, cat, w: w.length >= 4 ? w : null };
+        }
+        // Lista de entradas: productos sueltos y grupos (en el orden del inventario). Un grupo con un solo producto se muestra como producto suelto.
+        function construirEntradas(prods) {
+            const entradas = [], porClave = {};
+            prods.forEach(p => {
+                const c = clasificarVenta(p);
+                const clave = c.g ? 'g:' + c.g : (c.w ? 'w:' + c.w : null);
+                if (!clave) { entradas.push({ p }); return; }
+                if (!porClave[clave]) { porClave[clave] = { grupo: true, key: clave, label: c.g || c.w.toUpperCase(), cat: c.cat, items: [] }; entradas.push(porClave[clave]); }
+                porClave[clave].items.push(p);
+            });
+            return entradas.map(e => (e.grupo && e.items.length === 1) ? { p: e.items[0] } : e);
+        }
+        function seleccionarCatVenta(c) { catVenta = c; cerrarGrupo(); renderProductos(); }
         function cantidadEnCarrito(cod) { let i = carrito.find(x => x.codigo === cod); return i ? i.cantidad : 0; }
         function infoStockVenta(p) {
             let st = Number(obtenerStockReal(p.codigo).toFixed(2));
@@ -1388,38 +1460,106 @@
             if (tipo === 'tile') return `<button type="button" class="${cls}" data-cod="${escV(p.codigo)}" onclick="agregarAlCarrito(this.dataset.cod)"${dis}${vinc}><span class="n">${escV(p.nombre)}</span><span class="f">${precio}${stock}</span>${badge}</button>`;
             return `<button type="button" class="${cls}" data-cod="${escV(p.codigo)}" onclick="agregarAlCarrito(this.dataset.cod)"${dis}${vinc}><span class="n">${escV(p.nombre)}</span>${stock}${precio}${badge}</button>`;
         }
+        const fmtPrecioCorto = n => '$' + (Number.isInteger(n) ? n : n.toFixed(2));
+        function htmlGrupoVenta(g) {
+            let q = g.items.reduce((a, p) => a + cantidadEnCarrito(p.codigo), 0);
+            let precios = g.items.map(p => p.precio), mn = Math.min(...precios), mx = Math.max(...precios);
+            let todosAgotados = g.items.every(p => infoStockVenta(p).st <= 0);
+            let cls = 'v-row v-grupo' + (q > 0 ? ' sel' : '') + (grupoAbierto === g.key ? ' abierto' : '') + (todosAgotados ? ' off' : '');
+            let badge = q > 0 ? `<span class="v-badge">${Number(q.toFixed(2))}</span>` : '';
+            return `<button type="button" class="${cls}" data-g="${escV(g.key)}" onclick="toggleGrupo(this.dataset.g, this)"${todosAgotados ? ' disabled' : ''}><span class="n">${escV(g.label)}</span><span class="v-stock">${g.items.length} tipos</span><span class="v-price">${mn === mx ? fmtPrecioCorto(mn) : fmtPrecioCorto(mn) + '–' + fmtPrecioCorto(mx)}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true" style="flex-shrink:0;opacity:.55"><path d="M9 6l6 6-6 6"/></svg>${badge}</button>`;
+        }
+        let entradasVista = [];
         function renderProductos(filtro) {
             const lista = document.getElementById('v-lista'); if (!lista) return;
             if (filtro === undefined) filtro = (document.getElementById('buscar-producto') || {}).value || '';
             let q = normV(filtro.trim());
-            document.getElementById('v-cats').innerHTML = CATS_VENTA.map(c => `<button type="button" class="v-chip${catVenta === c[0] ? ' on' : ''}" onclick="seleccionarCatVenta('${c[0]}')">${c[1]}</button>`).join('');
+            document.getElementById('v-cats').innerHTML = CATS_VENTA.map(c => `<button type="button" class="v-chip${catVenta === c ? ' on' : ''}" onclick="seleccionarCatVenta('${c}')">${c}</button>`).join('');
             let activos = inventario.filter(p => !p.noActivo);
-            let filtrados = activos.filter(p => (catVenta === 'Todos' || catDeProducto(p.codigo) === catVenta) && (!q || normV(p.nombre).includes(q) || normV(p.codigo).includes(q)));
-            // Más vendidos: solo sin búsqueda ni categoría; en el orden que manda el servidor
+            let filtrados = activos.filter(p => (catVenta === 'Todos' || clasificarVenta(p).cat === catVenta) && (!q || normV(p.nombre).includes(q) || normV(p.codigo).includes(q)));
+            // Más vendidos: solo sin búsqueda ni categoría; individuales y en el orden que manda el servidor
             let favs = [];
             if (!q && catVenta === 'Todos') estrellas.forEach(cod => { let p = activos.find(x => x.codigo === cod); if (p && favs.length < 18) favs.push(p); });
             document.getElementById('v-estrellas-wrap').classList.toggle('hidden', favs.length === 0);
             document.getElementById('v-estrellas').innerHTML = favs.map(p => htmlProductoVenta(p, 'tile')).join('');
-            let nomCat = (CATS_VENTA.find(c => c[0] === catVenta) || [])[1];
-            document.getElementById('v-lista-titulo').innerText = q ? 'Resultados' : (catVenta === 'Todos' ? 'Todos los productos' : nomCat);
+            // Con búsqueda se muestran los productos sueltos (más rápido); sin búsqueda, los parecidos van agrupados
+            entradasVista = q ? filtrados.map(p => ({ p })) : construirEntradas(filtrados);
+            document.getElementById('v-lista-titulo').innerText = q ? 'Resultados' : (catVenta === 'Todos' ? 'Todos los productos' : catVenta);
             document.getElementById('v-lista-cuenta').innerText = filtrados.length + ' productos';
             document.getElementById('v-sin-resultados').classList.toggle('hidden', filtrados.length > 0);
-            lista.innerHTML = filtrados.map(p => htmlProductoVenta(p, 'row')).join('');
+            lista.innerHTML = entradasVista.map(e => e.grupo ? htmlGrupoVenta(e) : htmlProductoVenta(e.p, 'row')).join('');
+            renderPopGrupo();
         }
+        // ---- Ventanita con los tipos de un grupo (FOLDERS: azul, verde...) ----
+        function toggleGrupo(key, el) {
+            if (grupoAbierto === key) { cerrarGrupo(); renderProductos(); return; }
+            grupoAbierto = key; grupoPos = el.getBoundingClientRect();
+            renderProductos();
+        }
+        function cerrarGrupo() {
+            grupoAbierto = null;
+            let pop = document.getElementById('v-pop'); if (pop) pop.classList.add('hidden');
+            document.querySelectorAll('.v-grupo.abierto').forEach(b => b.classList.remove('abierto'));
+        }
+        function renderPopGrupo() {
+            let pop = document.getElementById('v-pop'); if (!pop) return;
+            let g = grupoAbierto ? entradasVista.find(e => e.grupo && e.key === grupoAbierto) : null;
+            if (!g) { pop.classList.add('hidden'); if (grupoAbierto) grupoAbierto = null; return; }
+            pop.innerHTML = `<div class="v-pop-h"><span>${escV(g.label)} <small>${g.items.length} tipos</small></span><button type="button" onclick="cerrarGrupo();renderProductos()" aria-label="Cerrar" class="v-pop-x">×</button></div><div class="v-pop-b">${g.items.map(p => htmlProductoVenta(p, 'row')).join('')}</div>`;
+            pop.classList.remove('hidden');
+            let r = grupoPos || { left: 20, bottom: 100, top: 100 }, w = pop.offsetWidth, h = pop.offsetHeight;
+            let left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+            let top = r.bottom + 4;
+            if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+            pop.style.left = left + 'px'; pop.style.top = top + 'px';
+        }
+        document.addEventListener('click', ev => { if (!grupoAbierto) return; /* composedPath: el botón pulsado puede haberse redibujado ya */ let dentro = ev.composedPath().some(n => n.id === 'v-pop' || (n.classList && n.classList.contains('v-grupo'))); if (!dentro) { cerrarGrupo(); renderProductos(); } });
+        document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && grupoAbierto) { cerrarGrupo(); renderProductos(); } });
         function filtrarProductos(ev) {
             let inp = document.getElementById('buscar-producto');
             if (ev && ev.key === 'Enter') {
                 let q = normV(inp.value.trim()); if (!q) return;
                 let activos = inventario.filter(p => !p.noActivo);
                 // un código de barras/código exacto manda; si no, el primer resultado de la búsqueda
-                let p = activos.find(x => normV(x.codigo) === q) || activos.filter(x => (catVenta === 'Todos' || catDeProducto(x.codigo) === catVenta) && (normV(x.nombre).includes(q) || normV(x.codigo).includes(q)))[0];
+                let p = activos.find(x => normV(x.codigo) === q) || activos.filter(x => (catVenta === 'Todos' || clasificarVenta(x).cat === catVenta) && (normV(x.nombre).includes(q) || normV(x.codigo).includes(q)))[0];
                 if (p) { agregarAlCarrito(p.codigo); inp.value = ''; }
                 renderProductos(); return;
             }
-            renderProductos(inp.value);
+            cerrarGrupo(); renderProductos(inp.value);
         }
         async function cargarMasVendidos() {
             try { let r = await apiFetch('getMasVendidos'); let j = await r.json(); if (Array.isArray(j)) { estrellas = j; renderProductos(); } } catch (e) { /* sin ranking: solo se oculta la sección */ }
+        }
+
+        // ---- Teléfonos de clientes anteriores (autocompletar el WhatsApp) ----
+        async function cargarTelefonos() {
+            try { let r = await apiFetch('getTelefonos'); let j = await r.json(); if (Array.isArray(j)) telefonos = j.map(String); } catch (e) { /* sin sugerencias: se escribe a mano */ }
+        }
+        const fmtTel = t => t.length === 10 ? t.slice(0, 2) + ' ' + t.slice(2, 6) + ' ' + t.slice(6) : t;
+        let telSug = [], telIdx = -1;
+        function sugerirTelefonos() {
+            let inp = document.getElementById('v-tel'), box = document.getElementById('v-tel-sug');
+            let d = inp.value.replace(/\D/g, '');
+            if (d.length < 2) { box.classList.add('hidden'); telSug = []; return; }
+            let ini = telefonos.filter(t => t.startsWith(d)), con = telefonos.filter(t => !t.startsWith(d) && t.includes(d));
+            telSug = ini.concat(con).filter(t => t !== d).slice(0, 6); telIdx = -1;
+            if (!telSug.length) { box.classList.add('hidden'); return; }
+            box.innerHTML = telSug.map((t, i) => { let f = fmtTel(t), k = f.replace(/\s/g, '').indexOf(d); return `<button type="button" class="v-sug" data-i="${i}" onmousedown="event.preventDefault();elegirTelefono(${i})">${escV(f)}</button>`; }).join('');
+            box.classList.remove('hidden');
+        }
+        function elegirTelefono(i) {
+            let t = telSug[i]; if (!t) return;
+            document.getElementById('v-tel').value = t;
+            document.getElementById('v-tel-sug').classList.add('hidden'); telSug = [];
+        }
+        function telefonoTecla(ev) {
+            let box = document.getElementById('v-tel-sug');
+            if (!telSug.length || box.classList.contains('hidden')) { if (ev.key === 'Enter') { ev.preventDefault(); procesarVenta(); } return; }
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+                ev.preventDefault(); telIdx = (telIdx + (ev.key === 'ArrowDown' ? 1 : -1) + telSug.length) % telSug.length;
+                [...box.children].forEach((b, i) => b.classList.toggle('on', i === telIdx));
+            } else if (ev.key === 'Enter') { ev.preventDefault(); if (telIdx >= 0) elegirTelefono(telIdx); else box.classList.add('hidden'); }
+            else if (ev.key === 'Escape') { box.classList.add('hidden'); }
         }
         
         function agregarAlCarrito(cod) { 
@@ -1542,6 +1682,7 @@
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
+            if (wa) { let n10 = numeroLimpio.length === 12 && numeroLimpio.startsWith('52') ? numeroLimpio.slice(2) : numeroLimpio; telefonos = [n10].concat(telefonos.filter(t => t !== n10)); }
             carrito = [];
             ['v-efectivo', 'v-tel'].forEach(id => { let e = document.getElementById(id); if (e) e.value = ''; });
             } finally { cobrando = false; }
