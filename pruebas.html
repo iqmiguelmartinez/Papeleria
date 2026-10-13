@@ -73,7 +73,9 @@
         .v-cols > .v-row.flash { background:#fef3c7 !important; border-color:#d97706 !important; border-style:solid !important; box-shadow:0 0 0 1px #d97706; }
         html.dark .v-cols > .v-row.flash { background:#4a3412 !important; border-color:#f59e0b !important; box-shadow:0 0 0 1px #f59e0b; }
         /* Tira de letras: solo las que tienen productos; se queda pegada arriba al hacer scroll */
-        .v-az { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; margin:0 0 6px; padding:3px 2px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
+        .v-barra { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:12px; margin:0 0 6px; padding:0 0 4px; background:var(--v-bg); border-bottom:1px solid var(--v-bd); }
+        .v-barra .v-h { margin:0; white-space:nowrap; }
+        .v-az { flex:1; min-width:0; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; }
         .v-az button { min-width:22px; height:22px; padding:0 3px; border:0; border-radius:6px; background:transparent; color:var(--v-ink); font-size:12px; font-weight:700; line-height:1; font-family:inherit; cursor:pointer; }
         .v-az button:hover:not(:disabled) { background:var(--v-sel-bg); color:var(--v-sel-bd); }
         /* El panel de "Todos los productos" crece hasta el final de la pantalla y sus filas se reparten el espacio; si hay muchas, la columna hace scroll */
@@ -239,8 +241,10 @@
                         <div id="v-estrellas" class="v-tiles"></div>
                     </div>
                     <div class="v-panel v-fill">
-                        <h2 class="v-h"><span id="v-lista-titulo">Todos los productos</span> <small id="v-lista-cuenta"></small></h2>
-                        <div id="v-az" class="v-az hidden"></div>
+                        <div class="v-barra">
+                            <h2 class="v-h"><span id="v-lista-titulo">Todos los productos</span> <small id="v-lista-cuenta"></small></h2>
+                            <div id="v-az" class="v-az hidden"></div>
+                        </div>
                         <p id="v-sin-resultados" class="hidden text-xs py-3" style="color:var(--v-mut)">No hay productos con esa búsqueda.</p>
                         <div id="v-lista" class="v-list"></div>
                     </div>
@@ -1753,9 +1757,11 @@
             
             if (wa) {
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
-                let fechaActual = new Date().toLocaleString('es-MX');
-                let lineasDetalle = carrito.map(i => `- ${Number(i.cantidad.toFixed(2))}x ${i.nombre} (*$${(i.precio*i.cantidad).toFixed(2)}*)`).join('\n');
-                let textoWA = `*PIXEL Y PAPEL*\n-----------------------------------\n*TICKET DE COMPRA*\nFecha: ${fechaActual}\n\n*Detalle:*\n${lineasDetalle}\n\n-----------------------------------\n*TOTAL: $${t.toFixed(2)}*\n-----------------------------------\n¡Gracias por tu preferencia!`;
+                let ahora = new Date();
+                let fechaActual = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+                let lineasDetalle = carrito.map(i => `▫️ ${Number(i.cantidad.toFixed(2))} × ${i.nombre}  —  *$${(i.precio * i.cantidad).toFixed(2)}*`).join('\n');
+                let pago = ef !== null ? `\nEfectivo recibido: $${ef.toFixed(2)}\nCambio: $${cambio.toFixed(2)}` : '';
+                let textoWA = `🧾 *PIXEL Y PAPEL*\n_Ticket de compra_\n\n📅 ${fechaActual}\n\n*Detalle*\n${lineasDetalle}\n\n━━━━━━━━━━━━━━\n💰 *TOTAL: $${t.toFixed(2)}*${pago}\n━━━━━━━━━━━━━━\n\n¡Gracias por tu preferencia! 😊\n_Pixel y Papel_`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
