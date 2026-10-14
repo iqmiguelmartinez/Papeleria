@@ -170,6 +170,8 @@
         [data-tipid] { position: relative; cursor: help; }
         [data-tipid]::after { content: 'ⓘ'; position: absolute; top: 4px; right: 7px; font-size: 10px; opacity: .35; pointer-events: none; }
         [data-tipid]:hover::after { opacity: .8; }
+        [data-met] { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+        [data-met]:hover { box-shadow: 0 0 0 2px rgba(99,102,241,.45); transform: translateY(-1px); }
         #tip-flotante { position: fixed; z-index: 99999; max-width: 330px; padding: .55rem .75rem; border-radius: .6rem; background: #111827; color: #f9fafb; font-size: 12px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.3); white-space: pre-line; pointer-events: none; opacity: 0; transition: opacity .12s; }
         #tip-flotante.on { opacity: 1; }
         #tip-flotante b { color: #fcd34d; }
@@ -2147,6 +2149,7 @@
             renderCorte(); 
             renderRetiros(); 
             Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
+            pedirFotoMetricas();   // foto diaria de las métricas del dashboard (el servidor la calcula; en segundo plano; cualquier usuario)
         }
 
         async function verHistorialCortes(usarCache = false) {
@@ -2264,6 +2267,110 @@ async function cargarDatosAnalisis() {
                 Swal.close(); 
             } catch(e) { console.error(e); }
         }
+
+
+        // ==========================================================================
+        // 📈 HISTORIAL DE MÉTRICAS: una "foto" de las tarjetas del dashboard al hacer cada corte.
+        // Al tocar una tarjeta se abre la gráfica de cómo se ha movido día a día.
+        // ==========================================================================
+        const METRICAS = [
+            { k: 'gastos_inversion', id: 'ana-inversion-total', n: 'Gastos e Inversión', t: '$' },
+            { k: 'ganancia_historica', id: 'ana-ganancia-total', n: 'Ganancia Histórica', t: '$' },
+            { k: 'roi', id: 'ana-roi', n: 'Retorno (ROI)', t: '%' },
+            { k: 'balance_neto', id: 'ana-balance-neto', n: 'Balance Neto', t: '$' },
+            { k: 'proyeccion_mes', id: 'ana-forecast-mes', n: 'Proyección cierre de mes', t: '$' },
+            { k: 'tasa_recompra', id: 'ana-tasa-recompra', n: 'Tasa de Recompra', t: '%' },
+            { k: 'clientes_base', id: 'ana-total-clientes', n: 'Clientes Base (WA)', t: 'n' },
+            { k: 'tickets_telefono', id: 'ana-proporcion-wa', n: 'Tickets con Teléfono', t: '%' },
+            { k: 'agotados', id: 'kx-agot', n: 'Agotados con Demanda', t: 'n' },
+            { k: 'por_surtir', id: 'kx-surtir', n: 'Por Surtir (aprox.)', t: '$' },
+            { k: 'dinero_parado', id: 'kx-parado', n: 'Dinero Parado 60+ días', t: '$' },
+            { k: 'margen_90', id: 'kx-margen', n: 'Margen Bruto 90 días', t: '%' },
+            { k: 'mejor_dia', id: 'kx-dia', n: 'Mejor Día de la Semana', t: 'txt' },
+            { k: 'flujo_neto_4s', id: 'kx-neto', n: 'Flujo Neto 4 Semanas', t: '$' },
+            { k: 'gasto_operativo_mes', id: 'kx-opmes', n: 'Gasto Operativo / Mes', t: '$' },
+            { k: 'punto_equilibrio', id: 'kx-pe', n: 'Punto de Equilibrio / Mes', t: '$' }
+        ];
+        const metNum = txt => { const x = parseFloat(String(txt == null ? '' : txt).replace(/[^0-9.\-]/g, '')); return isFinite(x) ? x : null; };
+        // Al hacer el corte se le pide al SERVIDOR que guarde la foto del día. Lo calcula él con las hojas: el navegador (aunque sea de un cajero)
+        // no manda ni recibe ninguna cifra, así que esto no da acceso al análisis. Si falla, no se avisa: el corte ya quedó hecho.
+        async function pedirFotoMetricas() {
+            try {
+                if (URL_APPS_SCRIPT.includes('TU_URL')) return;
+                const data = { tipo: 'fotoMetricas', token: tokenSesion };
+                if (!LEER_RESPUESTA_POST) { await fetch(URL_APPS_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) }); return; }
+                await apiPost(data);
+                window.histMetCache = null;
+            } catch (e) { console.warn('Foto de métricas no guardada:', e); }
+        }
+        async function cargarHistMetricas() {
+            if (window.histMetCache) return window.histMetCache;
+            try { const r = await apiFetch('getHistorialMetricas'), d = await r.json(); if (d && Array.isArray(d.filas)) return (window.histMetCache = d.filas); } catch (e) { console.error(e); }
+            return null;
+        }
+        const _MES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const metFechaCorta = f => { const p = String(f).split('-'); return p.length === 3 ? (+p[2]) + ' ' + _MES_C[+p[1] - 1] : f; };
+        const metFmt = (x, v) => v === null || v === undefined ? '—' : x.t === '$' ? (v < 0 ? '-$' : '$') + formatMiles(Math.abs(v)) : x.t === '%' ? v.toFixed(1) + '%' : x.t === 'n' ? String(Math.round(v)) : String(v);
+        const _met = { k: null, dias: 90, filas: null, chart: null };
+        async function abrirTendencia(k) {
+            const x = METRICAS.find(m => m.k === k); if (!x) return;
+            _met.k = k;
+            Swal.fire({
+                title: x.n, width: '46rem', showConfirmButton: false, showCloseButton: true,
+                html: `<div id="met-rangos" class="flex gap-2 justify-center mb-3 text-xs">${[[30, '30 días'], [90, '90 días'], [0, 'Todo']].map(([n, l]) => `<button type="button" data-d="${n}" onclick="metRango(${n})" class="px-3 py-1 rounded-full border border-gray-300 font-semibold cursor-pointer">${l}</button>`).join('')}</div>
+                       <div id="met-cuerpo" style="min-height:260px;position:relative"><p style="padding:90px 0;color:#9ca3af">Cargando historial…</p></div>
+                       <p id="met-nota" style="font-size:11px;color:#9ca3af;margin-top:8px"></p>
+                       ${tienePermisoAnalisis ? '<button type="button" onclick="reconstruirHistorial()" style="margin-top:10px;font-size:12px;color:#6366f1;text-decoration:underline;cursor:pointer">Rellenar los días anteriores con las ventas y gastos que ya tengo</button>' : ''}`,
+                didOpen: async () => {
+                    _met.filas = await cargarHistMetricas();
+                    if (_met.k === k) metDibujar();
+                },
+                willClose: () => { if (_met.chart) { _met.chart.destroy(); _met.chart = null; } }
+            });
+        }
+        async function reconstruirHistorial() {
+            const k = _met.k;
+            const c = await Swal.fire({ icon: 'question', title: 'Rellenar días anteriores', html: '<div style="font-size:14px;text-align:left">Se calculan, para cada día pasado con ventas, las métricas que salen de tus <b>ventas, gastos y retiros</b>. <b>No</b> se calculan agotados, por surtir ni dinero parado, porque dependen del stock de cada día y ese dato no existe.<br><br>Usa los costos y el calendario de hoy, y nunca cambia un día que ya tiene su foto. Se puede repetir sin problema.</div>', showCancelButton: true, confirmButtonText: 'Rellenar', cancelButtonText: 'Cancelar' });
+            if (!c.isConfirmed) return abrirTendencia(k);
+            Swal.fire({ title: 'Calculando el historial...', text: 'Puede tardar unos segundos', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const r = await enviarDatosAGoogleSheets({ tipo: 'reconstruirMetricas' });
+            window.histMetCache = null;
+            if (r && r.status === 'success') await Swal.fire({ icon: 'success', title: r.agregados ? `Se agregaron ${r.agregados} día${r.agregados === 1 ? '' : 's'}` : 'No había días por agregar', timer: 1800, showConfirmButton: false });
+            abrirTendencia(k);
+        }
+        function metRango(n) { _met.dias = n; metDibujar(); }
+        function metDibujar() {
+            const x = METRICAS.find(m => m.k === _met.k), cuerpo = document.getElementById('met-cuerpo'); if (!x || !cuerpo) return;
+            if (_met.chart) { _met.chart.destroy(); _met.chart = null; }
+            document.querySelectorAll('#met-rangos button').forEach(b => { const on = +b.dataset.d === _met.dias; b.style.background = on ? '#4f46e5' : 'transparent'; b.style.color = on ? '#fff' : ''; b.style.borderColor = on ? '#4f46e5' : ''; });
+            if (!_met.filas) { cuerpo.innerHTML = '<p style="padding:90px 0;color:#dc2626">No se pudo cargar el historial. Revisa tu conexión e inténtalo de nuevo.</p>'; return; }
+            let filas = _met.filas.filter(f => f[x.k] !== undefined && f[x.k] !== '').sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+            if (_met.dias > 0) { const lim = new Date(Date.now() - _met.dias * 86400000), ls = lim.getFullYear() + '-' + String(lim.getMonth() + 1).padStart(2, '0') + '-' + String(lim.getDate()).padStart(2, '0'); filas = filas.filter(f => f.fecha >= ls); }
+            const nota = document.getElementById('met-nota');
+            if (!filas.length) { cuerpo.innerHTML = '<p style="padding:80px 20px;color:#6b7280">Todavía no hay fotos guardadas para este rango.<br>Se guarda una cada vez que se hace el corte.</p>'; if (nota) nota.innerText = ''; return; }
+            if (x.t === 'txt') {
+                cuerpo.innerHTML = `<div style="max-height:300px;overflow:auto;text-align:left"><table style="width:100%;font-size:13px"><tbody>${filas.slice().reverse().map(f => `<tr style="border-bottom:1px solid rgba(156,163,175,.3)"><td style="padding:6px 8px;color:#6b7280">${metFechaCorta(f.fecha)}</td><td style="padding:6px 8px;font-weight:600">${f[x.k]}</td></tr>`).join('')}</tbody></table></div>`;
+                if (nota) nota.innerText = filas.length + ' foto' + (filas.length === 1 ? '' : 's') + ' en este rango.';
+                return;
+            }
+            const vals = filas.map(f => Number(f[x.k])), ult = vals[vals.length - 1], ini = vals[0], dif = ult - ini;
+            const resumen = filas.length > 1 ? `<p style="font-size:13px;margin-bottom:6px">Ahora <b>${metFmt(x, ult)}</b> · cambio en el rango: <b style="color:${dif === 0 ? '#6b7280' : dif > 0 ? '#059669' : '#dc2626'}">${dif > 0 ? '+' : dif < 0 ? '-' : ''}${metFmt(x, Math.abs(dif))}</b></p>` : `<p style="font-size:13px;margin-bottom:6px">Valor guardado: <b>${metFmt(x, ult)}</b></p>`;
+            cuerpo.innerHTML = resumen + '<div style="height:240px;position:relative"><canvas id="chart-met"></canvas></div>';
+            const tc = anaTxtColor();
+            _met.chart = new Chart(document.getElementById('chart-met'), {
+                type: 'line',
+                data: { labels: filas.map(f => metFechaCorta(f.fecha)), datasets: [{ label: x.n, data: vals, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.15)', fill: true, tension: .25, pointRadius: filas.length > 45 ? 2 : 4, pointHoverRadius: 6, pointBorderColor: '#6366f1', pointBackgroundColor: filas.map(f => f.origen === 'reconstruido' ? 'rgba(99,102,241,.0)' : '#6366f1') }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + metFmt(x, c.parsed.y) } } },
+                    scales: { x: { ticks: { color: tc, maxTicksLimit: 8 } }, y: { ticks: { color: tc, callback: v => metFmt(x, v) } } } }
+            });
+            const nRec = filas.filter(f => f.origen === 'reconstruido').length;
+            if (nota) nota.innerText = filas.length + ' día' + (filas.length === 1 ? '' : 's') + ' en la gráfica. Cada corte guarda una foto (si hay dos el mismo día, queda la última).' + (nRec ? ` Los puntos huecos (${nRec}) son días reconstruidos con tus ventas y gastos, con los costos de hoy.` : '');
+        }
+        (function () {
+            const marcar = () => METRICAS.forEach(x => { const e = document.getElementById(x.id), t = e && e.closest('div'); if (t) { t.dataset.met = x.k; t.title = 'Toca para ver cómo se ha movido'; } });
+            marcar();
+            document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-met]'); if (t) abrirTendencia(t.dataset.met); });
+        })();
 
         // ==========================================
         // NUEVA FUNCIÓN: RENDERIZAR INVERSIONES
