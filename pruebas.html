@@ -633,6 +633,7 @@
                     <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
                 </div>
             </div>
+            <div id="imp-vivo" class="mb-2 shrink-0"></div>
             <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0"></div>
             <div id="imp-grafico" class="hidden mt-2 shrink-0" style="height: 150px; position: relative;"><canvas id="chartImpresiones"></canvas></div>
             <div id="imp-tabla" class="mt-2"></div>
@@ -4329,10 +4330,55 @@ async function iniciarImpresiones(forzar) {
         IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
-        IMP.cargado = true; impRender();
+        try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
+        IMP.vivoTs = Date.now(); IMP.cargado = true; impRender();
     } catch (e) { console.error(e); if (est) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
     IMP.cargando = false;
 }
+
+
+// ==== EN VIVO: turno abierto (desde el último corte hasta ahora) ====
+// Contador: lo que ha contado cada impresora desde el último corte. Vendido: lo cobrado en el turno abierto (ventas sin cortar).
+// Una diferencia positiva momentánea es normal (se imprimió y todavía no se cobra); si se queda, hay que revisar.
+function impVivoRender(canales, ahora) {
+    const el = document.getElementById('imp-vivo'); if (!el) return;
+    const C = (IMP.cortes || []).map(c => new Date(c.fecha)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a);
+    const ult = C[0], ventas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
+    const vendidoDe = factor => { let q = 0; ventas.forEach(v => (v.productos || []).forEach(p => { const f = factor(p.codigo), n = Number(p.cantidad) || 0; if (f > 0 && n) q += n * f; })); return q; };
+    const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">desde el corte de las ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
+    if (!ult) { el.innerHTML = cab + '<p class="text-[11px] text-gray-500">Aún no hay un corte de caja de referencia: la comparación en vivo empieza después del primer corte.</p>'; return; }
+    const cajas = canales.map(c => {
+        const L = c.lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
+        const base = L.filter(l => l.t <= ult).pop(), actual = L.length ? L[L.length - 1] : null;
+        const borde = `style="border-left-color:${c.color}"`, caja = 'border-l-4 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-3 py-1.5';
+        const titulo = `<p class="text-[10px] uppercase font-bold" style="color:${c.color}">${c.nombre}</p>`;
+        const vendido = vendidoDe(c.factor);
+        if (!base || !actual) return `<div class="${caja}" ${borde}>${titulo}<p class="text-[11px] text-gray-400">Sin lectura del contador al momento del corte</p></div>`;
+        const delta = actual.total - base.total;
+        if (delta < 0) return `<div class="${caja}" ${borde}>${titulo}<p class="text-[11px] text-gray-500">⚙️ El contador se reinició desde el corte</p></div>`;
+        const diff = delta - vendido, umbral = Math.max(IMP.tolMin, (IMP.tolPct / 100) * vendido);
+        const ok = Math.abs(diff) <= umbral;
+        const [txt, cls] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400 font-bold'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400 font-bold']);
+        return `<div class="${caja}" ${borde}><div class="flex items-baseline justify-between gap-2">${titulo}<p class="text-lg font-bold leading-none ${cls}">${ok && diff === 0 ? '0' : impSigno(diff)}</p></div>
+            <p class="text-[10px] text-gray-500">contó <b>${bFmt(delta)}</b> · vendido <b>${bFmt(vendido)}</b></p><p class="text-[10px] ${cls}">${txt}</p></div>`;
+    });
+    el.innerHTML = cab + `<div class="grid grid-cols-2 lg:grid-cols-4 gap-2">${cajas.join('')}</div>`;
+}
+// Refresca ventas del turno y lecturas sin recargar toda la pestaña
+async function impRefrescarVivo() {
+    if (IMP.vivoCargando) return; IMP.vivoCargando = true;
+    try {
+        const [t, d] = await Promise.all([apiFetch('getDataTurno').then(r => r.json()), apiFetch('getImpresiones').then(r => r.json())]);
+        if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas;
+        const c = d.config || {};
+        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
+        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
+        IMP.vivoTs = Date.now(); impRender();
+    } catch (e) { console.error(e); }
+    IMP.vivoCargando = false;
+}
+setInterval(() => { const t = document.getElementById('tab-impresiones'); if (t && !t.classList.contains('hidden') && !document.hidden && IMP.cargado) impRefrescarVivo(); }, 60000);
 
 const impEstados = {
     ok: ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'],
@@ -4370,6 +4416,8 @@ function impRender() {
         };
         est.innerHTML = linea('Kyocera', IMP.visto, IMP.lecturas.map(l => l.t)) + ' &nbsp;·&nbsp; ' + linea('Brother', IMP.vistoBrother, IMP.brother.map(l => l.t));
     }
+
+    impVivoRender(canales, hoy);
 
     // Resumen por contador: una tarjeta compacta por cada uno
     const resumen = canales.map(c => {
