@@ -4353,11 +4353,13 @@ function impVivoRender(canales, ahora) {
     const ventas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
     // Referencia: el último corte; si no hay ninguno, un poco antes de la primera venta del turno (se imprime antes de cobrar)
     const tVentas = ventas.map(v => parseFechaFlexible(v.hora)).filter(d => d && !isNaN(d.getTime())).sort((a, b) => a - b);
-    const sinCorte = !C.length && tVentas.length;
-    const ult = C[0] || (tVentas.length ? new Date(tVentas[0].getTime() - 10 * 60000) : null);
+    const tIni = tVentas.length ? new Date(tVentas[0].getTime() - 10 * 60000) : null;
+    // El turno empieza en lo más reciente entre el último corte y la primera venta pendiente de cortar
+    const sinCorte = !!tIni && (!C.length || tIni > C[0]);
+    const ult = sinCorte ? tIni : (C[0] || null);
     const vendidoDe = factor => { let q = 0; ventas.forEach(v => (v.productos || []).forEach(p => { const f = factor(p.codigo), n = Number(p.cantidad) || 0; if (f > 0 && n) q += n * f; })); return q; };
     const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">${sinCorte ? 'sin corte previo · desde las' : 'desde el corte de las'} ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
+    const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">${sinCorte ? 'desde las' : 'desde el corte de las'} ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}${sinCorte ? ' (inicio del turno)' : ''}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
     if (!ult) { el.innerHTML = cab + '<p class="text-[11px] text-gray-500">Todavía no hay ventas en el turno abierto ni un corte de referencia: la comparación aparece con la primera venta.</p>'; return; }
     const cajas = canales.map(c => {
         const L = c.lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
