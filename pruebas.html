@@ -616,28 +616,27 @@
         </div>
 
         <!-- SECCIÓN: AUDITORÍA DE IMPRESIONES (impresora Kyocera vs punto de venta) -->
-        <div id="tab-impresiones" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-3 mb-3 shrink-0">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">🖨️ Auditoría de Impresiones</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Lo que contaron las impresoras (Kyocera, Brother A4, Brother A3 y escaneos) contra lo que vendió el punto de venta.</p>
+        <div id="tab-impresiones" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2 shrink-0">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white leading-tight">🖨️ Auditoría de Impresiones</h2>
+                    <p id="imp-estado" class="text-[11px] text-gray-400 leading-snug"></p>
                 </div>
-                <div class="flex flex-wrap gap-2 justify-center">
-                    <select id="sel-imp-dias" onchange="impRender()" class="text-xs border rounded-lg px-2 py-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
-                        <option value="7">Últimos 7 días</option>
-                        <option value="30" selected>Últimos 30 días</option>
-                        <option value="90">Últimos 90 días</option>
+                <div class="flex flex-wrap gap-1.5">
+                    <select id="sel-imp-dias" onchange="impRender()" class="text-xs border rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                        <option value="7">7 días</option>
+                        <option value="30" selected>30 días</option>
+                        <option value="90">90 días</option>
                     </select>
-                    <button onclick="capturarLecturaManual()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
-                    <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
-                    <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
+                    <button onclick="capturarLecturaManual()" title="Captura a mano el contador de la Kyocera" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
+                    <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
+                    <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
                 </div>
             </div>
-            <p id="imp-estado" class="text-[11px] text-gray-400 shrink-0"></p>
-            <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 shrink-0"></div>
-            <div style="height: 220px; position: relative;" class="mt-4 shrink-0"><canvas id="chartImpresiones"></canvas></div>
-            <div id="imp-tabla" class="mt-4"></div>
-            <p class="text-[10px] text-gray-400 mt-3">Los lectores revisan las impresoras cada 5 minutos y solo guardan cuando un contador cambia. Cada corte se compara con el corte anterior: lo que contó cada contador entre uno y otro contra lo cobrado en ese turno (según Equivalencias). Si hay varios cortes en un día se suman; un fin de semana cae en el corte del lunes. Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
+            <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0"></div>
+            <div id="imp-grafico" class="hidden mt-2 shrink-0" style="height: 150px; position: relative;"><canvas id="chartImpresiones"></canvas></div>
+            <div id="imp-tabla" class="mt-2"></div>
+            <p class="text-[10px] text-gray-400 mt-2">Los lectores revisan las impresoras cada 5 minutos y solo guardan cuando un contador cambia. Cada corte se compara con el corte anterior: lo que contó cada contador entre uno y otro contra lo cobrado en ese turno (según Equivalencias). Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
         </div>
 
         <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
@@ -4363,16 +4362,16 @@ function impRender() {
         const linea = (nombre, vistoISO, tiempos) => {
             const visto = vistoISO ? new Date(vistoISO) : null;
             const lect = tiempos.map(t => new Date(t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
-            if (!visto && !lect) return `<span class="text-red-500 font-bold">${nombre}: aún no hay lecturas.</span> Instala su programa lector en la PC.`;
+            if (!visto && !lect) return `<span class="text-red-500 font-bold">${nombre}: aún sin lecturas</span>`;
             const ref = visto && !isNaN(visto.getTime()) ? visto : lect;
             const horasDia = hoy.getHours() >= 8 && hoy.getHours() < 21;
             const caido = (hoy - ref) > 2 * 3600000 && calEsHabil(h0) && horasDia;
-            return `Lector ${nombre}: último contacto <b>${hace(ref)}</b>` + (caido ? ' <span class="text-red-500 font-bold">· No está reportando. Revisa que la PC esté encendida.</span>' : ' <span class="text-emerald-600">· activo</span>') + ` · ${tiempos.length} cambios guardados`;
+            return `${nombre}: <b>${hace(ref)}</b>` + (caido ? ' <span class="text-red-500 font-bold">· no reporta, revisa la PC</span>' : ' <span class="text-emerald-600">· activo</span>') + ` (${tiempos.length} cambios)`;
         };
-        est.innerHTML = linea('Kyocera', IMP.visto, IMP.lecturas.map(l => l.t)) + '<br>' + linea('Brother', IMP.vistoBrother, IMP.brother.map(l => l.t));
+        est.innerHTML = linea('Kyocera', IMP.visto, IMP.lecturas.map(l => l.t)) + ' &nbsp;·&nbsp; ' + linea('Brother', IMP.vistoBrother, IMP.brother.map(l => l.t));
     }
 
-    // Resumen por contador
+    // Resumen por contador: una tarjeta compacta por cada uno
     const resumen = canales.map(c => {
         const con = c.filas.filter(fmtEstado);
         const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
@@ -4380,40 +4379,59 @@ function impRender() {
         const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
         return { c, con: con.length, sDelta, sPos, diff, alertas, dinero: diff > 0 ? diff * porPag : 0 };
     });
-    const sinCorte = canales[0].filas.filter(f => f.estado === 'sincorte' && calEsHabil(f.dia)).length;
     const res = document.getElementById('imp-resumen');
-    if (res) res.innerHTML = '<div class="col-span-2 lg:col-span-4">' + bTabla(['Contador', 'Contó', 'Cobrado en cortes', 'Diferencia', 'Días fuera de tolerancia', 'Dinero en juego'], resumen.map(r => {
-        if (!r.con) return [`<b style="color:${r.c.color}">${r.c.nombre}</b>`, '—', '—', '—', '—', '<span class="text-gray-400 text-[11px]">sin cortes con lecturas</span>'];
-        const cls = r.diff > 0 ? 'text-red-600 font-bold' : (r.diff < 0 ? 'text-amber-600 font-bold' : 'text-emerald-600 font-bold');
-        return [`<b style="color:${r.c.color}">${r.c.nombre}</b><br><span class="text-[10px] text-gray-400">${r.con} día${r.con === 1 ? '' : 's'} con corte</span>`, bFmt(r.sDelta), bFmt(r.sPos), `<span class="${cls}">${impSigno(r.diff)}</span>`, String(r.alertas),
-            r.diff > 0 ? `<span class="text-red-600 font-bold">$${formatMiles(r.dinero)}</span>` : '$0.00'];
-    })) + (sinCorte ? `<p class="text-[10px] text-gray-400 mt-1">${sinCorte} día(s) hábil(es) sin corte.</p>` : '') + '</div>';
+    if (res) res.innerHTML = resumen.map(r => {
+        const caja = `border-l-4 rounded-lg bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 px-3 py-1.5`;
+        const borde = `style="border-left-color:${r.c.color}"`;
+        if (!r.con) return `<div class="${caja}" ${borde}><p class="text-[10px] uppercase font-bold" style="color:${r.c.color}">${r.c.nombre}</p><p class="text-[11px] text-gray-400">Sin cortes con lecturas todavía</p></div>`;
+        const cls = r.diff > 0 ? 'text-red-600' : (r.diff < 0 ? 'text-amber-600' : 'text-emerald-600');
+        return `<div class="${caja}" ${borde}><div class="flex items-baseline justify-between gap-2"><p class="text-[10px] uppercase font-bold" style="color:${r.c.color}">${r.c.nombre}</p><p class="text-lg font-bold leading-none ${cls}">${impSigno(r.diff)}</p></div>
+            <p class="text-[10px] text-gray-500">contó <b>${bFmt(r.sDelta)}</b> · cobró <b>${bFmt(r.sPos)}</b> · ${r.con} día${r.con === 1 ? '' : 's'}</p>
+            <p class="text-[10px] ${r.alertas ? 'text-red-600 font-bold' : 'text-gray-400'}">${r.alertas} fuera de tolerancia${r.dinero > 0 ? ` · $${formatMiles(r.dinero)} en juego` : ''}</p></div>`;
+    }).join('');
 
-    // Tabla: un día por fila, una columna por contador (más reciente primero)
+    // Tabla compacta: un día por fila, una columna por contador (más reciente primero).
+    // Los días sin nada que comparar se agrupan en un renglón plegable para no ocupar pantalla.
     const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const idx = [];
-    dias.forEach((d, i) => { if (canales.some(c => !['sincorte', 'sinlectura'].includes(c.filas[i].estado)) || calEsHabil(d) || canales[0].filas[i].cortes.length) idx.push(i); });
+    const corto = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+    const real = i => canales.some(c => c.filas[i].diff !== null || c.filas[i].estado === 'hoy' || c.filas[i].delta !== null);
+    const primerReal = dias.findIndex((d, i) => real(i));
+    // Un día sin corte solo se lista si ocurre después del primer día con lecturas; los anteriores se pliegan.
+    const util = i => real(i) || (primerReal >= 0 && i > primerReal && calEsHabil(dias[i]) && canales[0].filas[i].estado === 'sincorte');
+    const idxUtil = [], idxVacio = [];
+    dias.forEach((d, i) => { if (util(i)) idxUtil.push(i); else if (calEsHabil(d) || canales[0].filas[i].cortes.length) idxVacio.push(i); });
     const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
-        if (f.diff === null) return f.delta === null ? `<span class="${cls}">${txt}</span>` : `contó <b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">desde el último corte</span><br><span class="${cls}">${txt}</span>`;
-        return `<span class="text-gray-500">contó</span> <b>${bFmt(f.delta)}</b> · <span class="text-gray-500">cobró</span> <b>${bFmt(f.pos)}</b><br><span class="${cls}"><b>${impSigno(f.diff)}</b>${f.pct !== null ? ` (${f.diff >= 0 ? '+' : '−'}${Math.abs(f.pct).toFixed(0)}%)` : ''} ${txt}</span>${f.parcial ? '<br><span class="text-[10px] text-gray-400">algún corte del día sin referencia</span>' : ''}`;
+        if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Algún corte del día no tuvo referencia">*</span>' : ''}`;
+    };
+    const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
+    const filaDia = i => {
+        const f0 = canales[0].filas[i];
+        const cortes = f0.cortes.length ? f0.cortes.map(c => `${hhmm(c.t)}${c.usuario ? ' ' + bEsc(c.usuario) : ''}`).join(' · ') : '';
+        const todosSinCorte = canales.every(c => c.filas[i].estado === 'sincorte');
+        const celdas = todosSinCorte ? `<td colspan="${canales.length}" class="py-1 px-2 text-amber-600 dark:text-amber-400">Sin corte este día</td>` : canales.map(c => `<td class="py-1 px-2">${celda(c.filas[i])}</td>`).join('');
+        return `<tr><td class="py-1 px-2 whitespace-nowrap font-medium">${bEsc(corto(f0.dia))}</td><td class="py-1 px-2 text-gray-500 whitespace-nowrap">${cortes}</td>${celdas}</tr>`;
     };
     const tab = document.getElementById('imp-tabla');
-    if (tab) tab.innerHTML = bTabla(['Día', 'Cortes'].concat(canales.map(c => c.nombre)), idx.slice().reverse().map(i => {
-        const f0 = canales[0].filas[i];
-        const cortes = f0.cortes.length ? f0.cortes.map(c => `${hhmm(c.t)}${c.usuario ? ' · ' + bEsc(c.usuario) : ''}`).join('<br>') : '';
-        return [bEsc(bFechaLarga(f0.dia, true)), `<span class="text-gray-500">${cortes}</span>`].concat(canales.map(c => celda(c.filas[i])));
-    }));
+    if (tab) {
+        const cab = `<thead class="text-gray-600 dark:text-gray-300 uppercase"><tr><th class="${th}">Día</th><th class="${th}">Cortes</th>${canales.map(c => `<th class="${th}" style="color:${c.color}">${c.nombre}</th>`).join('')}</tr></thead>`;
+        const cuerpo = idxUtil.length ? `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs">${cab}<tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${idxUtil.slice().reverse().map(filaDia).join('')}</tbody></table></div>`
+            : '<p class="text-sm text-gray-500">Todavía no hay cortes con lecturas para comparar. Cada corte se compara con el anterior, así que el primer resultado aparece en el segundo corte con lecturas.</p>';
+        const vacios = idxVacio.length ? `<details class="mt-1 text-[11px] text-gray-500"><summary class="cursor-pointer select-none">${idxVacio.length} día${idxVacio.length === 1 ? '' : 's'} anterior${idxVacio.length === 1 ? '' : 'es'} sin lecturas de las impresoras (sin datos aún o sin corte)</summary><p class="mt-1 leading-relaxed">${idxVacio.slice().reverse().map(i => bEsc(corto(dias[i]))).join(' · ')}</p></details>` : '';
+        tab.innerHTML = cuerpo + vacios + `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * algún corte sin referencia.</p>`;
+    }
 
-    // Gráfico: diferencia diaria (contador − cobrado) de cada contador
-    const ctx = document.getElementById('chartImpresiones');
+    // Gráfico: diferencia diaria (contador − cobrado); se oculta si todavía no hay datos
+    const ctx = document.getElementById('chartImpresiones'), cont = document.getElementById('imp-grafico');
     if (ctx) {
-        if (window.chartImpInstance) window.chartImpInstance.destroy();
+        if (window.chartImpInstance) { window.chartImpInstance.destroy(); window.chartImpInstance = null; }
         const conIdx = dias.map((d, i) => i).filter(i => canales.some(c => fmtEstado(c.filas[i])));
-        if (conIdx.length) window.chartImpInstance = new Chart(ctx, {
+        if (cont) cont.classList.toggle('hidden', conIdx.length < 2);
+        if (conIdx.length >= 2) window.chartImpInstance = new Chart(ctx, {
             type: 'bar',
             data: { labels: conIdx.map(i => dias[i].toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })), datasets: canales.map(c => ({ label: c.nombre, data: conIdx.map(i => fmtEstado(c.filas[i]) ? c.filas[i].diff : null), backgroundColor: c.color, borderRadius: 3 })) },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } }, title: { display: true, text: 'Diferencia por día: lo que contó la impresora menos lo cobrado (arriba = imprimió de más)', font: { size: 11 } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Diferencia diaria: contador − cobrado (arriba = imprimió de más)', font: { size: 10 } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
         });
     }
 }
