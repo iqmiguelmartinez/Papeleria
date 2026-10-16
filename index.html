@@ -616,33 +616,28 @@
         </div>
 
         <!-- SECCIÓN: AUDITORÍA DE IMPRESIONES (impresora Kyocera vs punto de venta) -->
-        <div id="tab-impresiones" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-3 mb-3 shrink-0">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">🖨️ Auditoría de Impresiones</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Páginas que contó la impresora contra las que vendió el punto de venta.</p>
+        <div id="tab-impresiones" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2 shrink-0">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white leading-tight">🖨️ Auditoría de Impresiones</h2>
+                    <p id="imp-estado" class="text-[11px] text-gray-400 leading-snug"></p>
                 </div>
-                <div class="flex flex-wrap gap-2 justify-center">
-                    <select id="sel-imp-canal" onchange="IMP.canal = this.value; impRender()" class="text-xs border rounded-lg px-2 py-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer" title="Qué impresora comparar contra los cortes">
-                        <option value="kyocera" selected>Kyocera (carta b/n)</option>
-                        <option value="a4">Brother · hojas A4</option>
-                        <option value="a3">Brother · hojas A3</option>
+                <div class="flex flex-wrap gap-1.5">
+                    <select id="sel-imp-dias" onchange="impRender()" class="text-xs border rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
+                        <option value="7">7 días</option>
+                        <option value="30" selected>30 días</option>
+                        <option value="90">90 días</option>
                     </select>
-                    <select id="sel-imp-dias" onchange="impRender()" class="text-xs border rounded-lg px-2 py-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 cursor-pointer">
-                        <option value="7">Últimos 7 días</option>
-                        <option value="30" selected>Últimos 30 días</option>
-                        <option value="90">Últimos 90 días</option>
-                    </select>
-                    <button onclick="capturarLecturaManual()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
-                    <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
-                    <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
+                    <button onclick="capturarLecturaManual()" title="Captura a mano el contador de la Kyocera" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
+                    <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
+                    <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
                 </div>
             </div>
-            <p id="imp-estado" class="text-[11px] text-gray-400 shrink-0"></p>
-            <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 shrink-0"></div>
-            <div style="height: 220px; position: relative;" class="mt-4 shrink-0"><canvas id="chartImpresiones"></canvas></div>
-            <div id="imp-tabla" class="mt-4"></div>
-            <p class="text-[10px] text-gray-400 mt-3">El lector revisa la impresora cada 5 minutos y solo guarda cuando el contador cambia. Cada corte se compara con el corte anterior: páginas que contó la impresora entre uno y otro contra las páginas cobradas en ese turno. Si hay varios cortes en un día se suman; un fin de semana cae en el corte del lunes. Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
+            <div id="imp-vivo" class="mb-2 shrink-0"></div>
+            <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0"></div>
+            <div id="imp-grafico" class="hidden mt-2 shrink-0" style="height: 150px; position: relative;"><canvas id="chartImpresiones"></canvas></div>
+            <div id="imp-tabla" class="mt-2"></div>
+            <p class="text-[10px] text-gray-400 mt-2">Los lectores revisan las impresoras cada 5 minutos y solo guardan cuando un contador cambia. Cada corte se compara con el corte anterior: lo que contó cada contador entre uno y otro contra lo cobrado en ese turno (según Equivalencias). Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
         </div>
 
         <!-- SECCIÓN: CONTROL DE CAJA CHICA Y ARQUEO DE EFECTIVO -->
@@ -4237,7 +4232,7 @@ async function calGuardar() {
 // contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
 // Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
 // ==========================================================================
-const IMP = {cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, canal: 'kyocera', tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+const IMP = {cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
 
 function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
 // Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
@@ -4266,11 +4261,22 @@ function impFactorBrother(cod, tam) {
     const m = tam === 'A3' ? IMP.factoresA3 : IMP.factoresA4;
     return m[cod] !== undefined ? m[cod] : impFactorDefectoBrother(cod, tam);
 }
-// Serie y equivalencias según el canal elegido: Kyocera (carta b/n), Brother A4 o Brother A3
-function impCanalActual() {
-    if (IMP.canal === 'a4') return { nombre: 'Brother A4', lecturas: IMP.brother.map(l => ({ t: l.t, total: l.a4 })).filter(l => l.total !== null && l.total !== undefined), factor: c => impFactorBrother(c, 'A4'), visto: IMP.vistoBrother, brother: true };
-    if (IMP.canal === 'a3') return { nombre: 'Brother A3', lecturas: IMP.brother.map(l => ({ t: l.t, total: l.a3 })).filter(l => l.total !== null && l.total !== undefined), factor: c => impFactorBrother(c, 'A3'), visto: IMP.vistoBrother, brother: true };
-    return { nombre: 'Kyocera', lecturas: IMP.lecturas, factor: impFactor, visto: IMP.visto, brother: false };
+// Escaneos de la Brother: el contador suma lo escaneado en el alimentador y en el cristal (no separa color de b/n).
+// Por eso todos los productos de escaneo del punto de venta (color y b/n) se suman contra ese contador.
+const impEsEscaneo = nombre => /escane|scan/.test(bQuitaAcentos(nombre || ''));
+function impFactorEsc(cod) {
+    if (IMP.factoresESC[cod] !== undefined) return IMP.factoresESC[cod];
+    return impEsEscaneo(impNombreProd(cod)) ? 1 : 0;
+}
+// Los cuatro contadores que se comparan, uno por columna de la tabla
+function impCanales() {
+    const serie = f => IMP.brother.map(l => ({ t: l.t, total: f(l) })).filter(l => l.total !== null && l.total !== undefined && isFinite(l.total));
+    return [
+        { id: 'kyocera', nombre: 'Kyocera', unidad: 'páginas', lecturas: IMP.lecturas, factor: impFactor, visto: IMP.visto, color: '#3b82f6' },
+        { id: 'a4', nombre: 'Brother A4', unidad: 'hojas', lecturas: serie(l => l.a4), factor: c => impFactorBrother(c, 'A4'), visto: IMP.vistoBrother, color: '#10b981' },
+        { id: 'a3', nombre: 'Brother A3', unidad: 'hojas', lecturas: serie(l => l.a3), factor: c => impFactorBrother(c, 'A3'), visto: IMP.vistoBrother, color: '#f59e0b' },
+        { id: 'esc', nombre: 'Brother escaneos', unidad: 'escaneos', lecturas: serie(l => (l.adf === null || l.adf === undefined || l.plano === null || l.plano === undefined) ? null : l.adf + l.plano), factor: impFactorEsc, visto: IMP.vistoBrother, color: '#8b5cf6' }
+    ];
 }
 
 // Compara, por corte de caja, las páginas que contó la impresora contra las que se cobraron en ese turno.
@@ -4321,13 +4327,90 @@ async function iniciarImpresiones(forzar) {
     IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
         const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
-        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {};
+        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
-        IMP.cargado = true; impRender();
+        try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
+        IMP.vivoTs = Date.now(); IMP.cargado = true; impRender();
     } catch (e) { console.error(e); if (est) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
     IMP.cargando = false;
 }
+
+
+// Las ventas del turno traen la hora como texto "dd/MM/yyyy H:mm:ss" (o como fecha ISO)
+function parseFechaFlexible(v) {
+    if (v instanceof Date) return v;
+    const t = String(v || '').trim(), m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0));
+    const d = new Date(t); return isNaN(d.getTime()) ? null : d;
+}
+// ==== EN VIVO: turno abierto (desde el último corte hasta ahora) ====
+// Contador: lo que ha contado cada impresora desde el último corte. Vendido: lo cobrado en el turno abierto (ventas sin cortar).
+// Una diferencia positiva momentánea es normal (se imprimió y todavía no se cobra); si se queda, hay que revisar.
+function impVivoRender(canales, ahora) {
+    const el = document.getElementById('imp-vivo'); if (!el) return;
+    const C = (IMP.cortes || []).map(c => new Date(c.fecha)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a);
+    const ventas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
+    // Referencia: el último corte; si no hay ninguno, un poco antes de la primera venta del turno (se imprime antes de cobrar)
+    const tVentas = ventas.map(v => parseFechaFlexible(v.hora)).filter(d => d && !isNaN(d.getTime())).sort((a, b) => a - b);
+    const tIni = tVentas.length ? new Date(tVentas[0].getTime() - 10 * 60000) : null;
+    // El turno empieza en lo más reciente entre el último corte y la primera venta pendiente de cortar
+    const sinCorte = !!tIni && (!C.length || tIni > C[0]);
+    const ult = sinCorte ? tIni : (C[0] || null);
+    const vendidoDe = factor => { let q = 0; ventas.forEach(v => (v.productos || []).forEach(p => { const f = factor(p.codigo), n = Number(p.cantidad) || 0; if (f > 0 && n) q += n * f; })); return q; };
+    const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const tarjeta = (c, delta, vendido, msg) => {
+        const caja = 'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex flex-col gap-2 min-h-[150px]';
+        const borde = `style="border-top:3px solid ${c.color}"`;
+        const titulo = `<p class="text-xs uppercase font-bold tracking-wide" style="color:${c.color}">${c.nombre}</p>`;
+        if (msg) return `<div class="${caja}" ${borde}>${titulo}<p class="text-xs text-gray-400 my-auto text-center">${msg}</p></div>`;
+        const diff = delta - vendido, umbral = Math.max(IMP.tolMin, (IMP.tolPct / 100) * vendido);
+        const ok = Math.abs(diff) <= umbral;
+        const [txt, cls, bg] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
+        const mx = Math.max(delta, vendido, 1), pc = n => Math.max(2, Math.round(n / mx * 100));
+        const barra = (nombre, n, color) => `<div><div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400"><span>${nombre}</span><b class="text-gray-800 dark:text-gray-100 text-sm">${bFmt(n)}</b></div><div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pc(n)}%;background:${color}"></div></div></div>`;
+        return `<div class="${caja}" ${borde}><div class="flex items-start justify-between gap-2">${titulo}<p class="text-3xl font-extrabold leading-none ${cls}">${diff === 0 ? '0' : impSigno(diff)}</p></div>
+            ${barra('Contador', delta, c.color)}${barra('Vendido', vendido, '#94a3b8')}
+            <p class="mt-auto text-center text-xs font-bold rounded-md py-1 ${bg} ${cls}">${txt}</p></div>`;
+    };
+    // Cierre del día: si el último corte fue en o después de la hora de cierre y no hay ventas nuevas, el turno ya no está abierto
+    const HORA_CIERRE = 18;
+    if (!ventas.length && C.length && C[0].getHours() >= HORA_CIERRE) {
+        const dCorte = C[0], etiqueta = dCorte.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+        const tarj = canales.map(c => {
+            const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime()));
+            if (!f || f.diff === null) return tarjeta(c, 0, 0, 'Sin lecturas suficientes para comparar el cierre');
+            return tarjeta(c, f.delta, f.pos);
+        });
+        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 Día cerrado <span class="font-normal text-gray-500">· ${etiqueta} · corte de las ${hhmm(dCorte)} · sin ventas nuevas. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${tarj.join('')}</div>`;
+        return;
+    }
+    const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">${sinCorte ? 'desde las' : 'desde el corte de las'} ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}${sinCorte ? ' (inicio del turno)' : ''}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
+    if (!ult) { el.innerHTML = cab + '<p class="text-[11px] text-gray-500">Todavía no hay ventas en el turno abierto ni un corte de referencia: la comparación aparece con la primera venta.</p>'; return; }
+    const cajas = canales.map(c => {
+        const L = c.lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
+        const base = L.filter(l => l.t <= ult).pop(), actual = L.length ? L[L.length - 1] : null;
+        if (!base || !actual) return tarjeta(c, 0, 0, 'Este lector aún no tiene lecturas de antes del turno');
+        const delta = actual.total - base.total;
+        if (delta < 0) return tarjeta(c, 0, 0, '⚙️ El contador se reinició desde el corte');
+        return tarjeta(c, delta, vendidoDe(c.factor));
+    });
+    el.innerHTML = cab + `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${cajas.join('')}</div>`;
+}
+// Refresca ventas del turno y lecturas sin recargar toda la pestaña
+async function impRefrescarVivo() {
+    if (IMP.vivoCargando) return; IMP.vivoCargando = true;
+    try {
+        const [t, d] = await Promise.all([apiFetch('getDataTurno').then(r => r.json()), apiFetch('getImpresiones').then(r => r.json())]);
+        if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas;
+        const c = d.config || {};
+        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
+        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
+        IMP.vivoTs = Date.now(); impRender();
+    } catch (e) { console.error(e); }
+    IMP.vivoCargando = false;
+}
+setInterval(() => { const t = document.getElementById('tab-impresiones'); if (t && !t.classList.contains('hidden') && !document.hidden && IMP.cargado) impRefrescarVivo(); }, 60000);
 
 const impEstados = {
     ok: ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'],
@@ -4345,75 +4428,98 @@ function impRender() {
     const sel = document.getElementById('sel-imp-dias'), nDias = parseInt(sel && sel.value) || 30;
     const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const dias = []; for (let i = nDias - 1; i >= 0; i--) dias.push(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - i));
-    const canal = impCanalActual();
-    const filas = impCalcular(canal.lecturas, IMP.cortes || [], dias, canal.factor, IMP.tolPct, IMP.tolMin, hoy);
-    IMP.filas = filas;
+    const canales = impCanales();
+    canales.forEach(c => { c.filas = impCalcular(c.lecturas, IMP.cortes || [], dias, c.factor, IMP.tolPct, IMP.tolMin, hoy); });
+    IMP.canalesCalc = canales; IMP.filas = canales[0].filas;
+    const fmtEstado = f => ['ok', 'sobra', 'falta'].includes(f.estado);
 
-    // Estado del lector (se reporta cada 5 min aunque el contador no cambie)
+    // Estado de los lectores (reportan cada 5 min aunque el contador no cambie)
     const est = document.getElementById('imp-estado');
     if (est) {
-        const visto = canal.visto ? new Date(canal.visto) : null;
-        const lect = canal.lecturas.map(l => new Date(l.t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
         const hace = f => { const m = Math.round((hoy - f) / 60000); return m < 1 ? 'hace menos de 1 minuto' : (m < 60 ? `hace ${m} min` : (m < 2880 ? `hace ${Math.floor(m / 60)} h` : `hace ${Math.floor(m / 1440)} días`)); };
-        if (!visto && !lect) est.innerHTML = `<span class="text-red-500 font-bold">Aún no hay lecturas de ${canal.nombre}.</span> Instala el programa lector de ${canal.brother ? 'la Brother' : 'la Kyocera'} en la PC.`;
-        else {
+        const linea = (nombre, vistoISO, tiempos) => {
+            const visto = vistoISO ? new Date(vistoISO) : null;
+            const lect = tiempos.map(t => new Date(t)).filter(d => !isNaN(d.getTime())).sort((a, b) => b - a)[0];
+            if (!visto && !lect) return `<span class="text-red-500 font-bold">${nombre}: aún sin lecturas</span>`;
             const ref = visto && !isNaN(visto.getTime()) ? visto : lect;
             const horasDia = hoy.getHours() >= 8 && hoy.getHours() < 21;
             const caido = (hoy - ref) > 2 * 3600000 && calEsHabil(h0) && horasDia;
-            est.innerHTML = `Lector ${canal.nombre}: último contacto <b>${hace(ref)}</b>` + (caido ? ' <span class="text-red-500 font-bold">· El lector no está reportando. Revisa que la PC esté encendida.</span>' : ' <span class="text-emerald-600">· activo</span>') +
-                (lect ? ` · Último cambio del contador: ${lect.toLocaleString('es-MX')}` : '') + ` · ${canal.lecturas.length} cambios guardados`;
-        }
+            return `${nombre}: <b>${hace(ref)}</b>` + (caido ? ' <span class="text-red-500 font-bold">· no reporta, revisa la PC</span>' : ' <span class="text-emerald-600">· activo</span>') + ` (${tiempos.length} cambios)`;
+        };
+        est.innerHTML = linea('Kyocera', IMP.visto, IMP.lecturas.map(l => l.t)) + ' &nbsp;·&nbsp; ' + linea('Brother', IMP.vistoBrother, IMP.brother.map(l => l.t));
     }
 
-    // Resumen
-    const con = filas.filter(f => ['ok', 'sobra', 'falta'].includes(f.estado));
-    const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
-    const diff = sDelta - sPos, porPag = sPos > 0 ? sIng / sPos : 0;
-    const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
-    const sinCorte = filas.filter(f => f.estado === 'sincorte' && calEsHabil(f.dia)).length;
-    const tarjeta = (t, v, sub, clase) => `<div class="bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 rounded-xl p-3"><p class="text-[10px] uppercase text-gray-500 font-bold">${t}</p><p class="text-xl font-bold ${clase || 'text-gray-800 dark:text-gray-100'}">${v}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+    impVivoRender(canales, hoy);
+
+    // Resumen por contador: una tarjeta compacta por cada uno
+    const resumen = canales.map(c => {
+        const con = c.filas.filter(fmtEstado);
+        const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
+        const diff = sDelta - sPos, porPag = sPos > 0 ? sIng / sPos : 0;
+        const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
+        return { c, con: con.length, sDelta, sPos, diff, alertas, dinero: diff > 0 ? diff * porPag : 0 };
+    });
     const res = document.getElementById('imp-resumen');
-    if (res) res.innerHTML = con.length
-        ? tarjeta('Páginas que contó ' + (canal.brother ? 'la ' + canal.nombre : 'la impresora'), bFmt(sDelta), `en ${con.length} día${con.length === 1 ? '' : 's'} con corte`) +
-          tarjeta('Páginas cobradas en los cortes', bFmt(sPos), 'según las equivalencias configuradas') +
-          tarjeta('Diferencia', impSigno(diff), diff > 0 ? 'imprimió más de lo que se cobró' : (diff < 0 ? 'se cobró más de lo que imprimió' : 'cuadra'), diff > 0 ? 'text-red-600' : (diff < 0 ? 'text-amber-600' : 'text-emerald-600')) +
-          tarjeta('Dinero en juego', diff > 0 ? '$' + formatMiles(diff * porPag) : '$0.00', diff > 0 ? `≈ ${bFmt(diff)} págs × $${formatMiles(porPag)} promedio por página` : `${alertas} día${alertas === 1 ? '' : 's'} fuera de tolerancia` + (sinCorte ? ` · ${sinCorte} día(s) hábil(es) sin corte` : ''), diff > 0 ? 'text-red-600' : '')
-        : '<p class="text-sm text-gray-500 col-span-4">Todavía no hay cortes con lecturas para comparar. Cada corte se compara con el anterior, así que el primer resultado aparece en el segundo corte.</p>';
+    if (res) res.innerHTML = !resumen.some(r => r.con) ? '<p class="col-span-full text-[11px] text-gray-500">📊 Historial por corte: todavía no hay cortes con lecturas para comparar (aparece después del siguiente corte).</p>' : resumen.map(r => {
+        const caja = `border-l-4 rounded-lg bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 px-3 py-1.5`;
+        const borde = `style="border-left-color:${r.c.color}"`;
+        if (!r.con) return `<div class="${caja}" ${borde}><p class="text-[10px] uppercase font-bold" style="color:${r.c.color}">${r.c.nombre}</p><p class="text-[11px] text-gray-400">Sin cortes con lecturas todavía</p></div>`;
+        const cls = r.diff > 0 ? 'text-red-600' : (r.diff < 0 ? 'text-amber-600' : 'text-emerald-600');
+        return `<div class="${caja}" ${borde}><div class="flex items-baseline justify-between gap-2"><p class="text-[10px] uppercase font-bold" style="color:${r.c.color}">${r.c.nombre}</p><p class="text-lg font-bold leading-none ${cls}">${impSigno(r.diff)}</p></div>
+            <p class="text-[10px] text-gray-500">contó <b>${bFmt(r.sDelta)}</b> · cobró <b>${bFmt(r.sPos)}</b> · ${r.con} día${r.con === 1 ? '' : 's'}</p>
+            <p class="text-[10px] ${r.alertas ? 'text-red-600 font-bold' : 'text-gray-400'}">${r.alertas} fuera de tolerancia${r.dinero > 0 ? ` · $${formatMiles(r.dinero)} en juego` : ''}</p></div>`;
+    }).join('');
 
-    // Tabla (más reciente primero). Los días de descanso sin corte no se muestran.
-    const visibles = filas.filter(f => !['sincorte', 'sinlectura'].includes(f.estado) || calEsHabil(f.dia) || f.cortes.length).reverse();
-    const tab = document.getElementById('imp-tabla');
+    // Tabla compacta: un día por fila, una columna por contador (más reciente primero).
+    // Los días sin nada que comparar se agrupan en un renglón plegable para no ocupar pantalla.
     const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    if (tab) tab.innerHTML = bTabla(['Día', 'Cortes', canal.nombre, 'Cobrado en cortes', 'Diferencia', 'Estado'], visibles.map(f => {
+    const corto = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+    const real = i => canales.some(c => c.filas[i].diff !== null || c.filas[i].estado === 'hoy' || c.filas[i].delta !== null);
+    const primerReal = dias.findIndex((d, i) => real(i));
+    // Un día sin corte solo se lista si ocurre después del primer día con lecturas; los anteriores se pliegan.
+    const util = i => real(i) || (primerReal >= 0 && i > primerReal && calEsHabil(dias[i]) && canales[0].filas[i].estado === 'sincorte');
+    const idxUtil = [], idxVacio = [];
+    dias.forEach((d, i) => { if (util(i)) idxUtil.push(i); else if (calEsHabil(d) || canales[0].filas[i].cortes.length) idxVacio.push(i); });
+    const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
-        const cortes = f.cortes.length ? f.cortes.map(c => `${hhmm(c.t)}${c.usuario ? ' · ' + bEsc(c.usuario) : ''}`).join('<br>') : '';
-        const enCurso = f.estado === 'hoy';
-        return [bEsc(bFechaLarga(f.dia, true)), `<span class="text-gray-500">${cortes}</span>`,
-            f.delta === null ? '—' : bFmt(f.delta) + (enCurso ? ' <span class="text-[10px] text-gray-400">desde el último corte</span>' : ''),
-            f.diff === null ? '—' : bFmt(f.pos),
-            f.diff === null ? '—' : `<b>${impSigno(f.diff)}</b>${f.pct !== null ? ` <span class="text-gray-400">(${f.diff >= 0 ? '+' : '−'}${Math.abs(f.pct).toFixed(0)}%)</span>` : ''}`,
-            `<span class="${cls}">${txt}</span>${f.parcial ? '<br><span class="text-[10px] text-gray-400">algún corte del día no tuvo referencia</span>' : ''}`];
-    }));
+        if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Algún corte del día no tuvo referencia">*</span>' : ''}`;
+    };
+    const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
+    const filaDia = i => {
+        const f0 = canales[0].filas[i];
+        const cortes = f0.cortes.length ? f0.cortes.map(c => `${hhmm(c.t)}${c.usuario ? ' ' + bEsc(c.usuario) : ''}`).join(' · ') : '';
+        const todosSinCorte = canales.every(c => c.filas[i].estado === 'sincorte');
+        const celdas = todosSinCorte ? `<td colspan="${canales.length}" class="py-1 px-2 text-amber-600 dark:text-amber-400">Sin corte este día</td>` : canales.map(c => `<td class="py-1 px-2">${celda(c.filas[i])}</td>`).join('');
+        return `<tr><td class="py-1 px-2 whitespace-nowrap font-medium">${bEsc(corto(f0.dia))}</td><td class="py-1 px-2 text-gray-500 whitespace-nowrap">${cortes}</td>${celdas}</tr>`;
+    };
+    const tab = document.getElementById('imp-tabla');
+    if (tab) {
+        const cab = `<thead class="text-gray-600 dark:text-gray-300 uppercase"><tr><th class="${th}">Día</th><th class="${th}">Cortes</th>${canales.map(c => `<th class="${th}" style="color:${c.color}">${c.nombre}</th>`).join('')}</tr></thead>`;
+        const hayDatos = idxUtil.some(i => canales.some(c => c.filas[i].delta !== null || c.filas[i].estado === 'sincorte'));
+        const cuerpo = hayDatos ? `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs">${cab}<tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${idxUtil.slice().reverse().map(filaDia).join('')}</tbody></table></div>`
+            : '';
+        const vacios = idxVacio.length ? `<details class="mt-1 text-[11px] text-gray-500"><summary class="cursor-pointer select-none">${idxVacio.length} día${idxVacio.length === 1 ? '' : 's'} anterior${idxVacio.length === 1 ? '' : 'es'} sin lecturas de las impresoras (sin datos aún o sin corte)</summary><p class="mt-1 leading-relaxed">${idxVacio.slice().reverse().map(i => bEsc(corto(dias[i]))).join(' · ')}</p></details>` : '';
+        tab.innerHTML = cuerpo + vacios + (!hayDatos ? '' : `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * algún corte sin referencia.</p>`);
+    }
 
-    // Gráfico
-    const ctx = document.getElementById('chartImpresiones');
+    // Gráfico: diferencia diaria (contador − cobrado); se oculta si todavía no hay datos
+    const ctx = document.getElementById('chartImpresiones'), cont = document.getElementById('imp-grafico');
     if (ctx) {
-        if (window.chartImpInstance) window.chartImpInstance.destroy();
-        if (con.length) window.chartImpInstance = new Chart(ctx, {
+        if (window.chartImpInstance) { window.chartImpInstance.destroy(); window.chartImpInstance = null; }
+        const conIdx = dias.map((d, i) => i).filter(i => canales.some(c => fmtEstado(c.filas[i])));
+        if (cont) cont.classList.toggle('hidden', conIdx.length < 2);
+        if (conIdx.length >= 2) window.chartImpInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels: con.map(f => f.dia.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })), datasets: [
-                { label: canal.nombre + ' (contador)', data: con.map(f => f.delta), backgroundColor: '#3b82f6', borderRadius: 3 },
-                { label: 'Cobrado en cortes', data: con.map(f => f.pos), backgroundColor: '#10b981', borderRadius: 3 }
-            ] },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
+            data: { labels: conIdx.map(i => dias[i].toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })), datasets: canales.map(c => ({ label: c.nombre, data: conIdx.map(i => fmtEstado(c.filas[i]) ? c.filas[i].diff : null), backgroundColor: c.color, borderRadius: 3 })) },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Diferencia diaria: contador − cobrado (arriba = imprimió de más)', font: { size: 10 } } }, scales: { y: { beginAtZero: true }, x: { ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } } } }
         });
     }
 }
 
 // Solo como respaldo (por ejemplo, el primer día antes de que el lector esté instalado). El corte ya no pide el contador.
 async function capturarLecturaManual() {
-    if (IMP.canal !== 'kyocera') return Swal.fire('Solo Kyocera', 'La lectura manual es del contador de la Kyocera. La Brother se lee sola desde su página web; cambia el selector a Kyocera para capturar una.', 'info');
-    const { value } = await Swal.fire({ title: 'Lectura manual del contador', html: '<p style="font-size:13px;margin-bottom:6px">En la página de la impresora: Información del dispositivo → Contador → <b>Total</b>.</p>', input: 'number', inputAttributes: { min: 0, step: 1 }, showCancelButton: true, confirmButtonText: 'Guardar' });
+    const { value } = await Swal.fire({ title: 'Lectura manual del contador (Kyocera)', html: '<p style="font-size:13px;margin-bottom:6px">En la página de la impresora: Información del dispositivo → Contador → <b>Total</b>.</p>', input: 'number', inputAttributes: { min: 0, step: 1 }, showCancelButton: true, confirmButtonText: 'Guardar' });
     if (value === undefined || value === '') return;
     const total = parseInt(value, 10);
     if (!isFinite(total) || total < 0) return;
@@ -4425,6 +4531,20 @@ async function capturarLecturaManual() {
 }
 
 // ---------- Equivalencias (páginas del contador por unidad vendida) ----------
+function impCodigosEsc() {
+    const set = new Set(Object.keys(IMP.factoresESC));
+    (typeof inventario !== 'undefined' ? inventario : []).forEach(p => { if (impEsEscaneo(p.nombre)) set.add(p.codigo); });
+    return Array.from(set).sort();
+}
+function impFilaEsc(cod) {
+    return `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td><td class="py-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${impFactorEsc(cod)}" class="imp-factor-esc w-16 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></td></tr>`;
+}
+function impAgregarEsc(selEl) {
+    const cod = selEl.value; selEl.value = '';
+    if (!cod || document.querySelector('.imp-factor-esc[data-cod="' + cod.replace(/"/g, '') + '"]')) return;
+    const f = IMP.factoresESC[cod]; IMP.factoresESC[cod] = f !== undefined ? f : 1;
+    document.getElementById('imp-esc-filas').insertAdjacentHTML('beforeend', impFilaEsc(cod));
+}
 function abrirConfigImpresion() {
     let ov = document.getElementById('imp-overlay');
     if (!ov) { ov = document.createElement('div'); ov.id = 'imp-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto'; document.body.appendChild(ov); }
@@ -4434,6 +4554,9 @@ function abrirConfigImpresion() {
         <div class="flex justify-between items-center"><h3 class="text-lg font-bold">⚙️ Equivalencias de impresión</h3><button onclick="cerrarConfigImpresion()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
         <p class="text-xs text-gray-500">Cuántas páginas suma el contador de cada impresora por cada unidad vendida: <b>Kyocera</b> (carta b/n), <b>Brother A4</b> y <b>Brother A3</b> (la Brother cuenta las hojas por tamaño). Pon <b>0</b> en las que NO salen de esa impresora. Si una venta de "ambos lados" cuenta cada cara, pon 2.</p>
         <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Código</th><th>Producto</th><th>Kyocera</th><th>Br. A4</th><th>Br. A3</th></tr></thead><tbody>${filas}</tbody></table>
+        <div class="border-t dark:border-gray-700 pt-2"><p class="text-xs text-gray-500 mb-1"><b>Escaneos de la Brother</b> (alimentador + cristal). El contador no separa color de b/n, así que todos los productos de escaneo se suman contra él. Pon <b>1</b> si cada venta es un escaneo.</p>
+        <table class="w-full text-left"><tbody id="imp-esc-filas">${impCodigosEsc().map(impFilaEsc).join('')}</tbody></table>
+        <select id="imp-esc-add" onchange="impAgregarEsc(this)" class="mt-1 text-xs border rounded px-2 py-1 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="">+ Agregar otro producto de escaneo...</option>${(typeof inventario !== 'undefined' ? inventario : []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre))).map(p => `<option value="${bEsc(p.codigo)}">${bEsc(p.nombre)}</option>`).join('')}</select></div>
         <div class="flex gap-3 items-end"><label class="text-xs">Tolerancia (%)<input id="imp-tol-pct" type="number" min="0" step="1" value="${IMP.tolPct}" class="block w-20 mt-1 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></label>
         <label class="text-xs">Mínimo (páginas)<input id="imp-tol-min" type="number" min="0" step="1" value="${IMP.tolMin}" class="block w-20 mt-1 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></label>
         <p class="text-[10px] text-gray-400 flex-1">Una diferencia menor a la mayor de las dos (pruebas, atascos, copias propias) se considera normal.</p></div>
@@ -4442,11 +4565,11 @@ function abrirConfigImpresion() {
 function cerrarConfigImpresion() { const ov = document.getElementById('imp-overlay'); if (ov) ov.style.display = 'none'; }
 async function guardarConfigImpresion() {
     const leerF = cl => { const o = {}; document.querySelectorAll('.' + cl).forEach(i => { const v = parseFloat(i.value); o[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; }); return o; };
-    const factores = leerF('imp-factor'), factoresA4 = leerF('imp-factor-a4'), factoresA3 = leerF('imp-factor-a3');
+    const factores = leerF('imp-factor'), factoresA4 = leerF('imp-factor-a4'), factoresA3 = leerF('imp-factor-a3'), factoresESC = leerF('imp-factor-esc');
     const tolPct = parseFloat(document.getElementById('imp-tol-pct').value) || 0, tolMin = parseFloat(document.getElementById('imp-tol-min').value) || 0;
-    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, tolPct, tolMin });
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, factoresESC, tolPct, tolMin });
     if (!r || r.status !== 'success') return;
-    IMP.factores = factores; IMP.factoresA4 = factoresA4; IMP.factoresA3 = factoresA3; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
+    IMP.factores = factores; IMP.factoresA4 = factoresA4; IMP.factoresA3 = factoresA3; IMP.factoresESC = factoresESC; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
     cerrarConfigImpresion(); impRender();
     Swal.fire({ title: 'Equivalencias guardadas', icon: 'success', timer: 1200, showConfirmButton: false });
 }
