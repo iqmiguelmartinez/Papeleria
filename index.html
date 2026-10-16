@@ -4507,6 +4507,32 @@ function impVentasPeriodo(desde, hasta) {
     abiertas.forEach(v => { const t = parseFechaFlexible(v.hora) || new Date(); if (t >= desde && t < hasta) (v.productos || []).forEach(p => out.push({ t, cod: p.codigo, qty: Number(p.cantidad) || 0, total: (Number(p.precio) || 0) * (Number(p.cantidad) || 0) })); });
     return out;
 }
+// Ventana en la que hay lecturas Y ventas completas: entre cortes consecutivos que empiezan después de la primera lectura
+// (si el corte anterior fue hasta 36 h antes de la primera lectura se acepta como aproximado) + el turno abierto.
+function impVentanaCons(primera, desde, hasta) {
+    const H36 = 36 * 3600000, out = [];
+    const C = (IMP.cortes || []).map(c => ({ t: new Date(c.fecha), arts: c.articulos || [] })).filter(c => !isNaN(c.t.getTime())).sort((a, b) => a.t - b.t);
+    let W0 = null, aprox = false;
+    const tomar = ini => { const e = Math.max(ini.getTime(), primera.getTime()); W0 = W0 === null ? e : Math.min(W0, e); };
+    for (let i = 1; i < C.length; i++) {
+        const ini = C[i - 1].t, fin = C[i].t;
+        if (fin <= primera || fin < desde) continue;
+        if (ini < primera) { if (primera - ini > H36) continue; aprox = true; }
+        tomar(ini);
+        C[i].arts.forEach(a => out.push({ t: fin, cod: a.codigo, qty: Number(a.cantidad) || 0, total: Number(a.total) || 0 }));
+    }
+    const abiertas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
+    const tv = abiertas.map(v => parseFechaFlexible(v.hora)).filter(d => d && !isNaN(d.getTime())).sort((a, b) => a - b);
+    if (tv.length) {
+        const ult = C.length ? C[C.length - 1].t : null, ini = ult && ult > new Date(tv[0].getTime() - 600000) ? ult : new Date(tv[0].getTime() - 600000);
+        if (ini >= primera || primera - ini <= H36) {
+            if (ini < primera) aprox = true;
+            tomar(ini);
+            abiertas.forEach(v => { const t = parseFechaFlexible(v.hora) || new Date(); (v.productos || []).forEach(p => out.push({ t, cod: p.codigo, qty: Number(p.cantidad) || 0, total: (Number(p.precio) || 0) * (Number(p.cantidad) || 0) })); });
+        }
+    }
+    return out.length ? { W0: new Date(W0), ventas: out, aprox } : null;
+}
 // Cuánto bajó un consumible en [desde, hasta]: solo cuentan las bajadas; una subida grande es un relleno / cambio
 function impConsumoSerie(pts, desde, hasta) {
     let prev = null; pts.forEach(p => { if (p.t <= desde) prev = p; });
@@ -4565,26 +4591,31 @@ function impConsumoRender() {
     cons.forEach(c => { const k = impClaveCons(c); (mapa[k] = mapa[k] || { k, imp: c.imp, n: c.n, g: impGrupoDe(c.imp), pts: [] }).pts.push({ t: new Date(c.t), pct: Number(c.pct) }); });
     const series = Object.values(mapa).filter(s => s.pts.length); series.forEach(s => s.pts.sort((a, b) => a.t - b.t));
     series.sort((a, b) => (a.g || '').localeCompare(b.g || '') || a.n.localeCompare(b.n));
-    const ventas = impVentasPeriodo(desde, hasta);
     const color = n => { n = bQuitaAcentos(n); return /cyan|cian/.test(n) ? '#06b6d4' : (/magenta/.test(n) ? '#ec4899' : (/yellow|amarill/.test(n) ? '#eab308' : '#9ca3af')); };
     const nombre = s => s.n.replace(/\s*\(.\)\s*$/, '');
     const f1 = n => Number(n.toFixed(1)).toLocaleString('es-MX');
     const bloques = ['k', 'b'].map(g => {
         const ss = series.filter(s => s.g === g); if (!ss.length) return '';
-        // Ventas del grupo
+        // Solo se compara donde hay lecturas Y ventas completas (no se mezclan 30 días de ventas con 2 días de lecturas)
+        const primeraG = new Date(Math.min.apply(null, ss.map(x => x.pts[0].t.getTime())));
+        const vent = impVentanaCons(primeraG, desde, hasta), W0 = vent ? vent.W0 : desde;
         let unid = 0, hojas = 0, ing = 0;
-        ventas.forEach(v => { const u = impUnidGrupo(v.cod, g); if (u > 0) { hojas += v.qty * u; unid += v.qty * u * impPeso(v.cod); ing += v.total; } });
-        const cs = ss.map(s => { const r = impConsumoSerie(s.pts, desde, hasta), r14 = impConsumoSerie(s.pts, new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - 14), hasta), ult = s.pts[s.pts.length - 1];
+        (vent ? vent.ventas : []).forEach(v => { const u = impUnidGrupo(v.cod, g); if (u > 0) { hojas += v.qty * u; unid += v.qty * u * impPeso(v.cod); ing += v.total; } });
+        const cs = ss.map(s => { const r = impConsumoSerie(s.pts, W0, hasta), r14 = impConsumoSerie(s.pts, new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - 14), hasta), ult = s.pts[s.pts.length - 1];
             const dias14 = Math.max(1, Math.min(14, (hasta - s.pts[0].t) / 86400000)), tasa = r14.total / dias14, costo = IMP.costos && IMP.costos[s.k] !== undefined ? IMP.costos[s.k] : null;
             return { s, r, ult, restan: tasa > 0 ? ult.pct / tasa : null, gasto: costo !== null ? r.total / 100 * costo : null, costo }; });
         const totalPct = cs.reduce((a, c) => a + c.r.total, 0), gastoMon = cs.every(c => c.gasto !== null) ? cs.reduce((a, c) => a + c.gasto, 0) : null;
         const cal = (IMP.flags && IMP.flags.aprender) ? impCalibrar(g, ss, hoy) : { faltan: '' }, titulo = g === 'k' ? 'Kyocera · tóner (todo lo b/n)' : 'Brother · tinta (todo lo de color)';
-        let resumen = `<b>${bFmt(hojas)}</b> hojas vendidas (<b>${bFmt(Math.round(unid))}</b> ponderadas por saturación)`;
+        const desdeTxt = W0.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + W0.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        let resumen = `<span class="text-gray-400">Periodo medido desde el ${desdeTxt}${vent && vent.aprox ? ' (aproximado: el lector empezó a leer a mitad de una ventana de ventas)' : ''}.</span> <b>${bFmt(hojas)}</b> hojas vendidas (<b>${bFmt(Math.round(unid))}</b> ponderadas por saturación)`;
         let juicio = '';
-        if (g === 'k') {
+        if (!vent) {
+            resumen = `<span class="text-gray-500">El tóner / la tinta ya se miden, pero todavía no hay un periodo completo con lecturas y ventas para comparar: aparece con el siguiente corte.</span>`;
+            juicio = '';
+        } else if (g === 'k') {
             const esp = unid * 100 / (IMP.rend || 12000);
             resumen += ` · el tóner bajó <b>${f1(totalPct)}%</b> y por lo vendido se esperaba ≈ <b>${f1(esp)}%</b> (rinde ${bFmt(IMP.rend || 12000)} págs.)`;
-            if (esp >= 2 && totalPct > 0) { const ra = totalPct / esp; juicio = `<span class="${ra > 1.3 ? 'text-amber-500' : (ra < 0.7 ? 'text-sky-500' : 'text-emerald-500')} font-bold">${ra > 1.3 ? '⚠️ gasta ' + f1(ra) + '× lo esperado (hay impresión sin cobrar o más saturación)' : (ra < 0.7 ? 'gasta ' + f1(ra) + '× lo esperado (se cobra por encima del uso)' : '✅ consumo acorde a lo vendido (' + f1(ra) + '×)')}</span> · rendimiento real ≈ ${bFmt(Math.round(unid / totalPct * 100))} págs. por tóner`; }
+            if (esp >= 2 && totalPct > 0) { const ra = totalPct / esp; juicio = `<span class="${ra > 1.3 ? 'text-amber-500' : (ra < 0.7 ? 'text-sky-500' : 'text-emerald-500')} font-bold">${ra > 1.3 ? '⚠️ gasta ' + f1(ra) + '× lo esperado (hay impresión sin cobrar o más saturación)' : (ra < 0.7 ? 'gasta ' + f1(ra) + '× lo esperado (se cobra por encima del uso)' : '✅ consumo acorde a lo vendido (' + f1(ra) + '×)')}</span> · rendimiento real ≈ ${bFmt(Math.round(unid / totalPct * 100))} págs. por tóner${esp < 10 ? ' <span class="text-gray-400">(muestra corta: el nivel baja de 1 en 1 %, tómalo como indicio)</span>' : ''}`; }
             else juicio = '<span class="text-gray-400">Muestra pequeña: el nivel baja de 1 en 1 %, conviene mirar un periodo más largo.</span>';
         } else if (IMP.flags && IMP.flags.migracionBrother) {
             resumen += ` · la tinta bajó <b>${f1(totalPct)}%</b> en total (suma de las 4)`;
@@ -4609,7 +4640,7 @@ function impConsumoRender() {
             return `<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex flex-col gap-1.5" style="border-top:3px solid ${col}">
                 <div class="flex items-start justify-between gap-2"><p class="text-xs font-bold uppercase tracking-wide" style="color:${col}">${bEsc(nombre(c.s))}</p><p class="text-2xl font-extrabold leading-none ${pct <= 10 ? 'text-red-500' : ''}">${pct}%</p></div>
                 <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(2, pct)}%;background:${barCol}"></div></div>
-                <p class="text-[11px] text-gray-500">Bajó <b>${f1(c.r.total)}%</b> en ${nDias} días${parte}</p>
+                <p class="text-[11px] text-gray-500">Bajó <b>${f1(c.r.total)}%</b> desde el ${desdeTxt}${parte}</p>
                 <p class="text-[11px] text-gray-500">${c.restan !== null ? 'Dura ≈ <b>' + (c.restan < 1 ? 'menos de 1 día' : Math.round(c.restan) + ' días') + '</b> al ritmo de las últimas 2 semanas' : 'Sin consumo reciente para estimar duración'}</p>
                 ${c.gasto !== null ? `<p class="text-[11px] text-gray-500">Costo del periodo ≈ <b>$${formatMiles(Math.round(c.gasto))}</b></p>` : ''}
                 ${ult ? `<p class="text-[10px] text-gray-400">Último relleno: ${ult.t.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} (${ult.de}% → ${ult.a}%)</p>` : ''}</div>`;
