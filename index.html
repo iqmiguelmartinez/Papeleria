@@ -629,6 +629,7 @@
                         <option value="90">90 días</option>
                     </select>
                     <button onclick="capturarLecturaManual()" title="Captura a mano el contador de la Kyocera" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
+                    <button onclick="impAbrirAjustes()" title="Impresiones que salen pero no se cobran (tickets de internet, pruebas...)" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">➕ Sin cobro</button>
                     <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
                     <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
                 </div>
@@ -1142,15 +1143,15 @@
         // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
         // Para cambiar de ambiente, deja ACTIVA una sola pareja de URL + TÍTULO y comenta (//) la otra.
 
-        // --- PRUEBAS (comentado) ---
-        // const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
-        // const TITULO_APP = "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]";
-        // const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
+        // --- PRUEBAS (activo) ---
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
+        const TITULO_APP = "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]";
+        const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
 
-        // --- PRODUCCIÓN (activo) ---
-        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
-        const TITULO_APP = "Pixel y Papel";
-        const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
+        // --- PRODUCCIÓN (comentado) ---
+        // const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
+        // const TITULO_APP = "Pixel y Papel";
+        // const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
 
         (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } let hd = document.getElementById('app-header'); if (hd && /PRUEBAS/i.test(TITULO_APP)) hd.classList.add('modo-pruebas'); })();
         // ===== CAPA DE SEGURIDAD =====
@@ -4232,7 +4233,7 @@ async function calGuardar() {
 // contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
 // Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
 // ==========================================================================
-const IMP = {cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+const IMP = {ajustes: [], cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
 
 function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
 // Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
@@ -4283,7 +4284,7 @@ function impCanales() {
 // Ventana de un corte = desde el corte anterior hasta este corte. El contador en un instante T es la última lectura con t <= T
 // (el lector solo guarda cuando el contador cambia, así que esa lectura sigue vigente hasta la siguiente).
 // cortes: [{fecha, usuario, articulos:[{codigo,cantidad,total}]}]; dias: fechas (medianoche) a mostrar.
-function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora) {
+function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora, ajusteDia) {
     const L = lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
     const C = cortes.map(c => ({ t: new Date(c.fecha), usuario: c.usuario, arts: Array.isArray(c.articulos) ? c.articulos : [] })).filter(c => !isNaN(c.t.getTime())).sort((a, b) => a.t - b.t);
     const contadorEn = T => { let r = null; for (const l of L) { if (l.t <= T) r = l; else break; } return r; };
@@ -4314,6 +4315,8 @@ function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora) {
         validos.forEach(c => { fila.delta += c.delta; fila.pos += c.pos; fila.ing += c.ing; });
         fila.delta = validos.reduce((s, c) => s + c.delta, 0);
         fila.parcial = validos.length < delDia.length || validos.some(c => c.aprox);
+        // Impresiones que se hacen pero no se cobran (registradas a mano para ese día) suman a lo esperado
+        fila.aj = ajusteDia ? (Number(ajusteDia(d0)) || 0) : 0; fila.pos += fila.aj;
         fila.diff = fila.delta - fila.pos;
         fila.pct = fila.pos > 0 ? (fila.diff / fila.pos) * 100 : null;
         const umbral = Math.max(tolMin, (tolPct / 100) * fila.pos);
@@ -4329,7 +4332,7 @@ async function iniciarImpresiones(forzar) {
     IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
         const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
-        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
+        IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
         try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
@@ -4338,6 +4341,49 @@ async function iniciarImpresiones(forzar) {
     IMP.cargando = false;
 }
 
+
+// ---- Ajustes manuales: impresiones que salen pero no se cobran (tickets de internet, pruebas...) ----
+const IMP_CANALES_AJ = [['kyocera', 'Kyocera (B/N)'], ['a4', 'Brother A4'], ['a3', 'Brother A3'], ['esc', 'Brother escaneos']];
+const impKeyDia = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const impAjusteDia = (id, d) => (IMP.ajustes || []).reduce((a, x) => a + (x.canal === id && x.fecha === impKeyDia(d) ? x.cantidad : 0), 0);
+// Turno abierto: solo los de hoy registrados después del último corte (los anteriores ya entran en la comparación del corte)
+const impAjusteVivo = (id, ultCorte, ahora) => (IMP.ajustes || []).reduce((a, x) => a + (x.canal === id && x.fecha === impKeyDia(ahora) && (!x.t || !ultCorte || new Date(x.t) > ultCorte) ? x.cantidad : 0), 0);
+function impAbrirAjustes() {
+    const hoyK = impKeyDia(new Date()), lim = new Date(); lim.setDate(lim.getDate() - 14);
+    const lista = (IMP.ajustes || []).filter(x => x.fecha >= impKeyDia(lim)).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const nom = id => (IMP_CANALES_AJ.find(c => c[0] === id) || [id, id])[1];
+    const filas = lista.length ? lista.map(x => `<tr class="border-t border-gray-200 dark:border-gray-700"><td class="py-1 pr-2">${bEsc(x.fecha.slice(5).split('-').reverse().join('/'))}</td><td class="pr-2">${bEsc(nom(x.canal))}</td><td class="pr-2 font-bold">${impSigno(x.cantidad)}</td><td class="pr-2 text-left">${bEsc(x.motivo)}</td><td><button type="button" onclick="impBorrarAjuste('${bEsc(x.id)}')" title="Quitar" style="cursor:pointer">🗑️</button></td></tr>`).join('') : '<tr><td class="text-gray-400 py-1">Sin ajustes en los últimos 14 días.</td></tr>';
+    Swal.fire({
+        title: 'Impresiones sin cobro', width: 560, showCancelButton: true, confirmButtonText: 'Guardar ajuste', cancelButtonText: 'Cerrar',
+        html: `<div style="text-align:left;font-size:13px"><p style="margin-bottom:8px">Anota lo que se imprimió pero no se cobra (tickets de internet, pruebas, hojas dañadas). Se suma a lo esperado de ese día y ajusta la comparación del corte.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label>Día<input id="aj-fecha" type="date" value="${hoyK}" style="width:100%;padding:4px;border:1px solid #9ca3af;border-radius:6px;color:#111"></label>
+          <label>Impresora<select id="aj-canal" style="width:100%;padding:4px;border:1px solid #9ca3af;border-radius:6px;color:#111">${IMP_CANALES_AJ.map(c => `<option value="${c[0]}">${c[1]}</option>`).join('')}</select></label>
+          <label>Cantidad<input id="aj-cant" type="number" step="1" placeholder="ej. 20" style="width:100%;padding:4px;border:1px solid #9ca3af;border-radius:6px;color:#111"></label>
+          <label>Motivo<input id="aj-motivo" list="aj-motivos" maxlength="80" placeholder="Tickets de internet" style="width:100%;padding:4px;border:1px solid #9ca3af;border-radius:6px;color:#111"><datalist id="aj-motivos"><option value="Tickets de internet"><option value="Pruebas de impresora"><option value="Hojas dañadas / atasco"><option value="Cortesía"></datalist></label>
+        </div>
+        <p style="margin:10px 0 4px;font-weight:bold">Registrados (últimos 14 días)</p><table style="width:100%;font-size:12px">${filas}</table></div>`,
+        preConfirm: () => {
+            const g = id => document.getElementById(id), cant = parseInt(g('aj-cant').value, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(g('aj-fecha').value)) { Swal.showValidationMessage('Elige el día.'); return false; }
+            if (!isFinite(cant) || cant === 0) { Swal.showValidationMessage('Escribe una cantidad (distinta de 0).'); return false; }
+            return { fecha: g('aj-fecha').value, canal: g('aj-canal').value, cantidad: cant, motivo: g('aj-motivo').value.trim() };
+        }
+    }).then(async res => {
+        if (!res || !res.isConfirmed || !res.value) return;
+        const v = res.value, r = await enviarDatosAGoogleSheets({ tipo: 'guardarAjusteImpresion', fecha: v.fecha, canal: v.canal, cantidad: v.cantidad, motivo: v.motivo });
+        if (!r || r.status !== 'success') return;
+        await iniciarImpresiones(true);
+        Swal.fire({ title: 'Ajuste guardado', icon: 'success', timer: 1200, showConfirmButton: false });
+    });
+}
+async function impBorrarAjuste(id) {
+    Swal.close();
+    const r = await enviarDatosAGoogleSheets({ tipo: 'borrarAjusteImpresion', id });
+    if (!r || r.status !== 'success') return;
+    await iniciarImpresiones(true);
+    impAbrirAjustes();
+}
 
 // Las ventas del turno traen la hora como texto "dd/MM/yyyy H:mm:ss" (o como fecha ISO)
 function parseFechaFlexible(v) {
@@ -4361,7 +4407,7 @@ function impVivoRender(canales, ahora) {
     const ult = sinCorte ? tIni : (C[0] || null);
     const vendidoDe = factor => { let q = 0; ventas.forEach(v => (v.productos || []).forEach(p => { const f = factor(p.codigo), n = Number(p.cantidad) || 0; if (f > 0 && n) q += n * f; })); return q; };
     const hhmm = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const tarjeta = (c, delta, vendido, msg) => {
+    const tarjeta = (c, delta, vendido, msg, aj) => {
         const caja = 'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex flex-col gap-2 min-h-[150px]';
         const borde = `style="border-top:3px solid ${c.color}"`;
         const titulo = `<p class="text-xs uppercase font-bold tracking-wide" style="color:${c.color}">${c.nombre}</p>`;
@@ -4372,7 +4418,7 @@ function impVivoRender(canales, ahora) {
         const mx = Math.max(delta, vendido, 1), pc = n => Math.max(2, Math.round(n / mx * 100));
         const barra = (nombre, n, color) => `<div><div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400"><span>${nombre}</span><b class="text-gray-800 dark:text-gray-100 text-sm">${bFmt(n)}</b></div><div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pc(n)}%;background:${color}"></div></div></div>`;
         return `<div class="${caja}" ${borde}><div class="flex items-start justify-between gap-2">${titulo}<p class="text-3xl font-extrabold leading-none ${cls}">${diff === 0 ? '0' : impSigno(diff)}</p></div>
-            ${barra('Contador', delta, c.color)}${barra('Vendido', vendido, '#94a3b8')}
+            ${barra('Contador', delta, c.color)}${barra('Vendido', vendido, '#94a3b8')}${aj ? `<p class="text-[10px] text-sky-500 text-center">incluye ${impSigno(aj)} sin cobro (manual)</p>` : ''}
             <p class="mt-auto text-center text-xs font-bold rounded-md py-1 ${bg} ${cls}">${txt}</p></div>`;
     };
     // Cierre del día: si el último corte fue en o después de la hora de cierre y no hay ventas nuevas, el turno ya no está abierto
@@ -4385,7 +4431,7 @@ function impVivoRender(canales, ahora) {
         const tarj = canales.map(c => {
             const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime()));
             if (!f || f.diff === null) return tarjeta(c, 0, 0, 'Sin lecturas suficientes para comparar el cierre');
-            return tarjeta(c, f.delta, f.pos);
+            return tarjeta(c, f.delta, f.pos, '', f.aj);
         });
         const aprox = canales.some(c => { const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime())); return f && f.parcial; });
         el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 ${esHoy ? 'Comparación final de hoy' : 'Comparación final del ' + etiqueta} <span class="font-normal text-gray-500">· corte de las ${hhmm(dCorte)} · sin ventas nuevas${aprox ? ' · aproximada (el lector empezó a leer después del corte anterior)' : ''}. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${tarj.join('')}</div>`;
@@ -4399,7 +4445,8 @@ function impVivoRender(canales, ahora) {
         if (!base || !actual) return tarjeta(c, 0, 0, 'Este lector aún no tiene lecturas de antes del turno');
         const delta = actual.total - base.total;
         if (delta < 0) return tarjeta(c, 0, 0, '⚙️ El contador se reinició desde el corte');
-        return tarjeta(c, delta, vendidoDe(c.factor));
+        const aj = impAjusteVivo(c.id, C[0], ahora);
+        return tarjeta(c, delta, vendidoDe(c.factor) + aj, '', aj);
     });
     el.innerHTML = cab + `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${cajas.join('')}</div>`;
 }
@@ -4410,7 +4457,7 @@ async function impRefrescarVivo() {
         const [t, d] = await Promise.all([apiFetch('getDataTurno').then(r => r.json()), apiFetch('getImpresiones').then(r => r.json())]);
         if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas;
         const c = d.config || {};
-        IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
+        IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
         IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {};
         IMP.vivoTs = Date.now(); impRender();
     } catch (e) { console.error(e); }
@@ -4435,7 +4482,7 @@ function impRender() {
     const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const dias = []; for (let i = nDias - 1; i >= 0; i--) dias.push(new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - i));
     const canales = impCanales();
-    canales.forEach(c => { c.filas = impCalcular(c.lecturas, IMP.cortes || [], dias, c.factor, IMP.tolPct, IMP.tolMin, hoy); });
+    canales.forEach(c => { c.filas = impCalcular(c.lecturas, IMP.cortes || [], dias, c.factor, IMP.tolPct, IMP.tolMin, hoy, d => impAjusteDia(c.id, d)); });
     IMP.canalesCalc = canales; IMP.filas = canales[0].filas;
     const fmtEstado = f => ['ok', 'sobra', 'falta'].includes(f.estado);
 
@@ -4461,7 +4508,7 @@ function impRender() {
     const resumen = canales.map(c => {
         const con = c.filas.filter(fmtEstado);
         const sDelta = con.reduce((a, f) => a + f.delta, 0), sPos = con.reduce((a, f) => a + f.pos, 0), sIng = con.reduce((a, f) => a + f.ing, 0);
-        const diff = sDelta - sPos, porPag = sPos > 0 ? sIng / sPos : 0;
+        const sPosCob = con.reduce((a, f) => a + f.pos - (f.aj || 0), 0), diff = sDelta - sPos, porPag = sPosCob > 0 ? sIng / sPosCob : 0;
         const alertas = con.filter(f => f.estado === 'sobra' || f.estado === 'falta').length;
         return { c, con: con.length, sDelta, sPos, diff, alertas, dinero: diff > 0 ? diff * porPag : 0 };
     });
@@ -4489,7 +4536,7 @@ function impRender() {
     const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
         if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
-        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.aj ? ` <span class="text-[10px] text-sky-500" title="Incluye ${impSigno(f.aj)} impresiones sin cobro registradas a mano">${impSigno(f.aj)} manual</span>` : ''}${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
     };
     const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
     const filaDia = i => {
