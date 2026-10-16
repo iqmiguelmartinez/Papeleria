@@ -1143,15 +1143,15 @@
         // ===== CONFIGURACIÓN DEL AMBIENTE (MANUAL) =====
         // Para cambiar de ambiente, deja ACTIVA una sola pareja de URL + TÍTULO y comenta (//) la otra.
 
-        // --- PRUEBAS (activo) ---
-        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
-        const TITULO_APP = "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]";
-        const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
+        // --- PRUEBAS (comentado) ---
+        // const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxdK5nAUVREfxKyEh5e4pRsCRVfjYEqG3i8k-DXPggTcVWYOc-90hfhNTpPMR1Q5BiTpg/exec";
+        // const TITULO_APP = "🧪  [MODO PRUEBAS] Pixel y Papel [MODO PRUEBAS]";
+        // const CLASE_TITULO = "text-lg font-bold text-orange-600 dark:text-orange-400";
 
-        // --- PRODUCCIÓN (comentado) ---
-        // const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
-        // const TITULO_APP = "Pixel y Papel";
-        // const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
+        // --- PRODUCCIÓN (activo) ---
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzwLRzTCb2Ltup5EO0SNvG8k3RtpZMIvtBHyc0A4s13p9Jtm2EQJJG3a7fgjxD_Ij4j/exec";
+        const TITULO_APP = "Pixel y Papel";
+        const CLASE_TITULO = "text-lg font-bold text-gray-800 dark:text-white";
 
         (function () { let h = document.getElementById('titulo-app'); if (h) { h.textContent = TITULO_APP; h.className = CLASE_TITULO; } let hd = document.getElementById('app-header'); if (hd && /PRUEBAS/i.test(TITULO_APP)) hd.classList.add('modo-pruebas'); })();
         // ===== CAPA DE SEGURIDAD =====
