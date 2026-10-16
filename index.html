@@ -4235,7 +4235,7 @@ async function calGuardar() {
 // contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
 // Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
 // ==========================================================================
-const IMP = {consumibles: [], pesos: {}, costos: {}, rend: 12000, ajustes: [], cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+const IMP = {flags: { migracionBrother: 1, aprender: 0 }, consumibles: [], pesos: {}, costos: {}, rend: 12000, ajustes: [], cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
 
 function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
 // Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
@@ -4334,7 +4334,7 @@ async function iniciarImpresiones(forzar) {
     IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
         const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
-        IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000;
+        IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000; IMP.flags = c.flags || { migracionBrother: 1, aprender: 0 };
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
         try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
@@ -4416,7 +4416,8 @@ function impVivoRender(canales, ahora) {
         if (msg) return `<div class="${caja}" ${borde}>${titulo}<p class="text-xs text-gray-400 my-auto text-center">${msg}</p></div>`;
         const diff = delta - vendido, umbral = Math.max(IMP.tolMin, (IMP.tolPct / 100) * vendido);
         const ok = Math.abs(diff) <= umbral;
-        const [txt, cls, bg] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
+        const migra = !ok && diff < 0 && IMP.flags && IMP.flags.migracionBrother && (c.id === 'a4' || c.id === 'a3');
+        const [txt, cls, bg] = migra ? ['🔀 En migración (parte sale de otra impresora)', 'text-sky-600 dark:text-sky-400', 'bg-sky-500/15'] : ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
         const mx = Math.max(delta, vendido, 1), pc = n => Math.max(2, Math.round(n / mx * 100));
         const barra = (nombre, n, color) => `<div><div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400"><span>${nombre}</span><b class="text-gray-800 dark:text-gray-100 text-sm">${bFmt(n)}</b></div><div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pc(n)}%;background:${color}"></div></div></div>`;
         return `<div class="${caja}" ${borde}><div class="flex items-start justify-between gap-2">${titulo}<p class="text-3xl font-extrabold leading-none ${cls}">${diff === 0 ? '0' : impSigno(diff)}</p></div>
@@ -4460,7 +4461,7 @@ async function impRefrescarVivo() {
         if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas;
         const c = d.config || {};
         IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
-        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000;
+        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000; IMP.flags = c.flags || { migracionBrother: 1, aprender: 0 };
         IMP.vivoTs = Date.now(); impRender();
     } catch (e) { console.error(e); }
     IMP.vivoCargando = false;
@@ -4577,7 +4578,7 @@ function impConsumoRender() {
             const dias14 = Math.max(1, Math.min(14, (hasta - s.pts[0].t) / 86400000)), tasa = r14.total / dias14, costo = IMP.costos && IMP.costos[s.k] !== undefined ? IMP.costos[s.k] : null;
             return { s, r, ult, restan: tasa > 0 ? ult.pct / tasa : null, gasto: costo !== null ? r.total / 100 * costo : null, costo }; });
         const totalPct = cs.reduce((a, c) => a + c.r.total, 0), gastoMon = cs.every(c => c.gasto !== null) ? cs.reduce((a, c) => a + c.gasto, 0) : null;
-        const cal = impCalibrar(g, ss, hoy), titulo = g === 'k' ? 'Kyocera · tóner (todo lo b/n)' : 'Brother · tinta (todo lo de color)';
+        const cal = (IMP.flags && IMP.flags.aprender) ? impCalibrar(g, ss, hoy) : { faltan: '' }, titulo = g === 'k' ? 'Kyocera · tóner (todo lo b/n)' : 'Brother · tinta (todo lo de color)';
         let resumen = `<b>${bFmt(hojas)}</b> hojas vendidas (<b>${bFmt(Math.round(unid))}</b> ponderadas por saturación)`;
         let juicio = '';
         if (g === 'k') {
@@ -4585,16 +4586,21 @@ function impConsumoRender() {
             resumen += ` · el tóner bajó <b>${f1(totalPct)}%</b> y por lo vendido se esperaba ≈ <b>${f1(esp)}%</b> (rinde ${bFmt(IMP.rend || 12000)} págs.)`;
             if (esp >= 2 && totalPct > 0) { const ra = totalPct / esp; juicio = `<span class="${ra > 1.3 ? 'text-amber-500' : (ra < 0.7 ? 'text-sky-500' : 'text-emerald-500')} font-bold">${ra > 1.3 ? '⚠️ gasta ' + f1(ra) + '× lo esperado (hay impresión sin cobrar o más saturación)' : (ra < 0.7 ? 'gasta ' + f1(ra) + '× lo esperado (se cobra por encima del uso)' : '✅ consumo acorde a lo vendido (' + f1(ra) + '×)')}</span> · rendimiento real ≈ ${bFmt(Math.round(unid / totalPct * 100))} págs. por tóner`; }
             else juicio = '<span class="text-gray-400">Muestra pequeña: el nivel baja de 1 en 1 %, conviene mirar un periodo más largo.</span>';
+        } else if (IMP.flags && IMP.flags.migracionBrother) {
+            resumen += ` · la tinta bajó <b>${f1(totalPct)}%</b> en total (suma de las 4)`;
+            juicio = '<span class="text-sky-500">🔀 En migración: parte del color se imprime en otra impresora, así que no se compara contra lo vendido. Aquí solo cuenta lo que gasta la Brother.</span>';
         } else {
             resumen += ` · la tinta bajó <b>${f1(totalPct)}%</b> en total (suma de las 4)`;
             if (unid > 0 && totalPct > 0) juicio = `<span class="text-gray-500">≈ ${f1(totalPct / unid)}% de tinta por unidad ponderada (reparto en las tarjetas)</span>`;
             else juicio = '<span class="text-gray-400">Todavía sin consumo medible en este periodo.</span>';
         }
         let dinero = '';
-        if (gastoMon !== null) { const m = ing - gastoMon; dinero = `<span class="text-gray-600 dark:text-gray-300">Consumo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> · cobrado <b>$${formatMiles(Math.round(ing))}</b> · margen <b class="${m >= 0 ? 'text-emerald-500' : 'text-red-500'}">$${formatMiles(Math.round(m))}</b>${hojas > 0 ? ` · costo por hoja <b>$${(gastoMon / hojas).toFixed(2)}</b>` : ''}</span>`; }
+        if (gastoMon !== null && g === 'b' && IMP.flags && IMP.flags.migracionBrother) dinero = `<span class="text-gray-600 dark:text-gray-300">Tinta gastada en el periodo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> (el margen se calcula cuando todo el color pase a la Brother)</span>`;
+        else if (gastoMon !== null) { const m = ing - gastoMon; dinero = `<span class="text-gray-600 dark:text-gray-300">Consumo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> · cobrado <b>$${formatMiles(Math.round(ing))}</b> · margen <b class="${m >= 0 ? 'text-emerald-500' : 'text-red-500'}">$${formatMiles(Math.round(m))}</b>${hojas > 0 ? ` · costo por hoja <b>$${(gastoMon / hojas).toFixed(2)}</b>` : ''}</span>`; }
         else dinero = `<span class="text-gray-400">Captura el costo del consumible en ⚙️ Pesos y costos para ver margen y costo por hoja.</span>`;
         let aprendido = '';
-        if (cal.pesos) aprendido = `<p class="text-[11px] text-gray-500">📐 Pesos medidos (${cal.dias} días): ${Object.keys(cal.pesos).map(k => `${bEsc(k)} <b>${cal.pesos[k]}</b>`).join(' · ')} <button onclick="impAplicarPesos('${g}')" class="ml-1 underline text-blue-500 cursor-pointer">Aplicar</button></p>`;
+        if (!(IMP.flags && IMP.flags.aprender)) aprendido = '<p class="text-[11px] text-gray-400">📐 Pesos fijos: el aprendizaje está en pausa (se activa en 🖋️ Tinta cuando todo el color salga por la Brother).</p>';
+        else if (cal.pesos) aprendido = `<p class="text-[11px] text-gray-500">📐 Pesos medidos (${cal.dias} días): ${Object.keys(cal.pesos).map(k => `${bEsc(k)} <b>${cal.pesos[k]}</b>`).join(' · ')} <button onclick="impAplicarPesos('${g}')" class="ml-1 underline text-blue-500 cursor-pointer">Aplicar</button></p>`;
         else aprendido = `<p class="text-[11px] text-gray-400">📐 Aprendiendo pesos: ${bEsc(cal.faltan || '')}</p>`;
         const tarjetas = cs.map(c => {
             const pct = Math.max(0, Math.min(100, c.ult.pct)), col = color(c.s.n), barCol = pct <= 10 ? '#ef4444' : (pct <= 25 ? '#f59e0b' : col);
@@ -4615,7 +4621,7 @@ function impConsumoRender() {
     el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mt-3 mb-1"><p class="text-sm font-bold text-gray-800 dark:text-white">🖋️ Tinta y tóner contra lo vendido <span class="font-normal text-xs text-gray-500">· últimos ${nDias} días</span></p><button onclick="impAbrirTinta()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer">⚙️ Pesos y costos</button></div>${bloques}`;
 }
 async function impEnviarConfig() {
-    return await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores: IMP.factores, factoresA4: IMP.factoresA4, factoresA3: IMP.factoresA3, factoresESC: IMP.factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, tolPct: IMP.tolPct, tolMin: IMP.tolMin });
+    return await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores: IMP.factores, factoresA4: IMP.factoresA4, factoresA3: IMP.factoresA3, factoresESC: IMP.factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, flags: IMP.flags, tolPct: IMP.tolPct, tolMin: IMP.tolMin });
 }
 async function impAplicarPesos(g) {
     const hoy = new Date(), mapa = {};
@@ -4647,7 +4653,10 @@ function impAbrirTinta() {
         <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Código</th><th>Producto</th><th>Va a</th><th>Peso</th></tr></thead><tbody>${prods}</tbody></table></div>
         <div class="border-t dark:border-gray-700 pt-2"><p class="text-xs text-gray-500 mb-1"><b>Costo de cada consumible</b> (lo que cuesta un tóner nuevo, o rellenar esa tinta al 100 %). Sirve para calcular costo por hoja y margen. Déjalo vacío si aún no lo sabes.</p>
         <table class="w-full text-left"><tbody>${costos}</tbody></table></div>
-        <label class="text-xs block">Rendimiento del tóner Kyocera (páginas)<input id="imp-rend" type="number" min="100" step="100" value="${IMP.rend || 12000}" class="block mt-1 ${inp}"></label>
+        <div class="border-t dark:border-gray-700 pt-2 space-y-1.5">
+          <label class="flex items-start gap-2 text-xs cursor-pointer"><input id="imp-f-migra" type="checkbox" ${IMP.flags && IMP.flags.migracionBrother ? 'checked' : ''} class="mt-0.5"><span><b>Estoy migrando a la Brother</b>: parte del color todavía sale de otra impresora. La Brother no marca alerta por "cobrado de más" y no se compara su tinta contra lo vendido.</span></label>
+          <label class="flex items-start gap-2 text-xs cursor-pointer"><input id="imp-f-aprende" type="checkbox" ${IMP.flags && IMP.flags.aprender ? 'checked' : ''} class="mt-0.5"><span><b>Aprender los pesos con los datos</b>: mide cuánta tinta gasta cada categoría y sugiere pesos. Déjalo apagado mientras haya otra impresora de color.</span></label></div>
+        <label class="text-xs block">Rendimiento del tóner Kyocera actual (páginas)<input id="imp-rend" type="number" min="100" step="100" value="${IMP.rend || 12000}" class="block mt-1 ${inp}"></label>
         <div class="flex gap-2 justify-end"><button onclick="cerrarConfigImpresion()" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm cursor-pointer">Cancelar</button><button onclick="impGuardarTinta()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold cursor-pointer">Guardar</button></div></div>`;
 }
 async function impGuardarTinta() {
@@ -4655,10 +4664,11 @@ async function impGuardarTinta() {
     document.querySelectorAll('.imp-peso').forEach(i => { const v = parseFloat(i.value); pesos[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; });
     document.querySelectorAll('.imp-costo').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0 && i.value !== '') costos[i.getAttribute('data-k')] = v; });
     const rend = parseFloat(document.getElementById('imp-rend').value) || 12000;
-    const antes = { p: IMP.pesos, c: IMP.costos, r: IMP.rend };
-    IMP.pesos = pesos; IMP.costos = costos; IMP.rend = rend;
+    const flags = { migracionBrother: document.getElementById('imp-f-migra').checked ? 1 : 0, aprender: document.getElementById('imp-f-aprende').checked ? 1 : 0 };
+    const antes = { p: IMP.pesos, c: IMP.costos, r: IMP.rend, f: IMP.flags };
+    IMP.pesos = pesos; IMP.costos = costos; IMP.rend = rend; IMP.flags = flags;
     const r = await impEnviarConfig();
-    if (!r || r.status !== 'success') { IMP.pesos = antes.p; IMP.costos = antes.c; IMP.rend = antes.r; return; }
+    if (!r || r.status !== 'success') { IMP.pesos = antes.p; IMP.costos = antes.c; IMP.rend = antes.r; IMP.flags = antes.f; return; }
     cerrarConfigImpresion(); impRender();
     Swal.fire({ title: 'Guardado', icon: 'success', timer: 1200, showConfirmButton: false });
 }
@@ -4670,6 +4680,7 @@ const impEstados = {
     sinlectura: ['— Sin lecturas', 'text-gray-400'],
     sinprevia: ['— Primer corte (sin referencia)', 'text-gray-400'],
     sincorte: ['— Sin corte este día', 'text-amber-600 dark:text-amber-400'],
+    migra: ['🔀 En migración: parte del color sale de otra impresora', 'text-sky-500 dark:text-sky-400'],
     hoy: ['⏳ Turno en curso', 'text-gray-500'],
     reinicio: ['⚙️ Contador reiniciado', 'text-gray-500']
 };
@@ -4682,7 +4693,9 @@ function impRender() {
     const canales = impCanales();
     canales.forEach(c => { c.filas = impCalcular(c.lecturas, IMP.cortes || [], dias, c.factor, IMP.tolPct, IMP.tolMin, hoy, d => impAjusteDia(c.id, d)); });
     IMP.canalesCalc = canales; IMP.filas = canales[0].filas;
-    const fmtEstado = f => ['ok', 'sobra', 'falta'].includes(f.estado);
+    // Migración: mientras parte del color salga de otra impresora, "cobrado de más" en la Brother no es alerta
+    if (IMP.flags && IMP.flags.migracionBrother) canales.forEach(c => { if (c.id === 'a4' || c.id === 'a3') c.filas.forEach(f => { if (f.estado === 'falta') f.estado = 'migra'; }); });
+    const fmtEstado = f => ['ok', 'sobra', 'falta', 'migra'].includes(f.estado);
 
     // Estado de los lectores (reportan cada 5 min aunque el contador no cambie)
     const est = document.getElementById('imp-estado');
@@ -4734,7 +4747,7 @@ function impRender() {
     const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
         if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
-        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.aj ? ` <span class="text-[10px] text-sky-500" title="Incluye ${impSigno(f.aj)} impresiones sin cobro registradas a mano">${impSigno(f.aj)} manual</span>` : ''}${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'migra' ? ' 🔀' : f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.aj ? ` <span class="text-[10px] text-sky-500" title="Incluye ${impSigno(f.aj)} impresiones sin cobro registradas a mano">${impSigno(f.aj)} manual</span>` : ''}${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
     };
     const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
     const filaDia = i => {
@@ -4820,7 +4833,7 @@ async function guardarConfigImpresion() {
     const leerF = cl => { const o = {}; document.querySelectorAll('.' + cl).forEach(i => { const v = parseFloat(i.value); o[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; }); return o; };
     const factores = leerF('imp-factor'), factoresA4 = leerF('imp-factor-a4'), factoresA3 = leerF('imp-factor-a3'), factoresESC = leerF('imp-factor-esc');
     const tolPct = parseFloat(document.getElementById('imp-tol-pct').value) || 0, tolMin = parseFloat(document.getElementById('imp-tol-min').value) || 0;
-    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, tolPct, tolMin });
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, flags: IMP.flags, tolPct, tolMin });
     if (!r || r.status !== 'success') return;
     IMP.factores = factores; IMP.factoresA4 = factoresA4; IMP.factoresA3 = factoresA3; IMP.factoresESC = factoresESC; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
     cerrarConfigImpresion(); impRender();
