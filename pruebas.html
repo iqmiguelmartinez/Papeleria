@@ -293,6 +293,7 @@
                 </div>
                 <div class="flex gap-2 flex-wrap items-center">
                     <button id="btn-modificar-productos" onclick="toggleModificarInventario()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✏️ Editar Inventario</button>
+                    <button id="btn-vinculos" onclick="abrirVinculos()" title="Qué productos descuentan del stock de otro" class="hidden bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔗 Vínculos</button>
                     <button id="btn-re-codificar" onclick="abrirModalClasificacionExistentes()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🏷️ Reasignar</button>
                     <button id="btn-guardar-modificacion" onclick="guardarModificacionInventario()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">💾 Guardar Cambios</button>
                     <button id="btn-cancelar-modificacion" onclick="cancelarModificacionInventario()" class="hidden bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">❌ Cancelar</button>
@@ -631,6 +632,7 @@
                     <button onclick="capturarLecturaManual()" title="Captura a mano el contador de la Kyocera" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">✍️ Lectura manual</button>
                     <button onclick="impAbrirAjustes()" title="Impresiones que salen pero no se cobran (tickets de internet, pruebas...)" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">➕ Sin cobro</button>
                     <button onclick="impAbrirTinta()" title="Pesos de saturación y costos de tinta / tóner" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🖋️ Tinta</button>
+                    <button onclick="abrirVinculos()" title="Qué productos descuentan del stock de otro (ej. impresión = 1 hoja)" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔗 Vínculos</button>
                     <button onclick="abrirConfigImpresion()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">⚙️ Equivalencias</button>
                     <button onclick="iniciarImpresiones(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer">🔄 Actualizar</button>
                 </div>
@@ -1212,27 +1214,21 @@
         // ==========================================
         // CONFIGURACIÓN DE VINCULOS DE STOCK
         // ==========================================
-        const VINCULOS_STOCK = {
-            "IMP001": "HOJ008",
-            "IMP002": "HOJ008",
-            "IMP003": "HOJ008",
-            "IMP004": "HOJ008",
-            "IMP005": "HOJ008",
-            "IMP006": "HOJ008",
-            "IMP007": "HOJ008",
-            "IMP008": "HOJ008",
-            "IMP009": "HOJ008",
-            "IMP010": "HOJ008",
-            "IMP011": "HOJ008",
-            "IMP016": "HOJ008",
-            "IMP017": "HOJ008",
-            "IMP018": "HOJ008",
-            "IMP012": "HOJ009",
-            "IMP013": "HOJ009",
-            "IMP014": "HOJ009",
-            "IMP015": "HOJ009",
-            "MS028":"MS027"
-        };
+        // Qué productos descuentan del stock de otro (ej. una impresión descuenta 1 hoja; un paquete de 500, 500 hojas).
+        // La lista vive en la hoja "Vinculos" del servidor y se edita con el botón 🔗 Vínculos (solo admins). Aquí solo se guarda lo que manda el servidor.
+        const VINCULOS_STOCK = {};
+        const FACTOR_VINCULO = {};   // cuántas unidades del base descuenta 1 pieza (si no aparece, es 1)
+        function factorVinculo(cod) { return FACTOR_VINCULO[cod] || 1; }
+        const CLAVE_CACHE_VINC = 'pyp_cache_vinculos';
+        function aplicarVinculos(lista, guardar) {
+            if (!Array.isArray(lista)) return false;
+            Object.keys(VINCULOS_STOCK).forEach(k => delete VINCULOS_STOCK[k]);
+            Object.keys(FACTOR_VINCULO).forEach(k => delete FACTOR_VINCULO[k]);
+            lista.forEach(v => { if (!v || !v.codigo || !v.base) return; VINCULOS_STOCK[v.codigo] = v.base; const fa = parseFloat(v.factor); if (isFinite(fa) && fa > 0 && fa !== 1) FACTOR_VINCULO[v.codigo] = fa; });
+            if (guardar) { try { localStorage.setItem(CLAVE_CACHE_VINC, JSON.stringify(lista)); } catch (e) {} }
+            return true;
+        }
+        function cargarCacheVinculos() { try { aplicarVinculos(JSON.parse(localStorage.getItem(CLAVE_CACHE_VINC) || 'null'), false); } catch (e) {} }
 
         let usuarioActual = null;
         let tienePermisoAnalisis = false;
@@ -1288,7 +1284,7 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['grp-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones', 'nm-analisis', 'nm-inversion', 'nm-ventasPasadas', 'nm-log', 'nm-caja', 'nm-buscador', 'nm-impresiones'].forEach(id => {
+            ['grp-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-vinculos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones', 'nm-analisis', 'nm-inversion', 'nm-ventasPasadas', 'nm-log', 'nm-caja', 'nm-buscador', 'nm-impresiones'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
@@ -1305,7 +1301,7 @@
                     IMP.lecturas = []; IMP.brother = []; IMP.cargado = false; BUS.logs = []; BUS.ventas = []; BUS.cargado = false;
                     cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
                     ['imp-resumen', 'imp-tabla', 'bus-resultado'].forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
-                    ['imp-overlay', 'cal-overlay'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+                    ['imp-overlay', 'cal-overlay', 'vinc-overlay'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
                 } catch (e) { console.warn(e); }
             }
 
@@ -1386,15 +1382,17 @@
         let precarga = null;
         function lanzarPrecarga() {
             precarga = {};
-            ['getInventario', 'getMasVendidos', 'getTelefonos', 'getDataTurno'].forEach(a => { precarga[a] = apiFetch(a, true); precarga[a].catch(() => {}); });
+            ['getInventario', 'getVinculos', 'getMasVendidos', 'getTelefonos', 'getDataTurno'].forEach(a => { precarga[a] = apiFetch(a, true); precarga[a].catch(() => {}); });
         }
         function pedirDato(a) { const p = precarga && precarga[a]; return p ? p.catch(() => apiFetch(a)) : apiFetch(a); }
         async function cargarDatosIniciales() {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return;
-            cargarCacheVenta();
+            cargarCacheVinculos(); cargarCacheVenta();
             try {
-                const pMas = pedirDato('getMasVendidos'), pTel = pedirDato('getTelefonos'), pTur = pedirDato('getDataTurno');
-                let resInv = await pedirDato('getInventario'); inventario = await resInv.json() || []; renderProductos(); guardarCacheVenta();
+                const pMas = pedirDato('getMasVendidos'), pTel = pedirDato('getTelefonos'), pTur = pedirDato('getDataTurno'), pVin = pedirDato('getVinculos');
+                let resInv = await pedirDato('getInventario'); inventario = await resInv.json() || [];
+                try { const rv = await pVin; const dv = await rv.json(); aplicarVinculos(dv && dv.vinculos, true); } catch (e) { /* sin red: se queda con la última lista guardada */ }
+                renderProductos(); guardarCacheVenta();
                 cargarMasVendidos(pMas); cargarTelefonos(pTel);
                 let resTur = await pTur; let t = await resTur.json();
                 precarga = null;
@@ -1407,6 +1405,12 @@
             let codReal = VINCULOS_STOCK[cod] || cod;
             let p = inventario.find(x => x.codigo === codReal);
             return p ? p.stock : 0;
+        }
+
+        // Piezas vendibles de ESE producto: stock del base ÷ factor (solo paquetes completos). Sin factor es el stock tal cual.
+        function stockDisponible(cod) {
+            const fac = factorVinculo(cod), s = obtenerStockReal(cod);
+            return fac === 1 ? s : Math.max(0, Math.floor(s / fac + 1e-9));
         }
 
         // Formatea un monto con coma de millares, ej: 1234.5 -> "1,234.50"
@@ -1517,14 +1521,14 @@
         function seleccionarCatVenta(c) { catVenta = c; cerrarGrupo(); renderProductos(); }
         function cantidadEnCarrito(cod) { let i = carrito.find(x => x.codigo === cod); return i ? i.cantidad : 0; }
         function infoStockVenta(p) {
-            let st = Number(obtenerStockReal(p.codigo).toFixed(2));
+            let st = Number(stockDisponible(p.codigo).toFixed(2));
             if (st <= 0) return { st, cls: 'zero', txt: 'Agotado' };
             if (st <= 5) return { st, cls: 'low', txt: 'Quedan ' + st };
             return { st, cls: '', txt: st + ' pzas' };
         }
         function htmlProductoVenta(p, tipo) {
             let s = infoStockVenta(p), q = cantidadEnCarrito(p.codigo);
-            let vinc = VINCULOS_STOCK[p.codigo] ? ` title="Usa stock de ${escV(VINCULOS_STOCK[p.codigo])}"` : '';
+            let vinc = tienePermisoAnalisis && VINCULOS_STOCK[p.codigo] ? ` title="Usa stock de ${escV(VINCULOS_STOCK[p.codigo])}"` : '';
             let cls = (tipo === 'tile' ? 'v-tile' : 'v-row') + (q > 0 ? ' sel' : '') + (s.st <= 0 ? ' off' : '');
             let dis = s.st <= 0 ? ' disabled' : '';
             let badge = q > 0 ? `<span class="v-badge">${Number(q.toFixed(2))}</span>` : '';
@@ -1691,9 +1695,9 @@
             
             let codReal = VINCULOS_STOCK[cod] || cod;
             let stockMax = obtenerStockReal(codReal);
-            let consumoActual = carrito.reduce((acc, item) => (VINCULOS_STOCK[item.codigo] || item.codigo) === codReal ? acc + item.cantidad : acc, 0);
+            let consumoActual = carrito.reduce((acc, item) => (VINCULOS_STOCK[item.codigo] || item.codigo) === codReal ? acc + item.cantidad * factorVinculo(item.codigo) : acc, 0);
 
-            if (consumoActual + 1 > stockMax) {
+            if (consumoActual + factorVinculo(cod) > stockMax + 1e-9) {
                 Swal.fire('Stock insuficiente', 'No hay inventario suficiente para procesar este artículo.', 'warning');
                 return;
             }
@@ -1713,11 +1717,13 @@
             
             let consumoOtros = carrito.reduce((acc, item, idx) => {
                 if (idx === i) return acc;
-                return (VINCULOS_STOCK[item.codigo] || item.codigo) === codReal ? acc + item.cantidad : acc;
+                return (VINCULOS_STOCK[item.codigo] || item.codigo) === codReal ? acc + item.cantidad * factorVinculo(item.codigo) : acc;
             }, 0);
 
-            if (v + consumoOtros > stockMax) {
-                v = stockMax - consumoOtros;
+            const facV = factorVinculo(cod);
+            if (v * facV + consumoOtros > stockMax + 1e-9) {
+                v = (stockMax - consumoOtros) / facV;
+                if (facV !== 1) v = Math.max(0, Math.floor(v + 1e-9));
                 Swal.fire('Aviso', 'Cantidad ajustada al máximo de stock disponible.', 'info');
             }
             
@@ -1783,7 +1789,7 @@
             carrito.forEach(i => { 
                 let codReal = VINCULOS_STOCK[i.codigo] || i.codigo;
                 let p = inventario.find(x => x.codigo === codReal); 
-                if(p) p.stock -= i.cantidad; 
+                if(p) p.stock -= i.cantidad * factorVinculo(i.codigo); 
             });
             
             ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
@@ -1851,10 +1857,10 @@
 
                     let claseInactivo = p.noActivo ? ' opacity-50' : '';
                     if (editandoInventario) {
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>${tdCostoEdit}<td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td></tr>`;
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px]"><input type="text" value="${p.codigo}" data-index="${idx}" data-field="codigo" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="text" value="${p.nombre}" data-index="${idx}" data-field="nombre" class="inv-edit-input w-full px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td><td class="p-1"><input type="number" step="0.01" value="${p.precio}" data-index="${idx}" data-field="precio" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>${tdCostoEdit}${VINCULOS_STOCK[p.codigo] ? `<td class="p-1 text-center text-[10px] text-gray-400" title="Su stock sale de ${VINCULOS_STOCK[p.codigo]}; se edita ahí">↳ ${VINCULOS_STOCK[p.codigo]}</td>` : `<td class="p-1"><input type="number" step="0.01" value="${Number(p.stock.toFixed(2))}" data-index="${idx}" data-field="stock" class="inv-edit-input w-12 px-1 py-0.5 border rounded bg-amber-50/50 dark:bg-amber-950/30 text-[10px]"></td>`}</tr>`;
                     } else {
-                        let stockMostrar = Number(p.stock.toFixed(2));
-                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}${p.noActivo ? ' (producto no activo)' : ''}">${p.noActivo ? '🚫 ' : ''}${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>${tdCostoView}<td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
+                        let vincBase = VINCULOS_STOCK[p.codigo], stockMostrar = vincBase ? Number(stockDisponible(p.codigo).toFixed(2)) : Number(p.stock.toFixed(2));
+                        target.innerHTML += `<tr class="border-b dark:border-gray-700/60${claseInactivo}" draggable="true" data-index="${idx}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)"><td class="p-1 text-center text-gray-400 cursor-grab font-bold">⋮</td><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[80px]" title="${p.nombre}${p.noActivo ? ' (producto no activo)' : ''}">${p.noActivo ? '🚫 ' : ''}${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td>${tdCostoView}<td class="p-1 text-center"><span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]"${vincBase ? ` title="Sale del stock de ${vincBase}${factorVinculo(p.codigo) !== 1 ? ' (1 pieza = ' + factorVinculo(p.codigo) + ')' : ''}"` : ''}>${stockMostrar}${vincBase ? ' ↳' : ''}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" placeholder="0" value="${cantidadesSurtir[p.codigo]||''}" oninput="actualizarCantSurtir('${p.codigo}', this.value)" class="w-12 px-1 py-0.5 border rounded text-center text-[10px] bg-emerald-50/50 dark:bg-emerald-950/30 font-bold dark:text-emerald-400"></td></tr>`;
                     }
                 });
             });
@@ -1906,7 +1912,7 @@
             // La contraseña se valida en el servidor; solo si la acepta se actualiza el stock en pantalla
             const r = await enviarDatosAGoogleSheets({ tipo: 'surtirLote', entradas, passSurtir: pass });
             if (!r || r.status !== 'success') { if (r && r.code === 'pass') return Swal.fire('Error', 'Contraseña incorrecta', 'error'); return Swal.close(); }
-            for(let cod in entradas) { let p = inventario.find(x => x.codigo===cod); if(p) p.stock += entradas[cod]; }
+            for(let cod in entradas) { let p = inventario.find(x => x.codigo === (VINCULOS_STOCK[cod] || cod)); if(p) p.stock += entradas[cod] * factorVinculo(cod); }
             cantidadesSurtir = {}; document.getElementById('buscar-inventario').value = "";
             renderInventario(); renderProductos(); Swal.fire('¡Surtido!', '', 'success');
         }
@@ -1986,7 +1992,7 @@
             [filtrados.slice(0, t), filtrados.slice(t, t*2), filtrados.slice(t*2)].forEach((parte, i) => {
                 let target = i===0?tb1:(i===1?tb2:tb3);
                 parte.forEach(p => {
-                    let stockMostrar = Number(obtenerStockReal(p.codigo).toFixed(2));
+                    let stockMostrar = Number(stockDisponible(p.codigo).toFixed(2));
                     target.innerHTML += `<tr class="border-b dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="p-1 font-mono text-[10px] text-gray-500">${p.codigo}</td><td class="p-1 font-medium truncate max-w-[90px]" title="${p.nombre}">${p.nombre}</td><td class="p-1 text-emerald-600 font-semibold">$${p.precio.toFixed(2)}</td><td class="p-1 text-center"><span class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]">${stockMostrar}</span></td><td class="p-1 text-center"><input type="number" min="0.01" step="0.01" value="${cantidadesVentasPasadas[p.codigo]||''}" data-codigo="${p.codigo}" oninput="actualizarCantVP(this)" class="w-14 px-1 py-0.5 border border-blue-300 dark:border-blue-600 rounded text-center text-[10px] bg-blue-50/50 dark:bg-blue-950/30 font-bold dark:text-blue-400"></td></tr>`;
                 });
             });
@@ -2026,7 +2032,7 @@
                 prods.forEach(i => { 
                     let codReal = VINCULOS_STOCK[i.codigo] || i.codigo;
                     let p=inventario.find(x=>x.codigo===codReal); 
-                    if(p) p.stock -= i.cantidad; 
+                    if(p) p.stock -= i.cantidad * factorVinculo(i.codigo); 
                 }); 
             }
             
@@ -2120,7 +2126,7 @@
             // existencia = stock final del producto al momento del corte (respeta stock vinculado, ej. IMP -> HOJ008)
             let articulosVendidos = Object.keys(mapa).map(k => ({ 
                 codigo: k, nombre: mapa[k].nombre, cantidad: mapa[k].cantidad, total: mapa[k].total,
-                existencia: Number(obtenerStockReal(k).toFixed(2))
+                existencia: Number(stockDisponible(k).toFixed(2))
             }));
             
             Swal.fire({ title: 'Generando corte...', text: 'Guardando datos y descargando imagen', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -2720,8 +2726,9 @@ function calcCobertura(inv, prodEventos, hoy, ventana, horizonte) {
         const d = anaParseK(e.k); if (!d) return;
         const b = (porBase[e.cr] = porBase[e.cr] || { c: 0, c14: 0, primera: d });
         if (d < b.primera) b.primera = d;
-        if (d >= ini && d < hoy) b.c += e.c;
-        if (d >= ini14 && d < hoy) b.c14 += e.c;
+        const qb = e.cb != null ? e.cb : e.c;   // en unidades del producto base (un paquete de 500 = 500 hojas)
+        if (d >= ini && d < hoy) b.c += qb;
+        if (d >= ini14 && d < hoy) b.c14 += qb;
     }));
     const filas = [];
     (inv || []).forEach(p => {
@@ -3311,7 +3318,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                         let codReal = VINCULOS_STOCK[p.codigo] || p.codigo;
                         // El costo es el del PROPIO producto (ej. CONTACT 0.5m = $2.95); solo si no tiene costo capturado se usa el del producto del que descuenta stock (ej. el metro completo = $5.90)
                         let pPropio = inv.find(x => x.codigo === p.codigo) || {}, pInv = inv.find(x => x.codigo === codReal) || {};
-                        let costo = pPropio.costo > 0 ? pPropio.costo : (pInv.costo || 0);
+                        let costo = pPropio.costo > 0 ? pPropio.costo : ((pInv.costo || 0) * factorVinculo(p.codigo));
                         let cat = p.codigo.substring(0, 3).toUpperCase();
                         if (cat === 'LAP') cat = 'PAP'; 
                         if (!catGanancias[cat]) catGanancias[cat] = 0;
@@ -3320,7 +3327,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                         gT += gan;
                         if (fechaStr) { gananciaPorDia[fechaStr] = (gananciaPorDia[fechaStr] || 0) + gan; ingresoPorDia[fechaStr] = (ingresoPorDia[fechaStr] || 0) + p.precio * p.cantidad; }
                         if (fvDate && (!ultimaVentaStock[codReal] || fvDate > ultimaVentaStock[codReal])) ultimaVentaStock[codReal] = fvDate;
-                        (prodEventos[p.codigo] = prodEventos[p.codigo] || []).push({ k: fechaStr, c: p.cantidad, i: p.precio * p.cantidad, g: gan, cr: codReal, n: p.nombre });
+                        (prodEventos[p.codigo] = prodEventos[p.codigo] || []).push({ k: fechaStr, c: p.cantidad, cb: p.cantidad * factorVinculo(p.codigo), i: p.precio * p.cantidad, g: gan, cr: codReal, n: p.nombre });
                         catGanancias[cat] += gan;
 
                         if (!top[p.codigo]) top[p.codigo] = { n: p.nombre, c: 0, g: 0 }; 
@@ -3393,7 +3400,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let tbSug = document.getElementById('tabla-sugerencia-compra'); 
             if (tbSug) {
                 tbSug.innerHTML = ""; 
-                inv.filter(x => !x.noActivo && x.stock <= 5).forEach(p => {
+                inv.filter(x => !x.noActivo && !VINCULOS_STOCK[x.codigo] && x.stock <= 5).forEach(p => {
                     tbSug.innerHTML += `<tr class="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"><td class="py-2 font-mono text-gray-500">${p.codigo}</td><td class="py-2 text-gray-700 dark:text-gray-200 truncate max-w-[100px]" title="${p.nombre}">${p.nombre}</td><td class="py-2 text-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs">+${Math.max(10, 15 - p.stock)} un.</span></td></tr>`;
                 });
             }
@@ -3433,7 +3440,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     if (fv && fv >= iniBurn && fv < hoyBurn && v.productos) {
                         v.productos.forEach(p => {
                             let codStock = VINCULOS_STOCK[p.codigo] || p.codigo; // el stock vive en el producto base
-                            consumos30D[codStock] = (consumos30D[codStock] || 0) + p.cantidad;
+                            consumos30D[codStock] = (consumos30D[codStock] || 0) + p.cantidad * factorVinculo(p.codigo);
                         });
                     }
                 });
@@ -4235,7 +4242,7 @@ async function calGuardar() {
 // contra las páginas que el punto de venta dice que se vendieron (impresiones y fotocopias).
 // Cada día se compara la ventana de tiempo entre la última lectura del día anterior y la última del día.
 // ==========================================================================
-const IMP = {consumibles: [], pesos: {}, costos: {}, rend: 12000, ajustes: [], cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
+const IMP = {flags: { migracionBrother: 1, aprender: 0 }, consumibles: [], pesos: {}, costos: {}, rend: 12000, ajustes: [], cortes: [], visto: null, vistoBrother: null, lecturas: [], brother: [], factores: {}, factoresA4: {}, factoresA3: {}, factoresESC: {}, canalesCalc: [], tolPct: 5, tolMin: 10, cargado: false, cargando: false, filas: [], ts: 0 };
 
 function impNombreProd(cod) { const p = (typeof inventario !== 'undefined' ? inventario : []).find(x => x.codigo === cod); return p ? p.nombre : cod; }
 // Páginas del contador que equivalen a 1 unidad vendida de ese producto (se puede cambiar en "Equivalencias")
@@ -4245,22 +4252,23 @@ function impFactorDefecto(cod) {
     if (/ambos lados/.test(n)) return 2;         // una hoja por los dos lados = 2 páginas en el contador
     return 1;
 }
+const impEsProd = cod => !!VINCULOS_STOCK[cod] && factorVinculo(cod) === 1 && /^IMP/i.test(cod);   // productos de impresión/copia (los paquetes u otros vínculos no cuentan)
 function impFactor(cod) {
-    if (!VINCULOS_STOCK[cod]) return 0;          // solo productos de impresión/copia (los que descuentan hoja)
+    if (!impEsProd(cod)) return 0;          // solo productos de impresión/copia (los que descuentan hoja)
     return IMP.factores[cod] !== undefined ? IMP.factores[cod] : impFactorDefecto(cod);
 }
 
 // Brother (inyección de tinta, A4 y A3): el contador separa hojas A4/Carta de hojas A3/Doble carta.
 // Por defecto: "doble carta" sale de la Brother en A3; el resto de lo que dice "color" sale en A4. Todo se puede cambiar en "Equivalencias".
 function impFactorDefectoBrother(cod, tam) {
-    if (!VINCULOS_STOCK[cod]) return 0;
+    if (!impEsProd(cod)) return 0;
     const n = bQuitaAcentos(impNombreProd(cod)), dos = /ambos lados/.test(n) ? 2 : 1;
     if (/doble carta/.test(n)) return tam === 'A3' ? dos : 0;
     if (/color/.test(n)) return tam === 'A4' ? dos : 0;
     return 0;
 }
 function impFactorBrother(cod, tam) {
-    if (!VINCULOS_STOCK[cod]) return 0;
+    if (!impEsProd(cod)) return 0;
     const m = tam === 'A3' ? IMP.factoresA3 : IMP.factoresA4;
     return m[cod] !== undefined ? m[cod] : impFactorDefectoBrother(cod, tam);
 }
@@ -4334,7 +4342,7 @@ async function iniciarImpresiones(forzar) {
     IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
         const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
-        IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000;
+        IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000; IMP.flags = c.flags || { migracionBrother: 1, aprender: 0 };
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
         try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
@@ -4416,7 +4424,8 @@ function impVivoRender(canales, ahora) {
         if (msg) return `<div class="${caja}" ${borde}>${titulo}<p class="text-xs text-gray-400 my-auto text-center">${msg}</p></div>`;
         const diff = delta - vendido, umbral = Math.max(IMP.tolMin, (IMP.tolPct / 100) * vendido);
         const ok = Math.abs(diff) <= umbral;
-        const [txt, cls, bg] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
+        const migra = !ok && diff < 0 && IMP.flags && IMP.flags.migracionBrother && (c.id === 'a4' || c.id === 'a3');
+        const [txt, cls, bg] = migra ? ['🔀 En migración (parte sale de otra impresora)', 'text-sky-600 dark:text-sky-400', 'bg-sky-500/15'] : ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
         const mx = Math.max(delta, vendido, 1), pc = n => Math.max(2, Math.round(n / mx * 100));
         const barra = (nombre, n, color) => `<div><div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400"><span>${nombre}</span><b class="text-gray-800 dark:text-gray-100 text-sm">${bFmt(n)}</b></div><div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pc(n)}%;background:${color}"></div></div></div>`;
         return `<div class="${caja}" ${borde}><div class="flex items-start justify-between gap-2">${titulo}<p class="text-3xl font-extrabold leading-none ${cls}">${diff === 0 ? '0' : impSigno(diff)}</p></div>
@@ -4460,7 +4469,7 @@ async function impRefrescarVivo() {
         if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas;
         const c = d.config || {};
         IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null;
-        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000;
+        IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000; IMP.flags = c.flags || { migracionBrother: 1, aprender: 0 };
         IMP.vivoTs = Date.now(); impRender();
     } catch (e) { console.error(e); }
     IMP.vivoCargando = false;
@@ -4505,6 +4514,32 @@ function impVentasPeriodo(desde, hasta) {
     const abiertas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
     abiertas.forEach(v => { const t = parseFechaFlexible(v.hora) || new Date(); if (t >= desde && t < hasta) (v.productos || []).forEach(p => out.push({ t, cod: p.codigo, qty: Number(p.cantidad) || 0, total: (Number(p.precio) || 0) * (Number(p.cantidad) || 0) })); });
     return out;
+}
+// Ventana en la que hay lecturas Y ventas completas: entre cortes consecutivos que empiezan después de la primera lectura
+// (si el corte anterior fue hasta 36 h antes de la primera lectura se acepta como aproximado) + el turno abierto.
+function impVentanaCons(primera, desde, hasta) {
+    const H36 = 36 * 3600000, out = [];
+    const C = (IMP.cortes || []).map(c => ({ t: new Date(c.fecha), arts: c.articulos || [] })).filter(c => !isNaN(c.t.getTime())).sort((a, b) => a.t - b.t);
+    let W0 = null, aprox = false;
+    const tomar = ini => { const e = Math.max(ini.getTime(), primera.getTime()); W0 = W0 === null ? e : Math.min(W0, e); };
+    for (let i = 1; i < C.length; i++) {
+        const ini = C[i - 1].t, fin = C[i].t;
+        if (fin <= primera || fin < desde) continue;
+        if (ini < primera) { if (primera - ini > H36) continue; aprox = true; }
+        tomar(ini);
+        C[i].arts.forEach(a => out.push({ t: fin, cod: a.codigo, qty: Number(a.cantidad) || 0, total: Number(a.total) || 0 }));
+    }
+    const abiertas = (typeof ventasActivas !== 'undefined' && Array.isArray(ventasActivas)) ? ventasActivas : [];
+    const tv = abiertas.map(v => parseFechaFlexible(v.hora)).filter(d => d && !isNaN(d.getTime())).sort((a, b) => a - b);
+    if (tv.length) {
+        const ult = C.length ? C[C.length - 1].t : null, ini = ult && ult > new Date(tv[0].getTime() - 600000) ? ult : new Date(tv[0].getTime() - 600000);
+        if (ini >= primera || primera - ini <= H36) {
+            if (ini < primera) aprox = true;
+            tomar(ini);
+            abiertas.forEach(v => { const t = parseFechaFlexible(v.hora) || new Date(); (v.productos || []).forEach(p => out.push({ t, cod: p.codigo, qty: Number(p.cantidad) || 0, total: (Number(p.precio) || 0) * (Number(p.cantidad) || 0) })); });
+        }
+    }
+    return out.length ? { W0: new Date(W0), ventas: out, aprox } : null;
 }
 // Cuánto bajó un consumible en [desde, hasta]: solo cuentan las bajadas; una subida grande es un relleno / cambio
 function impConsumoSerie(pts, desde, hasta) {
@@ -4564,37 +4599,47 @@ function impConsumoRender() {
     cons.forEach(c => { const k = impClaveCons(c); (mapa[k] = mapa[k] || { k, imp: c.imp, n: c.n, g: impGrupoDe(c.imp), pts: [] }).pts.push({ t: new Date(c.t), pct: Number(c.pct) }); });
     const series = Object.values(mapa).filter(s => s.pts.length); series.forEach(s => s.pts.sort((a, b) => a.t - b.t));
     series.sort((a, b) => (a.g || '').localeCompare(b.g || '') || a.n.localeCompare(b.n));
-    const ventas = impVentasPeriodo(desde, hasta);
     const color = n => { n = bQuitaAcentos(n); return /cyan|cian/.test(n) ? '#06b6d4' : (/magenta/.test(n) ? '#ec4899' : (/yellow|amarill/.test(n) ? '#eab308' : '#9ca3af')); };
     const nombre = s => s.n.replace(/\s*\(.\)\s*$/, '');
     const f1 = n => Number(n.toFixed(1)).toLocaleString('es-MX');
     const bloques = ['k', 'b'].map(g => {
         const ss = series.filter(s => s.g === g); if (!ss.length) return '';
-        // Ventas del grupo
+        // Solo se compara donde hay lecturas Y ventas completas (no se mezclan 30 días de ventas con 2 días de lecturas)
+        const primeraG = new Date(Math.min.apply(null, ss.map(x => x.pts[0].t.getTime())));
+        const vent = impVentanaCons(primeraG, desde, hasta), W0 = vent ? vent.W0 : desde;
         let unid = 0, hojas = 0, ing = 0;
-        ventas.forEach(v => { const u = impUnidGrupo(v.cod, g); if (u > 0) { hojas += v.qty * u; unid += v.qty * u * impPeso(v.cod); ing += v.total; } });
-        const cs = ss.map(s => { const r = impConsumoSerie(s.pts, desde, hasta), r14 = impConsumoSerie(s.pts, new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - 14), hasta), ult = s.pts[s.pts.length - 1];
+        (vent ? vent.ventas : []).forEach(v => { const u = impUnidGrupo(v.cod, g); if (u > 0) { hojas += v.qty * u; unid += v.qty * u * impPeso(v.cod); ing += v.total; } });
+        const cs = ss.map(s => { const r = impConsumoSerie(s.pts, W0, hasta), r14 = impConsumoSerie(s.pts, new Date(h0.getFullYear(), h0.getMonth(), h0.getDate() - 14), hasta), ult = s.pts[s.pts.length - 1];
             const dias14 = Math.max(1, Math.min(14, (hasta - s.pts[0].t) / 86400000)), tasa = r14.total / dias14, costo = IMP.costos && IMP.costos[s.k] !== undefined ? IMP.costos[s.k] : null;
             return { s, r, ult, restan: tasa > 0 ? ult.pct / tasa : null, gasto: costo !== null ? r.total / 100 * costo : null, costo }; });
         const totalPct = cs.reduce((a, c) => a + c.r.total, 0), gastoMon = cs.every(c => c.gasto !== null) ? cs.reduce((a, c) => a + c.gasto, 0) : null;
-        const cal = impCalibrar(g, ss, hoy), titulo = g === 'k' ? 'Kyocera · tóner (todo lo b/n)' : 'Brother · tinta (todo lo de color)';
-        let resumen = `<b>${bFmt(hojas)}</b> hojas vendidas (<b>${bFmt(Math.round(unid))}</b> ponderadas por saturación)`;
+        const cal = (IMP.flags && IMP.flags.aprender) ? impCalibrar(g, ss, hoy) : { faltan: '' }, titulo = g === 'k' ? 'Kyocera · tóner (todo lo b/n)' : 'Brother · tinta (todo lo de color)';
+        const desdeTxt = W0.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + W0.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        let resumen = `<span class="text-gray-400">Periodo medido desde el ${desdeTxt}${vent && vent.aprox ? ' (aproximado: el lector empezó a leer a mitad de una ventana de ventas)' : ''}.</span> <b>${bFmt(hojas)}</b> hojas vendidas (<b>${bFmt(Math.round(unid))}</b> ponderadas por saturación)`;
         let juicio = '';
-        if (g === 'k') {
+        if (!vent) {
+            resumen = `<span class="text-gray-500">El tóner / la tinta ya se miden, pero todavía no hay un periodo completo con lecturas y ventas para comparar: aparece con el siguiente corte.</span>`;
+            juicio = '';
+        } else if (g === 'k') {
             const esp = unid * 100 / (IMP.rend || 12000);
             resumen += ` · el tóner bajó <b>${f1(totalPct)}%</b> y por lo vendido se esperaba ≈ <b>${f1(esp)}%</b> (rinde ${bFmt(IMP.rend || 12000)} págs.)`;
-            if (esp >= 2 && totalPct > 0) { const ra = totalPct / esp; juicio = `<span class="${ra > 1.3 ? 'text-amber-500' : (ra < 0.7 ? 'text-sky-500' : 'text-emerald-500')} font-bold">${ra > 1.3 ? '⚠️ gasta ' + f1(ra) + '× lo esperado (hay impresión sin cobrar o más saturación)' : (ra < 0.7 ? 'gasta ' + f1(ra) + '× lo esperado (se cobra por encima del uso)' : '✅ consumo acorde a lo vendido (' + f1(ra) + '×)')}</span> · rendimiento real ≈ ${bFmt(Math.round(unid / totalPct * 100))} págs. por tóner`; }
+            if (esp >= 2 && totalPct > 0) { const ra = totalPct / esp; juicio = `<span class="${ra > 1.3 ? 'text-amber-500' : (ra < 0.7 ? 'text-sky-500' : 'text-emerald-500')} font-bold">${ra > 1.3 ? '⚠️ gasta ' + f1(ra) + '× lo esperado (hay impresión sin cobrar o más saturación)' : (ra < 0.7 ? 'gasta ' + f1(ra) + '× lo esperado (se cobra por encima del uso)' : '✅ consumo acorde a lo vendido (' + f1(ra) + '×)')}</span> · rendimiento real ≈ ${bFmt(Math.round(unid / totalPct * 100))} págs. por tóner${esp < 10 ? ' <span class="text-gray-400">(muestra corta: el nivel baja de 1 en 1 %, tómalo como indicio)</span>' : ''}`; }
             else juicio = '<span class="text-gray-400">Muestra pequeña: el nivel baja de 1 en 1 %, conviene mirar un periodo más largo.</span>';
+        } else if (IMP.flags && IMP.flags.migracionBrother) {
+            resumen += ` · la tinta bajó <b>${f1(totalPct)}%</b> en total (suma de las 4)`;
+            juicio = '<span class="text-sky-500">🔀 En migración: parte del color se imprime en otra impresora, así que no se compara contra lo vendido. Aquí solo cuenta lo que gasta la Brother.</span>';
         } else {
             resumen += ` · la tinta bajó <b>${f1(totalPct)}%</b> en total (suma de las 4)`;
             if (unid > 0 && totalPct > 0) juicio = `<span class="text-gray-500">≈ ${f1(totalPct / unid)}% de tinta por unidad ponderada (reparto en las tarjetas)</span>`;
             else juicio = '<span class="text-gray-400">Todavía sin consumo medible en este periodo.</span>';
         }
         let dinero = '';
-        if (gastoMon !== null) { const m = ing - gastoMon; dinero = `<span class="text-gray-600 dark:text-gray-300">Consumo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> · cobrado <b>$${formatMiles(Math.round(ing))}</b> · margen <b class="${m >= 0 ? 'text-emerald-500' : 'text-red-500'}">$${formatMiles(Math.round(m))}</b>${hojas > 0 ? ` · costo por hoja <b>$${(gastoMon / hojas).toFixed(2)}</b>` : ''}</span>`; }
+        if (gastoMon !== null && g === 'b' && IMP.flags && IMP.flags.migracionBrother) dinero = `<span class="text-gray-600 dark:text-gray-300">Tinta gastada en el periodo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> (el margen se calcula cuando todo el color pase a la Brother)</span>`;
+        else if (gastoMon !== null) { const m = ing - gastoMon; dinero = `<span class="text-gray-600 dark:text-gray-300">Consumo ≈ <b>$${formatMiles(Math.round(gastoMon))}</b> · cobrado <b>$${formatMiles(Math.round(ing))}</b> · margen <b class="${m >= 0 ? 'text-emerald-500' : 'text-red-500'}">$${formatMiles(Math.round(m))}</b>${hojas > 0 ? ` · costo por hoja <b>$${(gastoMon / hojas).toFixed(2)}</b>` : ''}</span>`; }
         else dinero = `<span class="text-gray-400">Captura el costo del consumible en ⚙️ Pesos y costos para ver margen y costo por hoja.</span>`;
         let aprendido = '';
-        if (cal.pesos) aprendido = `<p class="text-[11px] text-gray-500">📐 Pesos medidos (${cal.dias} días): ${Object.keys(cal.pesos).map(k => `${bEsc(k)} <b>${cal.pesos[k]}</b>`).join(' · ')} <button onclick="impAplicarPesos('${g}')" class="ml-1 underline text-blue-500 cursor-pointer">Aplicar</button></p>`;
+        if (!(IMP.flags && IMP.flags.aprender)) aprendido = '<p class="text-[11px] text-gray-400">📐 Pesos fijos: el aprendizaje está en pausa (se activa en 🖋️ Tinta cuando todo el color salga por la Brother).</p>';
+        else if (cal.pesos) aprendido = `<p class="text-[11px] text-gray-500">📐 Pesos medidos (${cal.dias} días): ${Object.keys(cal.pesos).map(k => `${bEsc(k)} <b>${cal.pesos[k]}</b>`).join(' · ')} <button onclick="impAplicarPesos('${g}')" class="ml-1 underline text-blue-500 cursor-pointer">Aplicar</button></p>`;
         else aprendido = `<p class="text-[11px] text-gray-400">📐 Aprendiendo pesos: ${bEsc(cal.faltan || '')}</p>`;
         const tarjetas = cs.map(c => {
             const pct = Math.max(0, Math.min(100, c.ult.pct)), col = color(c.s.n), barCol = pct <= 10 ? '#ef4444' : (pct <= 25 ? '#f59e0b' : col);
@@ -4603,7 +4648,7 @@ function impConsumoRender() {
             return `<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex flex-col gap-1.5" style="border-top:3px solid ${col}">
                 <div class="flex items-start justify-between gap-2"><p class="text-xs font-bold uppercase tracking-wide" style="color:${col}">${bEsc(nombre(c.s))}</p><p class="text-2xl font-extrabold leading-none ${pct <= 10 ? 'text-red-500' : ''}">${pct}%</p></div>
                 <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(2, pct)}%;background:${barCol}"></div></div>
-                <p class="text-[11px] text-gray-500">Bajó <b>${f1(c.r.total)}%</b> en ${nDias} días${parte}</p>
+                <p class="text-[11px] text-gray-500">Bajó <b>${f1(c.r.total)}%</b> desde el ${desdeTxt}${parte}</p>
                 <p class="text-[11px] text-gray-500">${c.restan !== null ? 'Dura ≈ <b>' + (c.restan < 1 ? 'menos de 1 día' : Math.round(c.restan) + ' días') + '</b> al ritmo de las últimas 2 semanas' : 'Sin consumo reciente para estimar duración'}</p>
                 ${c.gasto !== null ? `<p class="text-[11px] text-gray-500">Costo del periodo ≈ <b>$${formatMiles(Math.round(c.gasto))}</b></p>` : ''}
                 ${ult ? `<p class="text-[10px] text-gray-400">Último relleno: ${ult.t.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} (${ult.de}% → ${ult.a}%)</p>` : ''}</div>`;
@@ -4615,7 +4660,7 @@ function impConsumoRender() {
     el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mt-3 mb-1"><p class="text-sm font-bold text-gray-800 dark:text-white">🖋️ Tinta y tóner contra lo vendido <span class="font-normal text-xs text-gray-500">· últimos ${nDias} días</span></p><button onclick="impAbrirTinta()" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer">⚙️ Pesos y costos</button></div>${bloques}`;
 }
 async function impEnviarConfig() {
-    return await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores: IMP.factores, factoresA4: IMP.factoresA4, factoresA3: IMP.factoresA3, factoresESC: IMP.factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, tolPct: IMP.tolPct, tolMin: IMP.tolMin });
+    return await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores: IMP.factores, factoresA4: IMP.factoresA4, factoresA3: IMP.factoresA3, factoresESC: IMP.factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, flags: IMP.flags, tolPct: IMP.tolPct, tolMin: IMP.tolMin });
 }
 async function impAplicarPesos(g) {
     const hoy = new Date(), mapa = {};
@@ -4623,7 +4668,7 @@ async function impAplicarPesos(g) {
     const series = Object.values(mapa); series.forEach(s => s.pts.sort((a, b) => a.t - b.t));
     const cal = impCalibrar(g, series, hoy); if (!cal.pesos) return;
     const nuevos = Object.assign({}, IMP.pesos);
-    Object.keys(VINCULOS_STOCK).forEach(cod => {
+    Object.keys(VINCULOS_STOCK).filter(impEsProd).forEach(cod => {
         if (impUnidGrupo(cod, g) <= 0) return;
         const w = cal.pesos[impCategoria(cod, g)]; if (w === undefined) return;
         nuevos[cod] = Math.round(w * (/doble carta/.test(bQuitaAcentos(impNombreProd(cod))) ? 2 : 1) * 10) / 10;
@@ -4640,14 +4685,17 @@ function impAbrirTinta() {
     const claves = Array.from(new Set((IMP.consumibles || []).map(impClaveCons))).sort();
     const inp = 'w-20 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white';
     const costos = claves.length ? claves.map(k => `<tr><td class="py-1 pr-2 text-xs">${bEsc(k.replace('|', ' · '))}</td><td class="py-1"><input type="number" min="0" step="1" data-k="${bEsc(k)}" value="${IMP.costos && IMP.costos[k] !== undefined ? IMP.costos[k] : ''}" placeholder="$" class="imp-costo ${inp}"></td></tr>`).join('') : '<tr><td class="text-xs text-gray-400">Aún no hay lecturas de consumibles.</td></tr>';
-    const prods = Object.keys(VINCULOS_STOCK).sort().filter(c => impUnidGrupo(c, 'k') > 0 || impUnidGrupo(c, 'b') > 0).map(cod => `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td><td class="py-1 pr-2 text-[11px] text-gray-500">${impUnidGrupo(cod, 'k') > 0 ? 'Kyocera' : 'Brother'}</td><td class="py-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${impPeso(cod)}" class="imp-peso ${inp}"></td></tr>`).join('');
+    const prods = Object.keys(VINCULOS_STOCK).filter(impEsProd).sort().filter(c => impUnidGrupo(c, 'k') > 0 || impUnidGrupo(c, 'b') > 0).map(cod => `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td><td class="py-1 pr-2 text-[11px] text-gray-500">${impUnidGrupo(cod, 'k') > 0 ? 'Kyocera' : 'Brother'}</td><td class="py-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${impPeso(cod)}" class="imp-peso ${inp}"></td></tr>`).join('');
     ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center"><h3 class="text-lg font-bold">🖋️ Pesos y costos de tinta / tóner</h3><button onclick="cerrarConfigImpresion()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
         <div><p class="text-xs text-gray-500 mb-1"><b>Peso de saturación</b>: cuánta tinta gasta cada venta comparada con una página normal en b/n (= 1). Los valores ya vienen sugeridos y el sistema te mostrará los que mida.</p>
         <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Código</th><th>Producto</th><th>Va a</th><th>Peso</th></tr></thead><tbody>${prods}</tbody></table></div>
         <div class="border-t dark:border-gray-700 pt-2"><p class="text-xs text-gray-500 mb-1"><b>Costo de cada consumible</b> (lo que cuesta un tóner nuevo, o rellenar esa tinta al 100 %). Sirve para calcular costo por hoja y margen. Déjalo vacío si aún no lo sabes.</p>
         <table class="w-full text-left"><tbody>${costos}</tbody></table></div>
-        <label class="text-xs block">Rendimiento del tóner Kyocera (páginas)<input id="imp-rend" type="number" min="100" step="100" value="${IMP.rend || 12000}" class="block mt-1 ${inp}"></label>
+        <div class="border-t dark:border-gray-700 pt-2 space-y-1.5">
+          <label class="flex items-start gap-2 text-xs cursor-pointer"><input id="imp-f-migra" type="checkbox" ${IMP.flags && IMP.flags.migracionBrother ? 'checked' : ''} class="mt-0.5"><span><b>Estoy migrando a la Brother</b>: parte del color todavía sale de otra impresora. La Brother no marca alerta por "cobrado de más" y no se compara su tinta contra lo vendido.</span></label>
+          <label class="flex items-start gap-2 text-xs cursor-pointer"><input id="imp-f-aprende" type="checkbox" ${IMP.flags && IMP.flags.aprender ? 'checked' : ''} class="mt-0.5"><span><b>Aprender los pesos con los datos</b>: mide cuánta tinta gasta cada categoría y sugiere pesos. Déjalo apagado mientras haya otra impresora de color.</span></label></div>
+        <label class="text-xs block">Rendimiento del tóner Kyocera actual (páginas)<input id="imp-rend" type="number" min="100" step="100" value="${IMP.rend || 12000}" class="block mt-1 ${inp}"></label>
         <div class="flex gap-2 justify-end"><button onclick="cerrarConfigImpresion()" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm cursor-pointer">Cancelar</button><button onclick="impGuardarTinta()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold cursor-pointer">Guardar</button></div></div>`;
 }
 async function impGuardarTinta() {
@@ -4655,10 +4703,11 @@ async function impGuardarTinta() {
     document.querySelectorAll('.imp-peso').forEach(i => { const v = parseFloat(i.value); pesos[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; });
     document.querySelectorAll('.imp-costo').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0 && i.value !== '') costos[i.getAttribute('data-k')] = v; });
     const rend = parseFloat(document.getElementById('imp-rend').value) || 12000;
-    const antes = { p: IMP.pesos, c: IMP.costos, r: IMP.rend };
-    IMP.pesos = pesos; IMP.costos = costos; IMP.rend = rend;
+    const flags = { migracionBrother: document.getElementById('imp-f-migra').checked ? 1 : 0, aprender: document.getElementById('imp-f-aprende').checked ? 1 : 0 };
+    const antes = { p: IMP.pesos, c: IMP.costos, r: IMP.rend, f: IMP.flags };
+    IMP.pesos = pesos; IMP.costos = costos; IMP.rend = rend; IMP.flags = flags;
     const r = await impEnviarConfig();
-    if (!r || r.status !== 'success') { IMP.pesos = antes.p; IMP.costos = antes.c; IMP.rend = antes.r; return; }
+    if (!r || r.status !== 'success') { IMP.pesos = antes.p; IMP.costos = antes.c; IMP.rend = antes.r; IMP.flags = antes.f; return; }
     cerrarConfigImpresion(); impRender();
     Swal.fire({ title: 'Guardado', icon: 'success', timer: 1200, showConfirmButton: false });
 }
@@ -4670,6 +4719,7 @@ const impEstados = {
     sinlectura: ['— Sin lecturas', 'text-gray-400'],
     sinprevia: ['— Primer corte (sin referencia)', 'text-gray-400'],
     sincorte: ['— Sin corte este día', 'text-amber-600 dark:text-amber-400'],
+    migra: ['🔀 En migración: parte del color sale de otra impresora', 'text-sky-500 dark:text-sky-400'],
     hoy: ['⏳ Turno en curso', 'text-gray-500'],
     reinicio: ['⚙️ Contador reiniciado', 'text-gray-500']
 };
@@ -4682,7 +4732,9 @@ function impRender() {
     const canales = impCanales();
     canales.forEach(c => { c.filas = impCalcular(c.lecturas, IMP.cortes || [], dias, c.factor, IMP.tolPct, IMP.tolMin, hoy, d => impAjusteDia(c.id, d)); });
     IMP.canalesCalc = canales; IMP.filas = canales[0].filas;
-    const fmtEstado = f => ['ok', 'sobra', 'falta'].includes(f.estado);
+    // Migración: mientras parte del color salga de otra impresora, "cobrado de más" en la Brother no es alerta
+    if (IMP.flags && IMP.flags.migracionBrother) canales.forEach(c => { if (c.id === 'a4' || c.id === 'a3') c.filas.forEach(f => { if (f.estado === 'falta') f.estado = 'migra'; }); });
+    const fmtEstado = f => ['ok', 'sobra', 'falta', 'migra'].includes(f.estado);
 
     // Estado de los lectores (reportan cada 5 min aunque el contador no cambie)
     const est = document.getElementById('imp-estado');
@@ -4734,7 +4786,7 @@ function impRender() {
     const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
         if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
-        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.aj ? ` <span class="text-[10px] text-sky-500" title="Incluye ${impSigno(f.aj)} impresiones sin cobro registradas a mano">${impSigno(f.aj)} manual</span>` : ''}${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'migra' ? ' 🔀' : f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.aj ? ` <span class="text-[10px] text-sky-500" title="Incluye ${impSigno(f.aj)} impresiones sin cobro registradas a mano">${impSigno(f.aj)} manual</span>` : ''}${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
     };
     const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
     const filaDia = i => {
@@ -4783,6 +4835,55 @@ async function capturarLecturaManual() {
     Swal.fire({ title: 'Lectura guardada', icon: 'success', timer: 1200, showConfirmButton: false });
 }
 
+
+// ---------- 🔗 Vínculos de stock (solo admins): qué producto descuenta de cuál ----------
+let VINC_TMP = [];
+function abrirVinculos() {
+    if (!tienePermisoAnalisis) return;
+    VINC_TMP = Object.keys(VINCULOS_STOCK).sort((a, b) => (VINCULOS_STOCK[a] + a).localeCompare(VINCULOS_STOCK[b] + b, 'es', { numeric: true })).map(c => ({ codigo: c, base: VINCULOS_STOCK[c], factor: factorVinculo(c) }));
+    vincPintar();
+}
+function vincNombre(c) { const p = inventario.find(x => x.codigo === c); return p ? p.nombre : ''; }
+function vincPintar() {
+    let ov = document.getElementById('vinc-overlay');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'vinc-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto'; document.body.appendChild(ov); }
+    ov.style.display = 'flex';
+    const inp = 'px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white';
+    const opciones = inventario.map(p => `<option value="${escV(p.codigo)}">${escV(p.nombre)}</option>`).join('');
+    const filas = VINC_TMP.map((v, i) => {
+        const nc = vincNombre(v.codigo), nb = vincNombre(v.base);
+        const aviso = (v.codigo && !nc) || (v.base && !nb) ? '<span class="text-red-500">⚠ no existe</span>' : '';
+        return `<tr class="border-b dark:border-gray-700/60 align-top">
+            <td class="py-1 pr-1"><input list="vinc-lista" value="${escV(v.codigo)}" onchange="vincEditar(${i},'codigo',this.value)" class="${inp} w-24"><div class="text-[10px] text-gray-500 leading-tight max-w-[120px]">${escV(nc)}</div></td>
+            <td class="py-1 pr-1"><input type="number" min="0.01" step="any" value="${v.factor}" onchange="vincEditar(${i},'factor',this.value)" class="${inp} w-20"></td>
+            <td class="py-1 pr-1"><input list="vinc-lista" value="${escV(v.base)}" onchange="vincEditar(${i},'base',this.value)" class="${inp} w-24"><div class="text-[10px] text-gray-500 leading-tight max-w-[120px]">${escV(nb)} ${aviso}</div></td>
+            <td class="py-1"><button onclick="vincQuitar(${i})" title="Quitar" class="text-red-500 hover:text-red-700 text-lg cursor-pointer">🗑</button></td></tr>`;
+    }).join('');
+    ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-xl p-5 space-y-3 max-h-[92vh] overflow-y-auto">
+        <div class="flex justify-between items-center"><h3 class="text-lg font-bold">🔗 Vínculos de stock</h3><button onclick="vincCerrar()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
+        <p class="text-xs text-gray-500">Cada renglón dice que <b>al vender 1 pieza del producto</b>, se descuenta esa <b>cantidad</b> del stock del producto base. Ej.: <i>IMP001 · 1 · HOJ008</i> (una impresión gasta 1 hoja) o <i>HOJ005 · 500 · HOJ008</i> (un paquete gasta 500 hojas). El producto vinculado no lleva stock propio: se calcula del base. El base no puede descontar de otro.</p>
+        <datalist id="vinc-lista">${opciones}</datalist>
+        <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Producto que se vende</th><th>Descuenta</th><th>Del producto base</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="4" class="text-xs text-gray-400 py-3">Sin vínculos.</td></tr>'}</tbody></table>
+        <button onclick="vincAgregar()" class="text-xs font-medium text-teal-700 dark:text-teal-400 hover:underline cursor-pointer">➕ Agregar vínculo</button>
+        <div class="flex gap-2 justify-end"><button onclick="vincCerrar()" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm cursor-pointer">Cancelar</button><button onclick="guardarVinculos()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold cursor-pointer">Guardar</button></div></div>`;
+}
+function vincCerrar() { const ov = document.getElementById('vinc-overlay'); if (ov) ov.style.display = 'none'; }
+function vincEditar(i, campo, val) {
+    if (!VINC_TMP[i]) return;
+    VINC_TMP[i][campo] = campo === 'factor' ? (parseFloat(val) || 0) : String(val || '').trim().toUpperCase();
+    vincPintar();
+}
+function vincAgregar() { VINC_TMP.push({ codigo: '', base: '', factor: 1 }); vincPintar(); }
+function vincQuitar(i) { VINC_TMP.splice(i, 1); vincPintar(); }
+async function guardarVinculos() {
+    const lista = VINC_TMP.filter(v => v.codigo || v.base);
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarVinculos', vinculos: lista.map(v => ({ codigo: v.codigo, base: v.base, factor: v.factor })) });
+    if (!r || r.status !== 'success') return;
+    try { const d = await (await apiFetch('getVinculos')).json(); aplicarVinculos(d.vinculos, true); } catch (e) { aplicarVinculos(lista, true); }
+    vincCerrar(); renderProductos(); renderInventario(); if (typeof impRender === 'function' && IMP.cargado) impRender();
+    Swal.fire({ title: 'Vínculos guardados', icon: 'success', timer: 1200, showConfirmButton: false });
+}
+
 // ---------- Equivalencias (páginas del contador por unidad vendida) ----------
 function impCodigosEsc() {
     const set = new Set(Object.keys(IMP.factoresESC));
@@ -4801,7 +4902,7 @@ function impAgregarEsc(selEl) {
 function abrirConfigImpresion() {
     let ov = document.getElementById('imp-overlay');
     if (!ov) { ov = document.createElement('div'); ov.id = 'imp-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto'; document.body.appendChild(ov); }
-    const filas = Object.keys(VINCULOS_STOCK).sort().map(cod => `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td>${[['imp-factor', impFactor(cod)], ['imp-factor-a4', impFactorBrother(cod, 'A4')], ['imp-factor-a3', impFactorBrother(cod, 'A3')]].map(([cl, v]) => `<td class="py-1 pr-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${v}" class="${cl} w-14 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></td>`).join('')}</tr>`).join('');
+    const filas = Object.keys(VINCULOS_STOCK).filter(impEsProd).sort().map(cod => `<tr><td class="py-1 pr-2 text-[11px] text-gray-500">${bEsc(cod)}</td><td class="py-1 pr-2 text-xs">${bEsc(impNombreProd(cod))}</td>${[['imp-factor', impFactor(cod)], ['imp-factor-a4', impFactorBrother(cod, 'A4')], ['imp-factor-a3', impFactorBrother(cod, 'A3')]].map(([cl, v]) => `<td class="py-1 pr-1"><input type="number" min="0" step="0.5" data-cod="${bEsc(cod)}" value="${v}" class="${cl} w-14 px-2 py-1 border rounded text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></td>`).join('')}</tr>`).join('');
     ov.style.display = 'flex';
     ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center"><h3 class="text-lg font-bold">⚙️ Equivalencias de impresión</h3><button onclick="cerrarConfigImpresion()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
@@ -4820,7 +4921,7 @@ async function guardarConfigImpresion() {
     const leerF = cl => { const o = {}; document.querySelectorAll('.' + cl).forEach(i => { const v = parseFloat(i.value); o[i.getAttribute('data-cod')] = isFinite(v) && v >= 0 ? v : 0; }); return o; };
     const factores = leerF('imp-factor'), factoresA4 = leerF('imp-factor-a4'), factoresA3 = leerF('imp-factor-a3'), factoresESC = leerF('imp-factor-esc');
     const tolPct = parseFloat(document.getElementById('imp-tol-pct').value) || 0, tolMin = parseFloat(document.getElementById('imp-tol-min').value) || 0;
-    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, tolPct, tolMin });
+    const r = await enviarDatosAGoogleSheets({ tipo: 'guardarConfigImpresion', factores, factoresA4, factoresA3, factoresESC, pesos: IMP.pesos, costos: IMP.costos, rendKyocera: IMP.rend, flags: IMP.flags, tolPct, tolMin });
     if (!r || r.status !== 'success') return;
     IMP.factores = factores; IMP.factoresA4 = factoresA4; IMP.factoresA3 = factoresA3; IMP.factoresESC = factoresESC; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
     cerrarConfigImpresion(); impRender();
@@ -5058,15 +5159,16 @@ function bVelocidadDe(p, ev, rango) {
         const topeHoy = cons.some(e => e.fecha >= h0) ? bAddD(h0, 1) : h0;
         const fin = hasta > topeHoy ? topeHoy : hasta;
         const dias = Math.max(1, calHabilesEntre(ini, fin));
-        const c = cons.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
+        const c = cons.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant * factorVinculo(e.codigo), 0);   // en unidades del base
         // Si es el producto "base" (el que lleva el stock real, ej. la hoja), cuenta todo lo que le descuenta (impresiones, copias...)
         const u = esBase ? c : propios.filter(e => e.fecha >= desde && e.fecha < hasta).reduce((a, e) => a + e.cant, 0);
         return { u, c, dias, pd: u / dias, cd: c / dias };
     };
     const w7 = ventana(bAddD(h0, -6), bAddD(h0, 1)), w30 = ventana(bAddD(h0, -29), bAddD(h0, 1));
     const wR = rango ? ventana(rango.desde, rango.hasta) : w30;
-    const stock = (inventario.find(x => x.codigo === real) || p).stock;
-    const dRest = wR.cd > 0 ? stock / wR.cd : null;
+    const stockBase = (inventario.find(x => x.codigo === real) || p).stock;
+    const dRest = wR.cd > 0 ? stockBase / wR.cd : null;
+    const fp = factorVinculo(p.codigo), stock = fp === 1 ? stockBase : Math.max(0, Math.floor(stockBase / fp + 1e-9));   // en piezas de ESE producto
     return { p, real, w7, w30, wR, stock, dRest, primera, propiosN: cons.length, incluye: esBase && cons.some(e => e.codigo !== p.codigo) };
 }
 function bResVelocidad(prods, rango, etq) {
