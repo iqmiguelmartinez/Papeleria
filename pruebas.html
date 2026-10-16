@@ -1219,7 +1219,13 @@
         const VINCULOS_STOCK = {};
         const FACTOR_VINCULO = {};   // cuántas unidades del base descuenta 1 pieza (si no aparece, es 1)
         function factorVinculo(cod) { return FACTOR_VINCULO[cod] || 1; }
-        const CLAVE_CACHE_VINC = 'pyp_cache_vinculos';
+        // La copia guardada es por ambiente (pruebas y producción comparten el mismo sitio y no deben mezclar su lista)
+        const CLAVE_CACHE_VINC = 'pyp_cache_vinculos_' + (() => { let h = 0; for (const ch of String(URL_APPS_SCRIPT)) h = (h * 31 + ch.charCodeAt(0)) | 0; return (h >>> 0).toString(36); })();
+        let VINC_DEL_SERVIDOR = false;   // true cuando la lista se leyó del servidor en esta sesión
+        function avisoVinculos(detalle) {
+            if (!tienePermisoAnalisis) return;
+            Swal.fire({ icon: 'warning', title: 'No se pudo leer la lista de vínculos', html: 'Este Apps Script no entrega la lista (<code>getVinculos</code>)' + (detalle ? ': <i>' + escV(detalle) + '</i>' : '') + '.<br><br>Lo más probable es que <b>no tenga publicada la última versión de Codigo.gs</b>: pega el archivo completo y publica una <b>Nueva versión</b> en la <i>misma implementación</i> cuya URL usa esta página.' });
+        }
         function aplicarVinculos(lista, guardar) {
             if (!Array.isArray(lista)) return false;
             Object.keys(VINCULOS_STOCK).forEach(k => delete VINCULOS_STOCK[k]);
@@ -1391,7 +1397,8 @@
             try {
                 const pMas = pedirDato('getMasVendidos'), pTel = pedirDato('getTelefonos'), pTur = pedirDato('getDataTurno'), pVin = pedirDato('getVinculos');
                 let resInv = await pedirDato('getInventario'); inventario = await resInv.json() || [];
-                try { const rv = await pVin; const dv = await rv.json(); aplicarVinculos(dv && dv.vinculos, true); } catch (e) { /* sin red: se queda con la última lista guardada */ }
+                try { const rv = await pVin; const dv = await rv.json(); if (!aplicarVinculos(dv && dv.vinculos, true)) throw new Error('respuesta sin lista'); VINC_DEL_SERVIDOR = true; }
+                catch (e) { VINC_DEL_SERVIDOR = false; if (e && e.code === 'accion') avisoVinculos(e.message); /* sin red: se queda con la última lista guardada de este ambiente */ }
                 renderProductos(); guardarCacheVenta();
                 cargarMasVendidos(pMas); cargarTelefonos(pTel);
                 let resTur = await pTur; let t = await resTur.json();
@@ -4838,8 +4845,11 @@ async function capturarLecturaManual() {
 
 // ---------- 🔗 Vínculos de stock (solo admins): qué producto descuenta de cuál ----------
 let VINC_TMP = [];
-function abrirVinculos() {
+async function abrirVinculos() {
     if (!tienePermisoAnalisis) return;
+    // Se vuelve a leer del servidor: nunca se edita una copia vieja
+    try { const d = await (await apiFetch('getVinculos')).json(); if (!aplicarVinculos(d && d.vinculos, true)) throw new Error('respuesta sin lista'); VINC_DEL_SERVIDOR = true; }
+    catch (e) { VINC_DEL_SERVIDOR = false; return avisoVinculos(e && e.message); }
     VINC_TMP = Object.keys(VINCULOS_STOCK).sort((a, b) => (VINCULOS_STOCK[a] + a).localeCompare(VINCULOS_STOCK[b] + b, 'es', { numeric: true })).map(c => ({ codigo: c, base: VINCULOS_STOCK[c], factor: factorVinculo(c) }));
     vincPintar();
 }
