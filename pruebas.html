@@ -4364,19 +4364,24 @@ function impVivoRender(canales, ahora) {
     const cajas = canales.map(c => {
         const L = c.lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
         const base = L.filter(l => l.t <= ult).pop(), actual = L.length ? L[L.length - 1] : null;
-        const borde = `style="border-left-color:${c.color}"`, caja = 'border-l-4 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-3 py-1.5';
-        const titulo = `<p class="text-[10px] uppercase font-bold" style="color:${c.color}">${c.nombre}</p>`;
+        const caja = 'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex flex-col gap-2 min-h-[150px]';
+        const borde = `style="border-top:3px solid ${c.color}"`;
+        const titulo = `<p class="text-xs uppercase font-bold tracking-wide" style="color:${c.color}">${c.nombre}</p>`;
         const vendido = vendidoDe(c.factor);
-        if (!base || !actual) return `<div class="${caja}" ${borde}>${titulo}<p class="text-[11px] text-gray-400">Este lector aún no tiene lecturas de antes del turno</p></div>`;
+        const aviso = t => `<div class="${caja}" ${borde}>${titulo}<p class="text-xs text-gray-400 my-auto text-center">${t}</p></div>`;
+        if (!base || !actual) return aviso('Este lector aún no tiene lecturas de antes del turno');
         const delta = actual.total - base.total;
-        if (delta < 0) return `<div class="${caja}" ${borde}>${titulo}<p class="text-[11px] text-gray-500">⚙️ El contador se reinició desde el corte</p></div>`;
+        if (delta < 0) return aviso('⚙️ El contador se reinició desde el corte');
         const diff = delta - vendido, umbral = Math.max(IMP.tolMin, (IMP.tolPct / 100) * vendido);
         const ok = Math.abs(diff) <= umbral;
-        const [txt, cls] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400 font-bold'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400 font-bold']);
-        return `<div class="${caja}" ${borde}><div class="flex items-baseline justify-between gap-2">${titulo}<p class="text-lg font-bold leading-none ${cls}">${ok && diff === 0 ? '0' : impSigno(diff)}</p></div>
-            <p class="text-[10px] text-gray-500">contó <b>${bFmt(delta)}</b> · vendido <b>${bFmt(vendido)}</b></p><p class="text-[10px] ${cls}">${txt}</p></div>`;
+        const [txt, cls, bg] = ok ? ['✅ Cuadra', 'text-emerald-600 dark:text-emerald-400', 'bg-emerald-500/15'] : (diff > 0 ? ['⏳ Falta cobrar o hay de más', 'text-red-600 dark:text-red-400', 'bg-red-500/15'] : ['🔎 Cobrado de más', 'text-amber-600 dark:text-amber-400', 'bg-amber-500/15']);
+        const mx = Math.max(delta, vendido, 1), pc = n => Math.max(2, Math.round(n / mx * 100));
+        const barra = (nombre, n, color) => `<div><div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400"><span>${nombre}</span><b class="text-gray-800 dark:text-gray-100 text-sm">${bFmt(n)}</b></div><div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pc(n)}%;background:${color}"></div></div></div>`;
+        return `<div class="${caja}" ${borde}><div class="flex items-start justify-between gap-2">${titulo}<p class="text-3xl font-extrabold leading-none ${cls}">${diff === 0 ? '0' : impSigno(diff)}</p></div>
+            ${barra('Contador', delta, c.color)}${barra('Vendido', vendido, '#94a3b8')}
+            <p class="mt-auto text-center text-xs font-bold rounded-md py-1 ${bg} ${cls}">${txt}</p></div>`;
     });
-    el.innerHTML = cab + `<div class="grid grid-cols-2 lg:grid-cols-4 gap-2">${cajas.join('')}</div>`;
+    el.innerHTML = cab + `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${cajas.join('')}</div>`;
 }
 // Refresca ventas del turno y lecturas sin recargar toda la pestaña
 async function impRefrescarVivo() {
@@ -4441,7 +4446,7 @@ function impRender() {
         return { c, con: con.length, sDelta, sPos, diff, alertas, dinero: diff > 0 ? diff * porPag : 0 };
     });
     const res = document.getElementById('imp-resumen');
-    if (res) res.innerHTML = resumen.map(r => {
+    if (res) res.innerHTML = !resumen.some(r => r.con) ? '<p class="col-span-full text-[11px] text-gray-500">📊 Historial por corte: todavía no hay cortes con lecturas para comparar (aparece después del siguiente corte).</p>' : resumen.map(r => {
         const caja = `border-l-4 rounded-lg bg-gray-50 dark:bg-gray-900/40 border dark:border-gray-700 px-3 py-1.5`;
         const borde = `style="border-left-color:${r.c.color}"`;
         if (!r.con) return `<div class="${caja}" ${borde}><p class="text-[10px] uppercase font-bold" style="color:${r.c.color}">${r.c.nombre}</p><p class="text-[11px] text-gray-400">Sin cortes con lecturas todavía</p></div>`;
@@ -4477,10 +4482,11 @@ function impRender() {
     const tab = document.getElementById('imp-tabla');
     if (tab) {
         const cab = `<thead class="text-gray-600 dark:text-gray-300 uppercase"><tr><th class="${th}">Día</th><th class="${th}">Cortes</th>${canales.map(c => `<th class="${th}" style="color:${c.color}">${c.nombre}</th>`).join('')}</tr></thead>`;
-        const cuerpo = idxUtil.length ? `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs">${cab}<tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${idxUtil.slice().reverse().map(filaDia).join('')}</tbody></table></div>`
-            : '<p class="text-sm text-gray-500">Todavía no hay cortes con lecturas para comparar. Cada corte se compara con el anterior, así que el primer resultado aparece en el segundo corte con lecturas.</p>';
+        const hayDatos = idxUtil.some(i => canales.some(c => c.filas[i].delta !== null || c.filas[i].estado === 'sincorte'));
+        const cuerpo = hayDatos ? `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs">${cab}<tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${idxUtil.slice().reverse().map(filaDia).join('')}</tbody></table></div>`
+            : '';
         const vacios = idxVacio.length ? `<details class="mt-1 text-[11px] text-gray-500"><summary class="cursor-pointer select-none">${idxVacio.length} día${idxVacio.length === 1 ? '' : 's'} anterior${idxVacio.length === 1 ? '' : 'es'} sin lecturas de las impresoras (sin datos aún o sin corte)</summary><p class="mt-1 leading-relaxed">${idxVacio.slice().reverse().map(i => bEsc(corto(dias[i]))).join(' · ')}</p></details>` : '';
-        tab.innerHTML = cuerpo + vacios + `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * algún corte sin referencia.</p>`;
+        tab.innerHTML = cuerpo + vacios + (!hayDatos ? '' : `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * algún corte sin referencia.</p>`);
     }
 
     // Gráfico: diferencia diaria (contador − cobrado); se oculta si todavía no hay datos
