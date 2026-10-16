@@ -4292,7 +4292,9 @@ function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora) {
         c.arts.forEach(a => { const f = factorDe(a.codigo), q = Number(a.cantidad) || 0; if (f > 0 && q) { c.pos += q * f; c.ing += Number(a.total) || 0; } });
         c.estado = 'ok'; c.delta = null;
         if (i === 0) { c.estado = 'sinprevia'; return; }
-        const a = contadorEn(C[i - 1].t), b = contadorEn(c.t);
+        let a = contadorEn(C[i - 1].t); const b = contadorEn(c.t);
+        // El lector empezó a leer después del corte anterior: se compara desde su primera lectura (aproximado), si fue dentro de las 36 h siguientes
+        if (!a && b) { const prim = L.find(l => l.t > C[i - 1].t); if (prim && prim.t - C[i - 1].t <= 36 * 3600000 && prim.t <= c.t) { a = prim; c.aprox = true; } }
         if (!a || !b) { c.estado = 'sinlectura'; return; }
         c.delta = b.total - a.total;
         if (c.delta < 0) c.estado = 'reinicio';
@@ -4311,7 +4313,7 @@ function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora) {
         if (!validos.length) { fila.estado = delDia.some(c => c.estado === 'reinicio') ? 'reinicio' : delDia[0].estado; return fila; }
         validos.forEach(c => { fila.delta += c.delta; fila.pos += c.pos; fila.ing += c.ing; });
         fila.delta = validos.reduce((s, c) => s + c.delta, 0);
-        fila.parcial = validos.length < delDia.length;
+        fila.parcial = validos.length < delDia.length || validos.some(c => c.aprox);
         fila.diff = fila.delta - fila.pos;
         fila.pct = fila.pos > 0 ? (fila.diff / fila.pos) * 100 : null;
         const umbral = Math.max(tolMin, (tolPct / 100) * fila.pos);
@@ -4375,14 +4377,18 @@ function impVivoRender(canales, ahora) {
     };
     // Cierre del día: si el último corte fue en o después de la hora de cierre y no hay ventas nuevas, el turno ya no está abierto
     const HORA_CIERRE = 18;
-    if (!ventas.length && C.length && C[0].getHours() >= HORA_CIERRE) {
-        const dCorte = C[0], etiqueta = dCorte.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+    // Cierre: sin ventas nuevas y el último corte fue de un día anterior, o de hoy a partir de las 17:30, o de hoy una vez pasada la hora de cierre
+    const mismoDia = (x, y) => x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+    const cierraDia = !ventas.length && C.length && (!mismoDia(C[0], ahora) || C[0].getHours() * 60 + C[0].getMinutes() >= HORA_CIERRE * 60 - 30 || ahora.getHours() >= HORA_CIERRE);
+    if (cierraDia) {
+        const dCorte = C[0], esHoy = mismoDia(dCorte, ahora), etiqueta = esHoy ? 'hoy' : dCorte.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
         const tarj = canales.map(c => {
             const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime()));
             if (!f || f.diff === null) return tarjeta(c, 0, 0, 'Sin lecturas suficientes para comparar el cierre');
             return tarjeta(c, f.delta, f.pos);
         });
-        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 Día cerrado <span class="font-normal text-gray-500">· ${etiqueta} · corte de las ${hhmm(dCorte)} · sin ventas nuevas. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${tarj.join('')}</div>`;
+        const aprox = canales.some(c => { const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime())); return f && f.parcial; });
+        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 ${esHoy ? 'Comparación final de hoy' : 'Comparación final del ' + etiqueta} <span class="font-normal text-gray-500">· corte de las ${hhmm(dCorte)} · sin ventas nuevas${aprox ? ' · aproximada (el lector empezó a leer después del corte anterior)' : ''}. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">${tarj.join('')}</div>`;
         return;
     }
     const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">${sinCorte ? 'desde las' : 'desde el corte de las'} ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}${sinCorte ? ' (inicio del turno)' : ''}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
@@ -4483,7 +4489,7 @@ function impRender() {
     const celda = f => {
         const [txt, cls] = impEstados[f.estado] || ['', ''];
         if (f.diff === null) return f.delta === null ? `<span class="text-gray-300 dark:text-gray-600" title="${txt}">—</span>` : `<b>${bFmt(f.delta)}</b> <span class="text-[10px] text-gray-400">en curso</span>`;
-        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Algún corte del día no tuvo referencia">*</span>' : ''}`;
+        return `<b>${bFmt(f.delta)}</b><span class="text-gray-400"> / ${bFmt(f.pos)}</span> <span class="${cls}" title="${txt}"><b>${impSigno(f.diff)}</b>${f.estado === 'ok' ? ' ✅' : (f.estado === 'sobra' ? ' ⚠️' : ' 🔎')}</span>${f.parcial ? ' <span class="text-[10px] text-gray-400" title="Aproximado: el lector empezó a leer después del corte anterior, o algún corte no tuvo referencia">*</span>' : ''}`;
     };
     const th = 'py-1 px-2 sticky top-0 bg-gray-50 dark:bg-gray-700';
     const filaDia = i => {
@@ -4500,7 +4506,7 @@ function impRender() {
         const cuerpo = hayDatos ? `<div class="overflow-x-auto border dark:border-gray-700 rounded-lg"><table class="w-full text-left border-collapse text-xs">${cab}<tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">${idxUtil.slice().reverse().map(filaDia).join('')}</tbody></table></div>`
             : '';
         const vacios = idxVacio.length ? `<details class="mt-1 text-[11px] text-gray-500"><summary class="cursor-pointer select-none">${idxVacio.length} día${idxVacio.length === 1 ? '' : 's'} anterior${idxVacio.length === 1 ? '' : 'es'} sin lecturas de las impresoras (sin datos aún o sin corte)</summary><p class="mt-1 leading-relaxed">${idxVacio.slice().reverse().map(i => bEsc(corto(dias[i]))).join(' · ')}</p></details>` : '';
-        tab.innerHTML = cuerpo + vacios + (!hayDatos ? '' : `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * algún corte sin referencia.</p>`);
+        tab.innerHTML = cuerpo + vacios + (!hayDatos ? '' : `<p class="text-[10px] text-gray-400 mt-1">Cada celda: <b>contó</b> / cobró · diferencia. ✅ cuadra · ⚠️ imprimió de más · 🔎 se cobró de más · * aproximado (el lector empezó después del corte anterior).</p>`);
     }
 
     // Gráfico: diferencia diaria (contador − cobrado); se oculta si todavía no hay datos
