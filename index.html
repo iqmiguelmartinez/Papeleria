@@ -218,6 +218,7 @@
                 <button onclick="cambiarTab('inventario')" id="btn-tab-inventario" data-tab="inventario" title="Inventario" style="--c:#f59e0b" class="tabbtn"><span class="ti">📦</span><span>Inventario</span></button>
                 <button onclick="cambiarTab('retiros')" id="btn-tab-retiros" data-tab="retiros" title="Retiros / Gastos" style="--c:#f43f5e" class="tabbtn"><span class="ti">💸</span><span>Retiros</span></button>
                 <button onclick="cambiarTab('corte')" id="btn-tab-corte" data-tab="corte" title="Corte Diario" style="--c:#8b5cf6" class="tabbtn"><span class="ti">📊</span><span>Corte</span></button>
+                <button onclick="cambiarTab('creditos')" id="btn-tab-creditos" data-tab="creditos" title="Cuentas por cobrar" style="--c:#d97706" class="tabbtn"><span class="ti">🧾</span><span>Por cobrar</span></button>
                 <div id="grp-admin" class="hidden items-center gap-1">
                     <span class="mx-1.5 h-6 w-px bg-gray-200 dark:bg-gray-600"></span>
                     <span class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mr-1">Admin</span>
@@ -266,11 +267,21 @@
                         <span class="text-sm" style="color:var(--v-mut)">Total</span>
                         <span id="total-venta" style="font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--v-ink)">$0.00</span>
                     </div>
-                    <span class="text-xs font-semibold" style="color:var(--v-mut)">Cliente paga con</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-semibold" style="color:var(--v-mut)" id="v-paga-lbl">Cliente paga con</span>
+                        <button type="button" id="v-credito-btn" class="v-chip" onclick="toggleCredito()" title="Dejar la venta a cuenta de una persona">🧾 A crédito</button>
+                    </div>
+                    <div id="v-credito-box" class="hidden flex flex-col gap-1">
+                        <input id="v-cliente" list="v-clientes-lista" type="text" maxlength="60" autocomplete="off" placeholder="Nombre de la persona" class="v-search" style="font-size:16px;padding:8px 10px;border-width:1px" oninput="actualizarCobroInline()" onkeydown="if(event.key==='Enter'){event.preventDefault();procesarVenta();}">
+                        <datalist id="v-clientes-lista"></datalist>
+                        <span class="text-xs" style="color:var(--v-mut)">El inventario y las impresiones se cuentan hoy; el dinero entra a caja cuando la persona pague.</span>
+                    </div>
+                    <div id="v-contado-box" class="flex flex-col gap-2">
                     <div id="v-rapidos" class="flex flex-wrap gap-1.5"></div>
-                    <div class="flex gap-2 items-stretch">
-                        <label class="v-pay"><span>$</span><input id="v-efectivo" type="text" inputmode="decimal" autocomplete="off" placeholder="Otro monto" oninput="actualizarCobroInline()" onkeydown="if(event.key==='Enter'){event.preventDefault();procesarVenta();}"></label>
-                        <div id="v-cambio-box" class="v-cambio"><span id="v-cambio-lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em">Cambio</span><span id="v-cambio-txt" style="font-size:20px;font-weight:800">$0.00</span></div>
+                        <div class="flex gap-2 items-stretch">
+                            <label class="v-pay"><span>$</span><input id="v-efectivo" type="text" inputmode="decimal" autocomplete="off" placeholder="Otro monto" oninput="actualizarCobroInline()" onkeydown="if(event.key==='Enter'){event.preventDefault();procesarVenta();}"></label>
+                            <div id="v-cambio-box" class="v-cambio"><span id="v-cambio-lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em">Cambio</span><span id="v-cambio-txt" style="font-size:20px;font-weight:800">$0.00</span></div>
+                        </div>
                     </div>
                     <div class="relative">
                         <label for="v-tel" class="text-xs font-semibold" style="color:var(--v-mut)">WhatsApp del cliente <span style="font-weight:400">(opcional)</span></label>
@@ -539,6 +550,17 @@
                     <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
             </div>
+            <div class="grid grid-cols-2 gap-4 mb-3 shrink-0">
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50" title="Vendido hoy a crédito: no entra a caja hasta que la persona pague">
+                    <p class="text-xs text-amber-700 dark:text-amber-400 font-medium">Fiado hoy (no entra a caja)</p>
+                    <p id="corte-fiado" class="text-lg font-bold text-amber-800 dark:text-amber-200">-$0.00</p>
+                </div>
+                <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-xl border border-teal-100 dark:border-teal-900/50" title="Pagos de cuentas a crédito recibidos en este turno">
+                    <p class="text-xs text-teal-700 dark:text-teal-400 font-medium">Cobros de cuentas</p>
+                    <p id="corte-cobros" class="text-lg font-bold text-teal-800 dark:text-teal-200">+$0.00</p>
+                </div>
+            </div>
+            <div id="corte-credito-detalle" class="hidden mb-4 shrink-0 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3 space-y-1"></div>
 
 
             <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Resumen de Artículos Vendidos</h3>
@@ -565,6 +587,24 @@
             <div id="historial-cortes-container" class="space-y-3 shrink-0 max-h-28 overflow-y-auto">
                 <p class="text-sm text-gray-400 dark:text-gray-500">No se han realizado cortes en este día.</p>
             </div>
+        </div>
+
+        <!-- SECCIÓN: CUENTAS POR COBRAR (crédito) -->
+        <div id="tab-creditos" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">🧾 Cuentas por cobrar</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Lo que se dejó a crédito. Cuando la persona paga, el dinero entra al corte de ese día.</p>
+                </div>
+                <div class="bg-amber-50 dark:bg-amber-950/40 px-4 py-2 rounded-xl border border-amber-100 dark:border-amber-900/50 text-right">
+                    <p class="text-xs text-amber-700 dark:text-amber-400 font-medium">Total por cobrar</p>
+                    <p id="cred-total" class="text-2xl font-bold text-amber-800 dark:text-amber-200">$0.00</p>
+                </div>
+            </div>
+            <input id="cred-buscar" type="text" placeholder="Buscar persona..." oninput="renderCreditos()" class="shrink-0 mb-3 w-full md:w-80 px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <div id="cred-lista" class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5"></div>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0 text-sm">Pagos recientes</h3>
+            <div id="cred-abonos" class="text-sm space-y-1 text-gray-600 dark:text-gray-300"></div>
         </div>
 
         <!-- SECCIÓN: LOG DE ACTIVIDAD -->
@@ -1106,6 +1146,8 @@
             </div>
             <div style="margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Ventas Totales:</span><span id="print-corte-v" style="font-size: 12px; color: #2563eb; font-weight: bold;">$0.00</span></div>
+                <div id="print-corte-f-row" style="display: none; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Fiado (a crédito):</span><span id="print-corte-f" style="font-size: 12px; color: #b45309; font-weight: bold;">$0.00</span></div>
+                <div id="print-corte-c-row" style="display: none; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Cobros de cuentas:</span><span id="print-corte-c" style="font-size: 12px; color: #0f766e; font-weight: bold;">$0.00</span></div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; font-weight: bold;">Retiros/Gastos:</span><span id="print-corte-r" style="font-size: 12px; color: #dc2626; font-weight: bold;">$0.00</span></div>
                 <div style="display: flex; justify-content: space-between; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px;"><span style="font-size: 14px; font-weight: bold;">Efectivo en Caja:</span><span id="print-corte-n" style="font-size: 14px; color: #059669; font-weight: bold;">$0.00</span></div>
             </div>
@@ -1131,6 +1173,7 @@
             <button onclick="cambiarTab('inventario')" id="nm-inventario" data-tab="inventario" style="--c:#f59e0b" class="navbtn"><span class="ni">📦</span><span>Inventario</span></button>
             <button onclick="cambiarTab('retiros')" id="nm-retiros" data-tab="retiros" style="--c:#f43f5e" class="navbtn"><span class="ni">💸</span><span>Retiros</span></button>
             <button onclick="cambiarTab('corte')" id="nm-corte" data-tab="corte" style="--c:#8b5cf6" class="navbtn"><span class="ni">📊</span><span>Corte</span></button>
+            <button onclick="cambiarTab('creditos')" id="nm-creditos" data-tab="creditos" style="--c:#d97706" class="navbtn"><span class="ni">🧾</span><span>Por cobrar</span></button>
             <button onclick="cambiarTab('analisis')" id="nm-analisis" data-tab="analisis" style="--c:#10b981" class="navbtn hidden"><span class="ni">📈</span><span>Análisis</span></button>
             <button onclick="cambiarTab('ventasPasadas')" id="nm-ventasPasadas" data-tab="ventasPasadas" style="--c:#06b6d4" class="navbtn hidden"><span class="ni">📜</span><span>Pasadas</span></button>
             <button onclick="cambiarTab('inversion')" id="nm-inversion" data-tab="inversion" style="--c:#6366f1" class="navbtn hidden"><span class="ni">💼</span><span>Gastos</span></button>
@@ -1221,6 +1264,10 @@
         function factorVinculo(cod) { return FACTOR_VINCULO[cod] || 1; }
         // La copia guardada es por ambiente (pruebas y producción comparten el mismo sitio y no deben mezclar su lista)
         const CLAVE_CACHE_VINC = 'pyp_cache_vinculos_' + (() => { let h = 0; for (const ch of String(URL_APPS_SCRIPT)) h = (h * 31 + ch.charCodeAt(0)) | 0; return (h >>> 0).toString(36); })();
+        // Último recurso: si el servidor no entrega la lista (Apps Script desactualizado o sin red) y no hay copia guardada,
+        // se usa esta para que las ventas y la auditoría sigan funcionando. El paquete de 500 NO va aquí: un servidor viejo no sabe descontarlo.
+        const VINCULOS_RESPALDO = ['IMP001', 'IMP002', 'IMP003', 'IMP004', 'IMP005', 'IMP006', 'IMP007', 'IMP008', 'IMP009', 'IMP010', 'IMP011', 'IMP016', 'IMP017', 'IMP018'].map(c => ({ codigo: c, base: 'HOJ008', factor: 1 }))
+            .concat(['IMP012', 'IMP013', 'IMP014', 'IMP015'].map(c => ({ codigo: c, base: 'HOJ009', factor: 1 })));
         let VINC_DEL_SERVIDOR = false;   // true cuando la lista se leyó del servidor en esta sesión
         function avisoVinculos(detalle) {
             if (!tienePermisoAnalisis) return;
@@ -1243,6 +1290,8 @@
         let carrito = [];
         let ventasActivas = [];
         let retirosActivos = [];
+        let abonosActivos = [];      // cobros de cuentas a crédito hechos en este turno (entran a la caja de hoy)
+        let modoCredito = false;     // el ticket actual se cobra a una cuenta a crédito
         let cortesRealizados = [];
         let cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
 
@@ -1351,7 +1400,7 @@
             if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'log', 'analisis', 'caja', 'buscador', 'impresiones'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'creditos', 'log', 'analisis', 'caja', 'buscador', 'impresiones'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
             });
@@ -1365,6 +1414,7 @@
             if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis();
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
+            if(tab === 'creditos') { renderCreditos(); cargarCreditos(); }
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja();
             if(tab === 'buscador') iniciarBuscador();
@@ -1398,13 +1448,14 @@
                 const pMas = pedirDato('getMasVendidos'), pTel = pedirDato('getTelefonos'), pTur = pedirDato('getDataTurno'), pVin = pedirDato('getVinculos');
                 let resInv = await pedirDato('getInventario'); inventario = await resInv.json() || [];
                 try { const rv = await pVin; const dv = await rv.json(); if (!aplicarVinculos(dv && dv.vinculos, true)) throw new Error('respuesta sin lista'); VINC_DEL_SERVIDOR = true; }
-                catch (e) { VINC_DEL_SERVIDOR = false; if (e && e.code === 'accion') avisoVinculos(e.message); /* sin red: se queda con la última lista guardada de este ambiente */ }
+                catch (e) { VINC_DEL_SERVIDOR = false; if (!Object.keys(VINCULOS_STOCK).length) aplicarVinculos(VINCULOS_RESPALDO, false); if (e && e.code === 'accion') avisoVinculos(e.message); /* sin red: se queda con la última lista guardada de este ambiente */ }
                 renderProductos(); guardarCacheVenta();
                 cargarMasVendidos(pMas); cargarTelefonos(pTel);
                 let resTur = await pTur; let t = await resTur.json();
                 precarga = null;
-                if(t){ ventasActivas=t.ventasActivas||[]; retirosActivos=t.retirosActivos||[]; cortesRealizados=t.cortesRealizados||[]; }
+                if(t){ ventasActivas=t.ventasActivas||[]; retirosActivos=t.retirosActivos||[]; abonosActivos=t.abonosActivos||[]; cortesRealizados=t.cortesRealizados||[]; }
                 renderRetiros(); renderCorte();
+                cargarCreditos(true);
             } catch (e) { console.error(e); }
         }
 
@@ -1764,10 +1815,33 @@
             renderProductos();
         }
         function elegirPago(v) { let e = document.getElementById('v-efectivo'); e.value = v; actualizarCobroInline(); }
+        function clienteCredito() { let e = document.getElementById('v-cliente'); return String(e ? e.value : '').replace(/\s+/g, ' ').trim().slice(0, 60); }
+        function toggleCredito(forzar) {
+            modoCredito = typeof forzar === 'boolean' ? forzar : !modoCredito;
+            document.getElementById('v-credito-box').classList.toggle('hidden', !modoCredito);
+            document.getElementById('v-contado-box').classList.toggle('hidden', modoCredito);
+            document.getElementById('v-credito-btn').classList.toggle('on', modoCredito);
+            document.getElementById('v-paga-lbl').innerText = modoCredito ? 'Cuenta a crédito' : 'Cliente paga con';
+            let b = document.getElementById('btn-cobrar'); if (b) b.style.background = modoCredito ? '#b45309' : '';
+            if (modoCredito) { listarClientesCredito(); setTimeout(() => { let c = document.getElementById('v-cliente'); if (c) c.focus(); }, 30); }
+            actualizarCobroInline();
+        }
+        function listarClientesCredito() {
+            let dl = document.getElementById('v-clientes-lista'); if (!dl) return;
+            let nombres = {}; (cuentasCredito.cuentas || []).forEach(c => { nombres[normCliente(c.cliente)] = c.cliente; });
+            dl.innerHTML = Object.values(nombres).sort((a, b) => a.localeCompare(b, 'es')).map(n => `<option value="${escV(n)}">`).join('');
+        }
+        function normCliente(n) { return String(n == null ? '' : n).replace(/\s+/g, ' ').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
         function efectivoRecibido() { let e = document.getElementById('v-efectivo'); let v = parseFloat(String(e ? e.value : '').replace(/,/g, '')); return isNaN(v) ? null : v; }
         function actualizarCobroInline() {
             let t = totalCarrito(), ef = efectivoRecibido(), box = document.getElementById('v-cambio-box');
             if (!box) return;
+            if (modoCredito) {
+                let nom = clienteCredito(), bc = document.getElementById('btn-cobrar');
+                bc.disabled = carrito.length === 0 || !nom || cobrando;
+                bc.innerText = !carrito.length ? 'Cobrar y registrar' : (nom ? `A crédito de ${nom} · $${t.toFixed(2)}` : 'Escribe el nombre de la persona');
+                return;
+            }
             let falta = ef !== null && ef + 0.001 < t;
             box.classList.toggle('falta', falta);
             document.getElementById('v-cambio-lbl').innerText = falta ? 'Falta' : 'Cambio';
@@ -1779,7 +1853,9 @@
 
         async function procesarVenta() {
             if (carrito.length === 0 || cobrando) return;
-            let t = totalCarrito(), ef = efectivoRecibido();
+            let t = totalCarrito(), ef = modoCredito ? null : efectivoRecibido();
+            let clienteCr = modoCredito ? clienteCredito() : '';
+            if (modoCredito && !clienteCr) { Swal.fire('Falta el nombre', 'Escribe el nombre de la persona a la que se le deja a crédito.', 'warning'); return; }
             if (ef !== null && ef + 0.001 < t) { Swal.fire('Efectivo insuficiente', 'El efectivo recibido no cubre el total de la venta.', 'warning'); return; }
             let cambio = ef !== null ? ef - t : 0;
             let tel = ((document.getElementById('v-tel') || {}).value || '').trim();
@@ -1799,7 +1875,7 @@
                 if(p) p.stock -= i.cantidad * factorVinculo(i.codigo); 
             });
             
-            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr, credito: clienteCr });
             
             await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
@@ -1807,7 +1883,8 @@
                 productos: [...carrito], 
                 total: t, 
                 telefono: telStr, 
-                whatsappEnviado: waStr 
+                whatsappEnviado: waStr,
+                credito: clienteCr ? { cliente: clienteCr } : undefined
             });
             
             if (wa) {
@@ -1815,28 +1892,98 @@
                 let ahora = new Date();
                 let fechaActual = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
                 let lineasDetalle = carrito.map(i => `- ${Number(i.cantidad.toFixed(2))} × ${i.nombre}  —  *$${(i.precio * i.cantidad).toFixed(2)}*`).join('\n');
-                let pago = ef !== null ? `\nEfectivo recibido: $${ef.toFixed(2)}\nCambio: $${cambio.toFixed(2)}` : '';
+                let pago = clienteCr ? `\nA CRÉDITO — pendiente de pago (${clienteCr})` : (ef !== null ? `\nEfectivo recibido: $${ef.toFixed(2)}\nCambio: $${cambio.toFixed(2)}` : '');
                 let textoWA = `*PIXEL Y PAPEL*\n_Ticket de compra_\n\nFecha: ${fechaActual}\n\n*Detalle*\n${lineasDetalle}\n\n━━━━━━━━━━━━━━\n*TOTAL: $${t.toFixed(2)}*${pago}\n━━━━━━━━━━━━━━\n\n¡Gracias por tu preferencia!\n_Pixel y Papel_`;
                 window.open(`https://wa.me/${numeroLimpio}?text=` + encodeURIComponent(textoWA), '_blank');
             }
             
             if (wa) { let n10 = numeroLimpio.length === 12 && numeroLimpio.startsWith('52') ? numeroLimpio.slice(2) : numeroLimpio; telefonos = [n10].concat(telefonos.filter(t => t !== n10)); }
             carrito = [];
-            ['v-efectivo', 'v-tel'].forEach(id => { let e = document.getElementById(id); if (e) e.value = ''; });
+            ['v-efectivo', 'v-tel', 'v-cliente'].forEach(id => { let e = document.getElementById(id); if (e) e.value = ''; });
             } finally { cobrando = false; }
+            if (clienteCr) { toggleCredito(false); cargarCreditos(true); }
             renderCarrito();
             // Aviso sin bloquear la pantalla: el cajero ve el cambio y sigue con el siguiente cliente
-            avisoVentaOk(cambio);
+            avisoVentaOk(cambio, clienteCr, t);
             let bp = document.getElementById('buscar-producto'); if (bp && window.innerWidth >= 1024) bp.focus();
         }
 
         // Aviso grande y verde, centrado arriba; se cierra solo a los 4 segundos
-        function avisoVentaOk(cambio) {
+        function avisoVentaOk(cambio, clienteCr, total) {
             Swal.fire({
-                toast: true, position: 'top', icon: 'success', iconColor: '#ffffff', background: '#047857', color: '#ffffff',
-                html: `<div class="v-t1">Venta registrada</div>` + (cambio > 0 ? `<div class="v-t2">Cambio $${cambio.toFixed(2)}</div>` : ''),
+                toast: true, position: 'top', icon: 'success', iconColor: '#ffffff', background: clienteCr ? '#b45309' : '#047857', color: '#ffffff',
+                html: clienteCr ? `<div class="v-t1">Dejado a crédito</div><div class="v-t2">${escV(clienteCr)} · $${(total || 0).toFixed(2)}</div>` : `<div class="v-t1">Venta registrada</div>` + (cambio > 0 ? `<div class="v-t2">Cambio $${cambio.toFixed(2)}</div>` : ''),
                 showConfirmButton: false, timer: 4000, timerProgressBar: true, customClass: { popup: 'v-toast-ok' }
             });
+        }
+
+        /* ======== CUENTAS A CRÉDITO ======== */
+        let cuentasCredito = { cuentas: [], abonos: [] };
+        async function cargarCreditos(silencioso) {
+            try {
+                const d = await (await apiFetch('getCreditos')).json();
+                if (d && Array.isArray(d.cuentas)) cuentasCredito = d;
+            } catch (e) { if (!silencioso) Swal.fire('No se pudo cargar', (e && e.message) || 'Revisa tu conexión.', 'warning'); }
+            listarClientesCredito();
+            let t = document.getElementById('tab-creditos'); if (t && !t.classList.contains('hidden')) renderCreditos();
+        }
+        // Agrupa las partidas abiertas por persona (sin importar mayúsculas ni acentos); la deuda más vieja va primero
+        function clientesConDeuda() {
+            const mapa = {};
+            (cuentasCredito.cuentas || []).filter(c => c.estado === 'ABIERTA').forEach(c => {
+                const k = normCliente(c.cliente); if (!k) return;
+                const m = mapa[k] || (mapa[k] = { k, nombre: c.cliente, partidas: [], saldo: 0, desde: Infinity });
+                const saldo = Math.round((c.total - c.abonado) * 100) / 100;
+                m.partidas.push({ ...c, saldo }); m.saldo = Math.round((m.saldo + saldo) * 100) / 100; m.desde = Math.min(m.desde, new Date(c.fecha).getTime() || Infinity);
+            });
+            return Object.values(mapa).sort((a, b) => a.desde - b.desde);
+        }
+        function renderCreditos() {
+            const lista = document.getElementById('cred-lista'); if (!lista) return;
+            const todos = clientesConDeuda(), q = normCliente((document.getElementById('cred-buscar') || {}).value || '');
+            document.getElementById('cred-total').innerText = '$' + formatMiles(todos.reduce((a, c) => a + c.saldo, 0));
+            const vis = todos.filter(c => !q || c.k.includes(q));
+            const fmtF = ms => isFinite(ms) ? new Date(ms).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—';
+            lista.innerHTML = vis.length ? vis.map(c => {
+                const dias = isFinite(c.desde) ? Math.floor((Date.now() - c.desde) / 86400000) : 0;
+                const partidas = c.partidas.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(p => `<div class="flex justify-between items-start gap-2 py-1 border-t border-gray-100 dark:border-gray-700 text-xs">
+                        <span class="text-gray-600 dark:text-gray-300"><b>${fmtF(new Date(p.fecha).getTime())}</b> · ${escV(p.detalle)}${p.abonado > 0 ? ` <i class="text-teal-600">(abonó $${formatMiles(p.abonado)} de $${formatMiles(p.total)})</i>` : ''}</span>
+                        <span class="whitespace-nowrap font-semibold">$${formatMiles(p.saldo)}${tienePermisoAnalisis ? ` <button type="button" class="ml-1 text-[10px] text-red-500 underline" onclick="perdonarCredito('${escV(p.id)}')">perdonar</button>` : ''}</span>
+                    </div>`).join('');
+                return `<div class="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-gray-700/40">
+                    <div class="flex justify-between items-start gap-3 mb-1">
+                        <div><p class="font-bold text-gray-800 dark:text-white">${escV(c.nombre)}</p><p class="text-[11px] text-gray-500">desde ${fmtF(c.desde)} · ${dias === 0 ? 'hoy' : dias + (dias === 1 ? ' día' : ' días')}</p></div>
+                        <div class="text-right"><p class="text-xl font-extrabold text-amber-700 dark:text-amber-300">$${formatMiles(c.saldo)}</p>
+                        <button type="button" onclick="cobrarCredito('${escV(c.k)}')" class="mt-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer">Cobrar</button></div>
+                    </div>${partidas}</div>`;
+            }).join('') : `<p class="text-sm text-gray-400 col-span-full">${todos.length ? 'Nadie coincide con la búsqueda.' : 'No hay cuentas por cobrar. 🎉'}</p>`;
+            const ab = document.getElementById('cred-abonos');
+            ab.innerHTML = (cuentasCredito.abonos || []).slice(0, 15).map(a => `<div class="flex justify-between gap-3 border-b border-gray-100 dark:border-gray-700 pb-1"><span>${new Date(a.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · <b>${escV(a.cliente)}</b> <span class="text-gray-400">(${escV(a.usuario)})</span></span><span class="text-emerald-600 font-semibold">+$${formatMiles(a.monto)}</span></div>`).join('') || '<p class="text-gray-400">Aún no hay pagos.</p>';
+        }
+        async function cobrarCredito(k) {
+            const c = clientesConDeuda().find(x => x.k === k); if (!c) return;
+            const r = await Swal.fire({
+                title: `Cobrar a ${c.nombre}`,
+                html: `<p style="margin-bottom:8px">Debe <b>$${formatMiles(c.saldo)}</b></p><input id="cred-monto" type="number" step="0.01" min="0.01" max="${c.saldo}" value="${c.saldo}" class="swal2-input" style="margin:0 auto;width:80%"><p style="margin-top:10px;font-size:12px;color:#6b7280">Se aplica primero a lo más viejo. El dinero entra al corte de hoy.</p>`,
+                showCancelButton: true, confirmButtonText: 'Registrar pago', cancelButtonText: 'Cancelar', confirmButtonColor: '#059669',
+                focusConfirm: false, didOpen: () => { const e = document.getElementById('cred-monto'); if (e) { e.focus(); e.select(); } },
+                preConfirm: () => { const v = Math.round(parseFloat(document.getElementById('cred-monto').value) * 100) / 100; if (!(v > 0) || v > c.saldo + 0.005) { Swal.showValidationMessage('Escribe un monto entre $0.01 y $' + c.saldo.toFixed(2)); return false; } return v; }
+            });
+            if (!r.isConfirmed) return;
+            Swal.fire({ title: 'Registrando pago...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const res = await enviarDatosAGoogleSheets({ tipo: 'abonoCredito', cliente: c.nombre, monto: r.value });
+            if (res && res.status === 'success') {
+                abonosActivos.push({ hora: new Date().toLocaleTimeString(), cliente: c.nombre, monto: r.value, usuario: '' });
+                await cargarCreditos(true); renderCorte();
+                Swal.fire({ icon: 'success', title: res.saldo > 0 ? `Pago registrado · aún debe $${formatMiles(res.saldo)}` : 'Cuenta liquidada', timer: 2500, showConfirmButton: false });
+            } else Swal.close();
+        }
+        async function perdonarCredito(id) {
+            if (!tienePermisoAnalisis) return;
+            const r = await Swal.fire({ icon: 'warning', title: '¿Perdonar esta deuda?', text: 'Se da por cerrada sin cobrarla. No regresa inventario ni mueve la caja.', showCancelButton: true, confirmButtonText: 'Sí, perdonar', cancelButtonText: 'Cancelar', confirmButtonColor: '#dc2626', focusCancel: true });
+            if (!r.isConfirmed) return;
+            const res = await enviarDatosAGoogleSheets({ tipo: 'perdonarCredito', id });
+            if (res && res.status === 'success') cargarCreditos(true);
         }
 
         /* ======== INVENTARIO ======== */
@@ -2058,9 +2205,24 @@
             let tb = document.getElementById('tabla-retiros-historial'); if(!tb)return; tb.innerHTML="";
             retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}</td></tr>`);
         }
+        // Totales del turno. Ventas = todo lo vendido (incluye lo dejado a crédito); Fiado = parte que NO entra a caja hoy;
+        // Cobros = pagos de cuentas a crédito recibidos hoy (sí entran a caja); Efectivo = ventas - fiado + cobros - retiros.
+        function resumenTurno() {
+            let tV = ventasActivas.reduce((a, v) => a + v.total, 0), tR = retirosActivos.reduce((a, r) => a + r.monto, 0);
+            let tF = ventasActivas.filter(v => v.credito).reduce((a, v) => a + v.total, 0), tC = abonosActivos.reduce((a, x) => a + x.monto, 0);
+            return { tV, tR, tF, tC, neto: tV - tF + tC - tR };
+        }
         function renderCorte() {
-            let tV=ventasActivas.reduce((a,v)=>a+v.total,0), tR=retirosActivos.reduce((a,r)=>a+r.monto,0);
-            document.getElementById('corte-total-ventas').innerText=`$${formatMiles(tV)}`; document.getElementById('corte-total-retiros').innerText=`$${formatMiles(tR)}`; document.getElementById('corte-efectivo-neto').innerText=`$${formatMiles(tV-tR)}`;
+            let { tV, tR, tF, tC, neto } = resumenTurno();
+            document.getElementById('corte-total-ventas').innerText=`$${formatMiles(tV)}`; document.getElementById('corte-total-retiros').innerText=`$${formatMiles(tR)}`; document.getElementById('corte-efectivo-neto').innerText=`$${formatMiles(neto)}`;
+            let sc = document.getElementById('corte-fiado'); if (sc) sc.innerText = `-$${formatMiles(tF)}`;
+            let sk = document.getElementById('corte-cobros'); if (sk) sk.innerText = `+$${formatMiles(tC)}`;
+            let dc = document.getElementById('corte-credito-detalle');
+            if (dc) {
+                let filas = ventasActivas.filter(v => v.credito).map(v => `<div class="flex justify-between gap-3"><span>🧾 Crédito · <b>${escV(v.credito)}</b></span><span>-$${formatMiles(v.total)}</span></div>`)
+                    .concat(abonosActivos.map(a => `<div class="flex justify-between gap-3"><span>💵 Pago de <b>${escV(a.cliente)}</b></span><span class="text-emerald-600">+$${formatMiles(a.monto)}</span></div>`));
+                dc.innerHTML = filas.join(''); dc.classList.toggle('hidden', !filas.length);
+            }
             let tb = document.getElementById('tabla-resumen-articulos'); if(!tb)return; let mapa={}; 
             ventasActivas.forEach(v=>{if(v.productos)v.productos.forEach(p=>{if(!mapa[p.codigo])mapa[p.codigo]={k:p.codigo,n:p.nombre,c:0,t:0}; mapa[p.codigo].c+=p.cantidad; mapa[p.codigo].t+=(p.precio*p.cantidad);})});
             let res=Object.values(mapa); tb.innerHTML=res.length===0?`<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin artículos</td></tr>`:"";
@@ -2073,13 +2235,14 @@
 
         function fmtExistencia(v) { return (typeof v === 'number' && isFinite(v)) ? Number(v.toFixed(2)) : '—'; }
 
-        async function descargarCorteImagen(tV, tR, articulos) {
+        async function descargarCorteImagen(tV, tR, articulos, tF = 0, tC = 0) {
             let el = document.getElementById('print-corte-caja'); if(!el) return;
             
             document.getElementById('print-corte-fecha').innerText = new Date().toLocaleString('es-MX');
             document.getElementById('print-corte-v').innerText = `$${formatMiles(tV)}`;
             document.getElementById('print-corte-r').innerText = `$${formatMiles(tR)}`;
-            document.getElementById('print-corte-n').innerText = `$${formatMiles(tV - tR)}`;
+            document.getElementById('print-corte-n').innerText = `$${formatMiles(tV - tF + tC - tR)}`;
+            [['print-corte-f-row', 'print-corte-f', tF, '-'], ['print-corte-c-row', 'print-corte-c', tC, '+']].forEach(x => { let r = document.getElementById(x[0]); if (!r) return; r.style.display = x[2] > 0 ? 'flex' : 'none'; document.getElementById(x[1]).innerText = `${x[3]}$${formatMiles(x[2])}`; });
             
             let tbody = document.getElementById('print-tbody-corte'); tbody.innerHTML = "";
             if (articulos.length === 0) {
@@ -2101,10 +2264,9 @@
         }
 
         async function realizarCorteTurno() {
-            if(ventasActivas.length===0 && retirosActivos.length===0) { Swal.fire({ icon: 'info', title: 'Sin movimientos', text: 'No hay ventas ni retiros en este turno para hacer el corte.', confirmButtonText: 'Entendido' }); return; }
+            if(ventasActivas.length===0 && retirosActivos.length===0 && abonosActivos.length===0) { Swal.fire({ icon: 'info', title: 'Sin movimientos', text: 'No hay ventas ni retiros en este turno para hacer el corte.', confirmButtonText: 'Entendido' }); return; }
 
-            let tV = ventasActivas.reduce((a,v)=>a+v.total, 0);
-            let tR = retirosActivos.reduce((a,r)=>a+r.monto, 0);
+            let { tV, tR, tF, tC, neto } = resumenTurno();
 
             // Confirmación antes de cerrar el turno (evita un corte por clic accidental)
             const conf = await Swal.fire({
@@ -2113,8 +2275,10 @@
                 html: `<div style="text-align:left;display:inline-block;font-size:15px;line-height:1.7">
                         <div>Ventas del turno: <b>${ventasActivas.length}</b></div>
                         <div>Total de ventas: <b>$${formatMiles(tV)}</b></div>
+                        ${tF > 0 ? `<div>Fiado (a crédito): <b style="color:#b45309">-$${formatMiles(tF)}</b></div>` : ''}
+                        ${tC > 0 ? `<div>Cobros de cuentas: <b style="color:#0f766e">+$${formatMiles(tC)}</b></div>` : ''}
                         <div>Retiros: <b>-$${formatMiles(tR)}</b></div>
-                        <div>Efectivo neto: <b style="color:#059669">$${formatMiles(tV - tR)}</b></div>
+                        <div>Efectivo neto: <b style="color:#059669">$${formatMiles(neto)}</b></div>
                        </div>
                        <p style="margin-top:12px;font-size:13px;color:#6b7280">El turno se cerrará y los contadores volverán a cero. Esta acción no se puede deshacer.</p>`,
                 showCancelButton: true, confirmButtonText: 'Sí, hacer el corte', cancelButtonText: 'Cancelar',
@@ -2138,29 +2302,32 @@
             
             Swal.fire({ title: 'Generando corte...', text: 'Guardando datos y descargando imagen', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
-            await descargarCorteImagen(tV, tR, articulosVendidos);
+            await descargarCorteImagen(tV, tR, articulosVendidos, tF, tC);
 
             let promVenta = ventasActivas.length > 0 ? (tV / ventasActivas.length) : 0;
             await enviarDatosAGoogleSheets({
                 tipo: 'corte', 
                 totalVentas: tV, 
                 totalRetiros: tR, 
-                efectivoNeto: tV-tR, 
+                efectivoNeto: neto, 
                 promedioVenta: promVenta, 
-                articulos: articulosVendidos
+                articulos: articulosVendidos,
+                fiado: tF,
+                cobros: tC
             });
             await enviarDatosAGoogleSheets({
                 tipo: 'movimientoCaja',
                 tipoMov: 'INGRESO',
                 concepto: 'Recepción de Corte de Caja',
-                monto: tV - tR,
+                monto: neto,
                 desglose: "{}",
                 recibido: 'NO' 
             });
             
-            cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: tV-tR, promedioVenta: promVenta, articulos: articulosVendidos});
+            cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: neto, promedioVenta: promVenta, articulos: articulosVendidos, fiado: tF, cobros: tC});
             ventasActivas = []; 
             retirosActivos = []; 
+            abonosActivos = []; 
             
             renderCorte(); 
             renderRetiros(); 
