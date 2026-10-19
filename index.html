@@ -2568,6 +2568,13 @@ async function cargarDatosAnalisis() {
         // ==========================================
         // NUEVA FUNCIÓN: RENDERIZAR INVERSIONES
         // ==========================================
+        // La fecha puede llegar como texto ("12 sept 2026") o como fecha de Sheets en formato ISO ("2026-09-12T06:00:00.000Z"): se muestra siempre "12 sept 2026"
+        function fmtFechaGasto(v) {
+            if (v == null || v === '') return '-';
+            let s = String(v).trim();
+            if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { let d = new Date(s); if (!isNaN(d.getTime())) return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, ''); }
+            return s;
+        }
         function renderInversiones(invs) {
             let tC = 0, tP = 0;
             let tb = document.getElementById('tabla-inversiones-completa');
@@ -2598,7 +2605,7 @@ async function cargarDatosAnalisis() {
                     <td class="py-2 px-3 text-right font-bold text-gray-700 dark:text-gray-300">$${formatMiles(v)}</td>
                     <td class="py-2 px-3 text-gray-500 dark:text-gray-400">${i.observaciones||'-'}</td>
                     <td class="py-2 px-3 text-center">${btnPagado}</td>
-                    <td class="py-2 px-3 text-gray-500">${i.fecha||'-'}</td>
+                    <td class="py-2 px-3 text-gray-500">${fmtFechaGasto(i.fecha)}</td>
                     <td class="py-2 px-3 text-gray-600 dark:text-gray-300 font-medium">${i.persona||'-'}</td>
                     <td class="py-2 px-3">${badgeCategoriaGasto(i)}</td>
                 </tr>`;
