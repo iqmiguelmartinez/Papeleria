@@ -326,7 +326,7 @@
                                 <th class="p-1.5">Producto</th>
                                 <th class="p-1.5">Precio</th>
                                 <th class="p-1.5 th-costo hidden">Costo</th>
-                                <th class="p-1.5 text-center">Stock</th>
+                                <th class="p-1.5 text-center th-stock cursor-pointer select-none hover:text-blue-500" onclick="ordenarInventarioStock()" title="Ordenar por stock (mayor a menor / menor a mayor)">Stock <span class="ind-orden-stock"></span></th>
                                 <th class="p-1.5 text-center th-surtir-header bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Surtir</th>
                             </tr>
                         </thead>
@@ -342,7 +342,7 @@
                                 <th class="p-1.5">Producto</th>
                                 <th class="p-1.5">Precio</th>
                                 <th class="p-1.5 th-costo hidden">Costo</th>
-                                <th class="p-1.5 text-center">Stock</th>
+                                <th class="p-1.5 text-center th-stock cursor-pointer select-none hover:text-blue-500" onclick="ordenarInventarioStock()" title="Ordenar por stock (mayor a menor / menor a mayor)">Stock <span class="ind-orden-stock"></span></th>
                                 <th class="p-1.5 text-center th-surtir-header bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300">Surtir</th>
                             </tr>
                         </thead>
@@ -1981,6 +1981,8 @@
         }
 
         /* ======== INVENTARIO ======== */
+        let ordenStockInv = null; // null | 'desc' | 'asc'
+        function ordenarInventarioStock() { if (editandoInventario) return; ordenStockInv = ordenStockInv === null ? 'desc' : (ordenStockInv === 'desc' ? 'asc' : null); renderInventario(document.getElementById('buscar-inventario').value); }
         function renderInventario(filtro = "") {
             const tb1 = document.getElementById('tabla-inv-1'), tb2 = document.getElementById('tabla-inv-2');
             if(!tb1) return; tb1.innerHTML = ""; tb2.innerHTML = "";
@@ -1997,6 +1999,12 @@
                 }
             });
 
+            const ordenando = ordenStockInv && !editandoInventario;
+            document.querySelectorAll('.ind-orden-stock').forEach(s => s.textContent = ordenando ? (ordenStockInv === 'desc' ? '▼' : '▲') : '↕');
+            if (ordenando) {
+                const stk = o => VINCULOS_STOCK[o.p.codigo] ? stockDisponible(o.p.codigo) : o.p.stock;
+                filtrados.sort((a, b) => ordenStockInv === 'desc' ? stk(b) - stk(a) : stk(a) - stk(b));
+            }
             let t = dosCols ? Math.ceil(filtrados.length / 2) : filtrados.length;
             [filtrados.slice(0, t), filtrados.slice(t)].forEach((parte, i) => {
                 let target = i===0?tb1:tb2;
@@ -2022,10 +2030,10 @@
         function filtrarInventario() { if(!editandoInventario) renderInventario(document.getElementById('buscar-inventario').value); }
         function actualizarCantSurtir(cod, val) { let c=parseFloat(val)||0; if(c>0) cantidadesSurtir[cod]=c; else delete cantidadesSurtir[cod]; }
         
-        function dragStart(e) { if(document.getElementById('buscar-inventario').value) { e.preventDefault(); return; } draggedIndex = parseInt(e.currentTarget.getAttribute('data-index')); }
+        function dragStart(e) { if(document.getElementById('buscar-inventario').value || ordenStockInv) { e.preventDefault(); return; } draggedIndex = parseInt(e.currentTarget.getAttribute('data-index')); }
         function dragOver(e) { e.preventDefault(); }
         function dropRow(e) {
-            e.preventDefault(); if(document.getElementById('buscar-inventario').value) return; 
+            e.preventDefault(); if(document.getElementById('buscar-inventario').value || ordenStockInv) return; 
             const t = parseInt(e.currentTarget.getAttribute('data-index'));
             if (isNaN(draggedIndex) || isNaN(t) || draggedIndex === t) return;
             let moved = inventario.splice(draggedIndex, 1)[0]; inventario.splice(t, 0, moved);
