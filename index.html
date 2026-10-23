@@ -226,6 +226,7 @@
                 <button onclick="cambiarTab('ventasPasadas')" id="btn-tab-ventasPasadas" data-tab="ventasPasadas" title="Ventas Pasadas" style="--c:#06b6d4" class="tabbtn"><span class="ti">📜</span><span>Ventas pasadas</span></button>
                 <button onclick="cambiarTab('inversion')" id="btn-tab-inversion" data-tab="inversion" title="Gastos / Créditos" style="--c:#6366f1" class="tabbtn"><span class="ti">💼</span><span>Gastos</span></button>
                 <button onclick="cambiarTab('caja')" id="btn-tab-caja" data-tab="caja" title="Control de Caja" style="--c:#84cc16" class="tabbtn"><span class="ti">💵</span><span>Caja</span></button>
+                <button onclick="cambiarTab('margenes')" id="btn-tab-margenes" data-tab="margenes" title="Márgenes y costos" style="--c:#14b8a6" class="tabbtn"><span class="ti">💹</span><span>Márgenes</span></button>
                 <button onclick="cambiarTab('buscador')" id="btn-tab-buscador" data-tab="buscador" title="Buscador inteligente" style="--c:#ec4899" class="tabbtn"><span class="ti">🔎</span><span>Buscador</span></button>
                 <button onclick="cambiarTab('impresiones')" id="btn-tab-impresiones" data-tab="impresiones" title="Auditoría de Impresiones" style="--c:#0ea5e9" class="tabbtn"><span class="ti">🖨️</span><span>Impresiones</span></button>
                 <button onclick="cambiarTab('log')" id="btn-tab-log" data-tab="log" title="Log de actividad" style="--c:#64748b" class="tabbtn"><span class="ti">📋</span><span>Log</span></button>
@@ -624,6 +625,37 @@
                     <tbody id="tabla-log-actividad" class="divide-y divide-gray-100 dark:divide-gray-700/60 text-xs"></tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- SECCIÓN: MÁRGENES Y COSTOS -->
+        <div id="tab-margenes" class="hidden flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200 overflow-y-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">💹 Márgenes y costos</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Cada venta se valúa con el costo que tenía ese día. Toca un producto para ver cómo han cambiado su precio, su costo y su margen.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <label class="flex items-center gap-1 text-gray-600 dark:text-gray-300">Periodo
+                        <select id="mg-periodo" onchange="mgRender()" class="border dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 dark:text-white"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="0">Todo</option></select></label>
+                    <label class="flex items-center gap-1 text-gray-600 dark:text-gray-300">Margen objetivo
+                        <input id="mg-obj" type="number" min="1" max="95" value="30" oninput="mgRender()" class="w-14 border dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 dark:text-white text-center">%</label>
+                    <button onclick="iniciarMargenes(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium cursor-pointer">🔄 Actualizar</button>
+                    <button onclick="mgReconstruir()" title="Busca en el log cambios de precio y costo anteriores y los agrega al historial" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg font-medium cursor-pointer">📜 Recuperar historial del log</button>
+                </div>
+            </div>
+            <div id="mg-cards" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3 shrink-0"></div>
+            <div class="flex flex-wrap items-center gap-2 mb-2 shrink-0">
+                <input id="mg-buscar" type="text" oninput="mgRender()" placeholder="Buscar producto o código..." class="flex-1 min-w-[180px] px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white">
+                <div id="mg-filtros" class="flex flex-wrap gap-1 text-[11px]"></div>
+            </div>
+            <p id="mg-estado" class="text-[11px] text-gray-400 mb-2 shrink-0"></p>
+            <div class="overflow-x-auto border dark:border-gray-700 rounded-lg">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead id="mg-thead" class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase text-[10px]"></thead>
+                    <tbody id="mg-tbody" class="divide-y divide-gray-100 dark:divide-gray-700/60"></tbody>
+                </table>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-2">Margen = (precio − costo) ÷ precio. Precio sugerido = costo ÷ (1 − margen objetivo), redondeado hacia arriba a $0.50. 🔺 = el costo subió en los últimos 90 días y el precio no se ha movido desde entonces. Las ventas anteriores a este historial se valúan con el costo que tenía el producto según el log; si nunca cambió, con el actual.</p>
         </div>
 
                 <!-- SECCIÓN: BUSCADOR INTELIGENTE (consulta Log + Ventas) -->
@@ -1174,6 +1206,7 @@
             <button onclick="cambiarTab('ventasPasadas')" id="nm-ventasPasadas" data-tab="ventasPasadas" style="--c:#06b6d4" class="navbtn hidden"><span class="ni">📜</span><span>Pasadas</span></button>
             <button onclick="cambiarTab('inversion')" id="nm-inversion" data-tab="inversion" style="--c:#6366f1" class="navbtn hidden"><span class="ni">💼</span><span>Gastos</span></button>
             <button onclick="cambiarTab('caja')" id="nm-caja" data-tab="caja" style="--c:#84cc16" class="navbtn hidden"><span class="ni">💵</span><span>Caja</span></button>
+            <button onclick="cambiarTab('margenes')" id="nm-margenes" data-tab="margenes" style="--c:#14b8a6" class="navbtn hidden"><span class="ni">💹</span><span>Márgenes</span></button>
             <button onclick="cambiarTab('buscador')" id="nm-buscador" data-tab="buscador" style="--c:#ec4899" class="navbtn hidden"><span class="ni">🔎</span><span>Buscador</span></button>
             <button onclick="cambiarTab('impresiones')" id="nm-impresiones" data-tab="impresiones" style="--c:#0ea5e9" class="navbtn hidden"><span class="ni">🖨️</span><span>Impresiones</span></button>
             <button onclick="cambiarTab('log')" id="nm-log" data-tab="log" style="--c:#64748b" class="navbtn hidden"><span class="ni">📋</span><span>Log</span></button>
@@ -1335,7 +1368,7 @@
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
-            ['grp-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-vinculos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-impresiones', 'nm-analisis', 'nm-inversion', 'nm-ventasPasadas', 'nm-log', 'nm-caja', 'nm-buscador', 'nm-impresiones'].forEach(id => {
+            ['grp-admin', 'btn-tab-analisis', 'btn-tab-inversion', 'btn-tab-ventasPasadas', 'btn-tab-log', 'btn-modificar-productos', 'btn-vinculos', 'btn-re-codificar', 'btn-tab-caja', 'btn-tab-buscador', 'btn-tab-margenes', 'btn-tab-impresiones', 'nm-analisis', 'nm-inversion', 'nm-ventasPasadas', 'nm-log', 'nm-caja', 'nm-buscador', 'nm-margenes', 'nm-impresiones'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) tienePermisoAnalisis ? el.classList.remove('hidden') : el.classList.add('hidden');
             });
@@ -1345,7 +1378,7 @@
             // las pestañas restringidas que estuvieran abiertas y se borran los datos que quedaron en memoria.
             if (!tienePermisoAnalisis) {
                 try {
-                    ['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].forEach(t => {
+                    ['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'margenes', 'impresiones'].forEach(t => {
                         const e = document.getElementById('tab-' + t);
                         if (e && !e.classList.contains('hidden')) cambiarTab('ventas');
                     });
@@ -1393,10 +1426,10 @@
         (function () { const sc = document.getElementById('nav-scroll'); if (sc) { sc.addEventListener('scroll', actualizarPistaNav, { passive: true }); window.addEventListener('resize', actualizarPistaNav); setTimeout(actualizarPistaNav, 300); } })();
 
         function cambiarTab(tab) {
-            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
+            if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'margenes', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
 
-            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'creditos', 'log', 'analisis', 'caja', 'buscador', 'impresiones'].forEach(t => {
+            ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'creditos', 'log', 'analisis', 'caja', 'buscador', 'margenes', 'impresiones'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`);
                 if(eTab) eTab.classList.add('hidden');
             });
@@ -1414,6 +1447,7 @@
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja();
             if(tab === 'buscador') iniciarBuscador();
+            if(tab === 'margenes') iniciarMargenes();
             if(tab === 'impresiones') iniciarImpresiones();
         }
 
@@ -3410,6 +3444,7 @@ function renderKpisExtra() {
 function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderValuacion(); renderKpisExtra(); instalarTips(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
+            const HIA = indiceCostosHist((cacheUltimoAnalisis || {}).hist);
             // ==========================================
             // 1. INVERSIÓN Y GANANCIAS HISTÓRICAS
             // ==========================================
@@ -3507,8 +3542,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     v.productos.forEach(p => {
                         let codReal = VINCULOS_STOCK[p.codigo] || p.codigo;
                         // El costo es el del PROPIO producto (ej. CONTACT 0.5m = $2.95); solo si no tiene costo capturado se usa el del producto del que descuenta stock (ej. el metro completo = $5.90)
-                        let pPropio = inv.find(x => x.codigo === p.codigo) || {}, pInv = inv.find(x => x.codigo === codReal) || {};
-                        let costo = pPropio.costo > 0 ? pPropio.costo : ((pInv.costo || 0) * factorVinculo(p.codigo));
+                        let costo = costoLineaVenta(p, fvDate, inv, HIA); // costo guardado al vender, o el que tenía ese día según el historial
                         let cat = p.codigo.substring(0, 3).toUpperCase();
                         if (cat === 'LAP') cat = 'PAP'; 
                         if (!catGanancias[cat]) catGanancias[cat] = 0;
@@ -5121,6 +5155,162 @@ async function guardarConfigImpresion() {
     IMP.factores = factores; IMP.factoresA4 = factoresA4; IMP.factoresA3 = factoresA3; IMP.factoresESC = factoresESC; IMP.tolPct = tolPct; IMP.tolMin = tolMin;
     cerrarConfigImpresion(); impRender();
     Swal.fire({ title: 'Equivalencias guardadas', icon: 'success', timer: 1200, showConfirmButton: false });
+}
+
+// ==========================================
+// 💹 MÁRGENES Y COSTOS (historial de precios y costos)
+// ==========================================
+function indiceCostosHist(hist) {
+    const idx = {};
+    (hist || []).forEach(e => { if (e.k === 'costo') (idx[e.c] = idx[e.c] || []).push(e); });
+    Object.keys(idx).forEach(c => idx[c].sort((a, b) => a.t - b.t));
+    return idx;
+}
+function valorHistEn(lista, ms, actual) {
+    if (!lista || !lista.length || !isFinite(ms)) return actual;
+    let v = null;
+    for (const e of lista) { if (e.t <= ms) v = e.d; else break; }
+    if (v === null) v = (lista[0].a !== '' && lista[0].a !== null) ? lista[0].a : lista[0].d;
+    return v;
+}
+// Costo de una línea de venta: el guardado al vender; si no, el del día según el historial; si no hay historial, el actual
+function costoLineaVenta(p, fecha, inv, idx) {
+    const guardado = parseFloat(p.costo); if (guardado > 0) return guardado;
+    const ms = fecha instanceof Date ? fecha.getTime() : NaN;
+    const propio = inv.find(x => x.codigo === p.codigo) || {};
+    const cP = valorHistEn(idx[p.codigo], ms, propio.costo || 0);
+    if (cP > 0) return cP;
+    const codReal = VINCULOS_STOCK[p.codigo] || p.codigo, pInv = inv.find(x => x.codigo === codReal) || {};
+    return valorHistEn(idx[codReal], ms, pInv.costo || 0) * factorVinculo(p.codigo);
+}
+
+const MG = { ventas: [], inv: [], hist: [], porCod: {}, idxCosto: {}, cargado: false, cargando: false, orden: { k: 'util', dir: -1 }, filtro: 'todos', filas: [] };
+const mgFecha = ms => new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: '2-digit' });
+const mgPct = x => x == null ? '—' : (x * 100).toFixed(1) + '%';
+const mgMon = x => x == null ? '—' : '$' + formatMiles(x);
+function mgCostoActual(p) {
+    if (p.costo > 0) return p.costo;
+    const b = VINCULOS_STOCK[p.codigo]; if (!b) return 0;
+    const pb = MG.inv.find(x => x.codigo === b); return pb && pb.costo > 0 ? pb.costo * factorVinculo(p.codigo) : 0;
+}
+async function iniciarMargenes(forzar) {
+    if (MG.cargando) return;
+    if (MG.cargado && !forzar) { mgRender(); return; }
+    MG.cargando = true; const st = document.getElementById('mg-estado'); if (st) st.textContent = '⏳ Cargando ventas e historial...';
+    try {
+        try { const o = JSON.parse(localStorage.getItem('pyp_mg') || '{}'); if (o.obj) document.getElementById('mg-obj').value = o.obj; if (o.per !== undefined) document.getElementById('mg-periodo').value = o.per; } catch (e) {}
+        const [rd, rh] = await Promise.all([apiFetch('getDataAnalisis'), apiFetch('getHistorialPrecios')]);
+        const d = await rd.json(), hh = await rh.json();
+        MG.ventas = Array.isArray(d.ventas) ? d.ventas : []; MG.inv = Array.isArray(d.inventario) ? d.inventario : [];
+        MG.hist = Array.isArray(hh.hist) ? hh.hist : [];
+        MG.porCod = {}; MG.hist.forEach(e => { ((MG.porCod[e.c] = MG.porCod[e.c] || {})[e.k] = MG.porCod[e.c][e.k] || []).push(e); });
+        MG.idxCosto = indiceCostosHist(MG.hist);
+        MG.cargado = true;
+    } catch (e) { console.error(e); if (st) st.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; MG.cargando = false; return; }
+    MG.cargando = false; mgRender();
+}
+function mgPrecioEn(cod, ms, actual) { return valorHistEn((MG.porCod[cod] || {}).precio, ms, actual); }
+function mgCostoEn(p, ms) {
+    const c = valorHistEn((MG.porCod[p.codigo] || {}).costo, ms, p.costo || 0); if (c > 0) return c;
+    const b = VINCULOS_STOCK[p.codigo]; if (!b) return 0;
+    const pb = MG.inv.find(x => x.codigo === b) || {}; return valorHistEn((MG.porCod[b] || {}).costo, ms, pb.costo || 0) * factorVinculo(p.codigo);
+}
+function mgCalcular() {
+    const per = parseInt(document.getElementById('mg-periodo').value, 10) || 0, obj = Math.min(95, Math.max(1, parseFloat(document.getElementById('mg-obj').value) || 30)) / 100;
+    try { localStorage.setItem('pyp_mg', JSON.stringify({ obj: obj * 100, per })); } catch (e) {}
+    const ahora = Date.now(), desde = per ? ahora - per * 86400000 : 0, agg = {};
+    MG.ventas.forEach(v => {
+        const f = bParseVentaFecha(v); if (!f || f.getTime() < desde || !Array.isArray(v.productos)) return;
+        v.productos.forEach(l => {
+            const q = Number(l.cantidad) || 0, pr = Number(l.precio) || 0, c = costoLineaVenta(l, f, MG.inv, MG.idxCosto);
+            const a = agg[l.codigo] = agg[l.codigo] || { pzs: 0, ing: 0, cst: 0 }; a.pzs += q; a.ing += pr * q; a.cst += c * q;
+        });
+    });
+    const filas = MG.inv.filter(p => !p.noActivo || agg[p.codigo]).map(p => {
+        const cEf = mgCostoActual(p), a = agg[p.codigo] || { pzs: 0, ing: 0, cst: 0 };
+        const ev = (MG.hist || []).filter(e => e.c === p.codigo && e.a !== '').sort((x, y) => y.t - x.t);
+        const ultCosto = ev.find(e => e.k === 'costo'), ultPrecio = ev.find(e => e.k === 'precio');
+        const subio = !!(ultCosto && ultCosto.d > ultCosto.a && ahora - ultCosto.t <= 90 * 86400000 && !(ultPrecio && ultPrecio.t >= ultCosto.t));
+        const mgAct = p.precio > 0 && cEf > 0 ? (p.precio - cEf) / p.precio : null;
+        const sug = cEf > 0 ? Math.ceil(cEf / (1 - obj) * 2) / 2 : null;
+        let est = 'ok'; if (cEf <= 0) est = 'sinCosto'; else if (subio) est = 'subio'; else if (mgAct < obj) est = 'bajo';
+        return { p, cEf, mgAct, mgMonto: cEf > 0 ? p.precio - cEf : null, pzs: a.pzs, util: a.ing - a.cst, ing: a.ing, mgPer: a.ing > 0 ? (a.ing - a.cst) / a.ing : null, ultimo: ev[0] || null, sug, est, subio };
+    });
+    return { filas, obj, per };
+}
+const MG_EST = { ok: ['✅', 'En objetivo'], bajo: ['⚠️', 'Bajo el objetivo'], subio: ['🔺', 'Costo subió, precio no'], sinCosto: ['❓', 'Sin costo capturado'] };
+function mgOrden(k) { MG.orden = { k, dir: MG.orden.k === k ? -MG.orden.dir : (k === 'n' ? 1 : -1) }; mgRender(); }
+function mgFiltro(f) { MG.filtro = f; mgRender(); }
+function mgRender() {
+    if (!MG.cargado) return;
+    const { filas, obj } = mgCalcular(), q = bQuitaAcentos(document.getElementById('mg-buscar').value || '');
+    const cuenta = e => filas.filter(f => f.est === e).length;
+    const util = filas.reduce((a, f) => a + f.util, 0), ing = filas.reduce((a, f) => a + f.ing, 0);
+    const card = (t, v, s, c) => `<div class="border dark:border-gray-700 rounded-xl p-3"><div class="text-[10px] uppercase text-gray-500 dark:text-gray-400">${t}</div><div class="text-xl font-bold ${c || 'text-gray-800 dark:text-white'}">${v}</div><div class="text-[10px] text-gray-400">${s}</div></div>`;
+    document.getElementById('mg-cards').innerHTML =
+        card('Utilidad del periodo', mgMon(util), 'ventas − costo de ese día', 'text-emerald-600 dark:text-emerald-400') +
+        card('Margen del periodo', ing > 0 ? mgPct(util / ing) : '—', 'objetivo ' + Math.round(obj * 100) + '%', ing > 0 && util / ing < obj ? 'text-amber-600' : 'text-gray-800 dark:text-white') +
+        card('Bajo el objetivo', cuenta('bajo'), 'productos con margen menor', cuenta('bajo') ? 'text-amber-600' : '') +
+        card('Costo subió, precio no', cuenta('subio'), 'últimos 90 días', cuenta('subio') ? 'text-red-600' : '') +
+        card('Sin costo', cuenta('sinCosto'), 'margen no confiable', cuenta('sinCosto') ? 'text-gray-500' : '');
+    const chips = [['todos', 'Todos'], ['bajo', '⚠️ Bajo objetivo'], ['subio', '🔺 Costo subió'], ['sinCosto', '❓ Sin costo']];
+    document.getElementById('mg-filtros').innerHTML = chips.map(([k, t]) => `<button onclick="mgFiltro('${k}')" class="px-2 py-1 rounded-lg cursor-pointer ${MG.filtro === k ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}">${t}</button>`).join('');
+    const cols = [['n', 'Producto'], ['precio', 'Precio'], ['costo', 'Costo'], ['mgm', 'Margen $'], ['mgp', 'Margen %'], ['pzs', 'Vendidas'], ['util', 'Utilidad'], ['ult', 'Último cambio'], ['sug', 'Precio objetivo'], ['est', '']];
+    document.getElementById('mg-thead').innerHTML = '<tr>' + cols.map(([k, t]) => `<th class="p-2 ${k !== 'est' && k !== 'ult' ? 'cursor-pointer select-none hover:text-blue-500' : ''}" ${k !== 'est' && k !== 'ult' ? `onclick="mgOrden('${k}')"` : ''}>${t}${MG.orden.k === k ? (MG.orden.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('') + '</tr>';
+    const val = { n: f => f.p.nombre.toLowerCase(), precio: f => f.p.precio, costo: f => f.cEf, mgm: f => f.mgMonto == null ? -1e9 : f.mgMonto, mgp: f => f.mgAct == null ? -1e9 : f.mgAct, pzs: f => f.pzs, util: f => f.util, sug: f => f.sug == null ? -1e9 : f.sug, est: f => f.est };
+    let lista = filas.filter(f => (MG.filtro === 'todos' || f.est === MG.filtro) && (!q || bQuitaAcentos(f.p.nombre + ' ' + f.p.codigo).includes(q)));
+    const g = val[MG.orden.k] || val.util;
+    lista.sort((a, b) => { const x = g(a), y = g(b); return (x < y ? -1 : x > y ? 1 : 0) * MG.orden.dir; });
+    document.getElementById('mg-tbody').innerHTML = lista.map(f => {
+        const u = f.ultimo, ult = u ? `${u.k} ${u.d > u.a ? '↑' : '↓'} $${formatMiles(u.a)}→$${formatMiles(u.d)} · ${mgFecha(u.t)}` : '<span class="text-gray-400">sin cambios registrados</span>';
+        const cMg = f.mgAct == null ? '' : (f.mgAct < obj ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold');
+        const necesita = f.sug != null && f.sug > f.p.precio + 0.001, dif = necesita ? ` <span class="text-[10px] text-gray-400">(+$${formatMiles(f.sug - f.p.precio)})</span>` : '';
+        return `<tr onclick="mgDetalle('${bEsc(f.p.codigo)}')" class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40${f.p.noActivo ? ' opacity-50' : ''}"><td class="p-2 font-medium">${bNom(f.p)}<div class="font-mono text-[10px] text-gray-400">${bEsc(f.p.codigo)}</div></td><td class="p-2">${mgMon(f.p.precio)}</td><td class="p-2">${f.cEf > 0 ? mgMon(f.cEf) : '—'}</td><td class="p-2">${mgMon(f.mgMonto)}</td><td class="p-2 ${cMg}">${mgPct(f.mgAct)}</td><td class="p-2">${bFmt(f.pzs)}</td><td class="p-2">${mgMon(f.util)}</td><td class="p-2 text-[11px]">${ult}</td><td class="p-2">${necesita ? '<b>' + mgMon(f.sug) + '</b>' + dif : '<span class="text-gray-400">—</span>'}</td><td class="p-2 text-center" title="${MG_EST[f.est][1]}">${MG_EST[f.est][0]}</td></tr>`;
+    }).join('') || '<tr><td colspan="10" class="p-4 text-center text-gray-400">No hay productos con ese filtro.</td></tr>';
+    const nEv = MG.hist.length;
+    document.getElementById('mg-estado').textContent = `${lista.length} de ${filas.length} productos · ${nEv} cambio${nEv === 1 ? '' : 's'} de precio/costo en el historial${nEv ? '' : ' (pulsa “Recuperar historial del log” o edita un precio para empezar)'}`;
+}
+function mgDetalle(cod) {
+    const f = mgCalcular().filas.find(x => x.p.codigo === cod); if (!f) return;
+    const p = f.p, ev = (MG.hist || []).filter(e => e.c === cod).sort((a, b) => a.t - b.t), ahora = Date.now();
+    const tiempos = [...new Set(ev.map(e => e.t))];
+    // Etapas: un tramo entre cada cambio de precio o costo
+    const ventasP = []; MG.ventas.forEach(v => { const fe = bParseVentaFecha(v); if (!fe || !Array.isArray(v.productos)) return; v.productos.forEach(l => { if (l.codigo === cod) ventasP.push({ t: fe.getTime(), q: Number(l.cantidad) || 0, ing: (Number(l.precio) || 0) * (Number(l.cantidad) || 0), c: costoLineaVenta(l, fe, MG.inv, MG.idxCosto) * (Number(l.cantidad) || 0) }); }); });
+    const primeraVenta = ventasP.length ? Math.min(...ventasP.map(x => x.t)) : null;
+    const lim = [null, ...tiempos, null]; const etapas = [];
+    for (let i = 0; i <= tiempos.length; i++) {
+        const ini = i === 0 ? (primeraVenta || (tiempos[0] || ahora)) : tiempos[i - 1], fin = i === tiempos.length ? ahora : tiempos[i];
+        const ref = i === 0 ? (tiempos[0] || ahora) - 1 : tiempos[i - 1];
+        const vs = ventasP.filter(x => x.t >= (i === 0 ? 0 : ini) && x.t < fin), pzs = vs.reduce((a, x) => a + x.q, 0), ing = vs.reduce((a, x) => a + x.ing, 0), cst = vs.reduce((a, x) => a + x.c, 0);
+        const pr = mgPrecioEn(cod, ref, p.precio), co = mgCostoEn(p, ref), dias = Math.max(1, (fin - ini) / 86400000);
+        const cambio = i === 0 ? (ev.length ? 'Antes del primer cambio' : 'Sin cambios registrados') : ev.filter(e => e.t === tiempos[i - 1]).map(e => e.a === '' ? `${e.k} inicial $${formatMiles(e.d)}` : `${e.k} $${formatMiles(e.a)}→$${formatMiles(e.d)}`).join('; ');
+        if (i === 0 && !pzs && ev.length) continue;
+        etapas.push(`<tr class="border-b dark:border-gray-700"><td class="p-1.5 whitespace-nowrap">${i === 0 ? (primeraVenta ? mgFecha(primeraVenta) : '—') : mgFecha(ini)}</td><td class="p-1.5">${bEsc(cambio)}</td><td class="p-1.5">${mgMon(pr)}</td><td class="p-1.5">${co > 0 ? mgMon(co) : '—'}</td><td class="p-1.5">${pr > 0 && co > 0 ? mgPct((pr - co) / pr) : '—'}</td><td class="p-1.5">${bFmt(pzs)}</td><td class="p-1.5">${pzs ? bFmt(pzs / dias) : '—'}</td><td class="p-1.5">${mgMon(ing - cst)}</td></tr>`);
+    }
+    const pq = bEsc(p.nombre), sugeridoOk = f.sug != null && f.sug > p.precio + 0.001;
+    Swal.fire({
+        width: 900, showConfirmButton: sugeridoOk && tienePermisoAnalisis, confirmButtonText: sugeridoOk ? 'Aplicar precio sugerido $' + formatMiles(f.sug) : '', showCancelButton: true, cancelButtonText: 'Cerrar',
+        title: pq,
+        html: `<div style="text-align:left;font-size:13px"><div class="mb-2">Precio <b>${mgMon(p.precio)}</b> · Costo <b>${f.cEf > 0 ? mgMon(f.cEf) : 'sin capturar'}</b> · Margen <b>${mgPct(f.mgAct)}</b> · ${MG_EST[f.est][0]} ${MG_EST[f.est][1]}${f.sug != null ? (sugeridoOk ? ' · Para llegar al objetivo: <b>' + mgMon(f.sug) + '</b>' : ' · El precio ya cumple el objetivo (mínimo ' + mgMon(f.sug) + ')') : ''}</div>
+        <div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr style="text-align:left;font-size:10px;text-transform:uppercase;color:#6b7280"><th class="p-1.5">Desde</th><th class="p-1.5">Qué cambió</th><th class="p-1.5">Precio</th><th class="p-1.5">Costo</th><th class="p-1.5">Margen</th><th class="p-1.5">Vendidas</th><th class="p-1.5">Pzs/día</th><th class="p-1.5">Utilidad</th></tr></thead><tbody>${etapas.join('') || '<tr><td colspan="8" class="p-3 text-center text-gray-400">Sin ventas ni cambios registrados.</td></tr>'}</tbody></table></div>
+        <p style="font-size:11px;color:#6b7280;margin-top:8px">Cada fila es una etapa: desde el cambio indicado hasta el siguiente. Compara “Pzs/día” antes y después de un ajuste de precio para ver si bajó la demanda.</p></div>`
+    }).then(r => { if (r.isConfirmed) mgAplicarPrecio(cod, f.sug); });
+}
+async function mgAplicarPrecio(cod, precio) {
+    const p = inventario.find(x => x.codigo === cod); if (!p) return Swal.fire('Error', 'Producto no encontrado en el inventario cargado. Pulsa Sincronizar.', 'error');
+    Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    // stockBase = stock: el servidor conserva su stock actual (no pisa ventas recientes)
+    const r = await enviarDatosAGoogleSheets({ tipo: 'actualizarInventario', inventario: [{ codigo: p.codigo, nombre: p.nombre, precio, costo: p.costo || 0, stock: p.stock, stockBase: p.stock }] });
+    if (!r || r.status !== 'success') { Swal.close(); return; }
+    p.precio = precio; renderProductos(); renderInventario();
+    await iniciarMargenes(true); Swal.fire({ title: 'Precio actualizado', text: p.nombre + ' ahora cuesta $' + formatMiles(precio), icon: 'success', timer: 1800, showConfirmButton: false });
+}
+async function mgReconstruir() {
+    Swal.fire({ title: 'Buscando en el log...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const r = await enviarDatosAGoogleSheets({ tipo: 'reconstruirHistorialPrecios' });
+    if (!r || r.status !== 'success') { Swal.close(); return; }
+    await iniciarMargenes(true);
+    Swal.fire(r.nuevos ? 'Historial recuperado' : 'Sin cambios nuevos', r.nuevos ? 'Se agregaron ' + r.nuevos + ' cambio(s) de precio o costo.' : 'Todo lo que había en el log ya estaba en el historial.', r.nuevos ? 'success' : 'info');
 }
 
 // ==========================================
