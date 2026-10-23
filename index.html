@@ -645,6 +645,8 @@
                 <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuántas ventas de hojas hubo ayer?</button>
                 <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuándo cambié el precio de hoja amarillo?</button>
                 <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Qué productos salen más rápido?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Cuánto me queda de hoja amarilla?</button>
+                <button onclick="ejecutarBuscador(this.innerText)" class="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-[11px] cursor-pointer">¿Qué productos no se han vendido este mes?</button>
             </div>
             <p id="bus-estado" class="text-[11px] text-gray-400 mt-2 shrink-0"></p>
             <div id="bus-resultado" class="space-y-3 mt-3"></div>
@@ -5134,11 +5136,24 @@ const bEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g
 const bQuitaAcentos = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const bTokens = s => bQuitaAcentos(s).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
 function bStem(w) {
-    if (w.length > 5 && w.endsWith('ces')) return w.slice(0, -3) + 'z';
-    if (w.length > 5 && w.endsWith('es')) return w.slice(0, -2);
-    if (w.length > 3 && w.endsWith('s')) return w.slice(0, -1);
-    return w;
+    let s = w;
+    if (s.length > 5 && s.endsWith('ces')) s = s.slice(0, -3) + 'z';
+    else if (s.length > 5 && s.endsWith('es')) s = s.slice(0, -2);
+    else if (s.length > 3 && s.endsWith('s')) s = s.slice(0, -1);
+    if (s.length > 4 && /[ao]$/.test(s)) s = s.slice(0, -1); // amarillo/amarilla, blanco/blanca, cuaderno/cuadernos
+    return s;
 }
+// Palabras que la gente usa distinto al nombre del producto (ya sin acentos). Cada una se busca también con sus equivalentes.
+const B_SINON = {
+    fotocopia: ['copia'], xerox: ['copia'], copiar: ['copia'], imprimir: ['impresion'], imprimi: ['impresion'], impreso: ['impresion'],
+    libreta: ['cuaderno'], block: ['cuaderno'], plumon: ['marcador'], plumones: ['marcador'], marcatexto: ['marcador', 'texto'],
+    resistol: ['pegamento'], pegapega: ['pegamento'], boligrafo: ['pluma'], bolígrafo: ['pluma'], lapicero: ['lapiz'], lapices: ['lapiz'],
+    cartulina: ['cartulina'], cartoncillo: ['cartulina'], engargolar: ['engargolado'], engargolados: ['engargolado'], empastar: ['empastado'],
+    colores: ['color'], colorida: ['color'], bn: ['b/n', 'negro'], 'blanco/negro': ['negro'], carta: ['carta'], oficio: ['oficio'], folder: ['folder', 'carpeta'],
+    carpeta: ['folder'], goma: ['borrador'], borrador: ['goma'], tijeras: ['tijera'], silicon: ['silicon'], diurex: ['cinta'], scotch: ['cinta'], cinta: ['diurex']
+};
+const B_SINON_ST = {}; Object.keys(B_SINON).forEach(k => { B_SINON_ST[bStem(bQuitaAcentos(k))] = B_SINON[k].map(x => bStem(bQuitaAcentos(x))); });
+const bAlts = t => [t].concat(B_SINON_ST[t] || []);
 const bFmt = n => Number((Number(n) || 0).toFixed(2)).toLocaleString('es-MX');
 const B_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const B_DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
@@ -5146,7 +5161,7 @@ const bAddD = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 const bDKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const bFechaLarga = (d, conDia) => d.toLocaleDateString('es-MX', Object.assign({ day: 'numeric', month: 'long', year: 'numeric' }, conDia ? { weekday: 'long' } : {}));
 const bMesIdx = n => n === 'setiembre' ? 8 : B_MESES.indexOf(n);
-const B_STOP = new Set('cuantas cuantos cuanto cuanta veces vez he has hemos ha han hice hizo hicimos hubo habido se que tan es son fue fueron de del la las el los lo un una unos unas en a al por para con mi mis me te y o ya vendi vendio vendimos vendido vendidos vendida venta ventas vender vende venden vendiendo surti surtido surtidos surtida surtir surtimos surto cargue cargado cargados cargar carga cargas cargamos rapido rapida rapidamente velocidad rotacion rota baja bajo bajado bajan bajar acaba acabo acabar acaban agota agotar agotan dura duran durar tarda tardo ritmo salida salidas salen sale salir salio piezas pieza unidades unidad productos producto articulo articulos dia dias semana semanas mes meses ano anos ultimo ultima ultimos ultimas pasado pasada este esta ese esa todo todos todas total totales dame dime muestrame muestra ver quiero saber necesito puedes podrias favor cual cuales como promedio durante hay tengo tiene tienen stock existencia inventario cantidad registro registros log mas menos poco mucho dato datos cuando cuales quien quienes precio precios costo costos nombre nombres cambio cambie cambios cambiado cambiaron cambiar modifique modifico modificado modificar modificacion modificaciones edite edito editado editar edicion ediciones ajuste ajustes corregi correccion correcciones historial actualice actualizado'.split(' '));
+const B_STOP = new Set('cuantas cuantos cuanto cuanta veces vez he has hemos ha han hice hizo hicimos hubo habido se que tan es son fue fueron de del la las el los lo un una unos unas en a al por para con mi mis me te y o ya vendi vendio vendimos vendido vendidos vendida venta ventas vender vende venden vendiendo surti surtido surtidos surtida surtir surtimos surto cargue cargado cargados cargar carga cargas cargamos rapido rapida rapidamente velocidad rotacion rota baja bajo bajado bajan bajar acaba acabo acabar acaban agota agotar agotan dura duran durar tarda tardo ritmo salida salidas salen sale salir salio piezas pieza unidades unidad productos producto articulo articulos dia dias semana semanas mes meses ano anos ultimo ultima ultimos ultimas pasado pasada este esta ese esa todo todos todas total totales dame dime muestrame muestra ver quiero saber necesito puedes podrias favor cual cuales como promedio durante hay tengo tiene tienen stock existencia inventario cantidad registro registros log mas menos poco mucho dato datos cuando cuales quien quienes precio precios costo costos nombre nombres cambio cambie cambios cambiado cambiaron cambiar modifique modifico modificado modificar modificacion modificaciones edite edito editado editar edicion ediciones ajuste ajustes corregi correccion correcciones historial actualice actualizado queda quedan quedo actual actualmente ahorita ahora alcanza falta faltan hace desde hasta entre cada tuve tuvimos hubieron sin nunca movimiento estancado estancados peor mejor top existencias porfa oye hola buenas mande mandaron no va van voy vas vaya vamos estan esten seria sera pueden puede puedo deberia debo tengan tenga tuviera pasa paso pasaron pasan trae traen hacer hago hicieron lista listado reporte resumen informacion info mostrar saca sacar'.split(' '));
 
 // ---------- Fechas ----------
 function bParseLogFecha(s) {
@@ -5172,6 +5187,18 @@ function bParseRango(q) {
     const take = (re, fn) => { if (r) return; const m = q.match(re); if (!m) return; const x = fn(m); if (x) { r = x; q = q.replace(m[0], ' '); } };
     const mesesRe = B_MESES.join('|') + '|setiembre';
     const fechaSinAnio = (dd, mm) => { let d = new Date(hoy.getFullYear(), mm, dd); if (d > hoy) d = new Date(hoy.getFullYear() - 1, mm, dd); return d; };
+    take(new RegExp('\\bdel (\\d{1,2}) al (\\d{1,2}) de (' + mesesRe + ')(?: (?:de|del) (\\d{4}))?\\b'), m => {
+        const mi = bMesIdx(m[3]); let y = m[4] ? +m[4] : hoy.getFullYear(); if (!m[4] && new Date(y, mi, +m[1]) > hoy) y--;
+        const d1 = new Date(y, mi, +m[1]), d2 = new Date(y, mi, +m[2]); if (d2 < d1) return null;
+        return { desde: d1, hasta: bAddD(d2, 1), etiqueta: 'Del ' + bFechaLarga(d1) + ' al ' + bFechaLarga(d2) };
+    });
+    take(new RegExp('\\bdesde (?:el )?(\\d{1,2}) de (' + mesesRe + ')\\b'), m => { const d1 = fechaSinAnio(+m[1], bMesIdx(m[2])); return { desde: d1, hasta: bAddD(hoy, 1), etiqueta: 'Desde el ' + bFechaLarga(d1) }; });
+    take(/\bhace (\d+) (dia|dias|semana|semanas|mes|meses)\b/, m => {
+        const n = +m[1], u = m[2];
+        if (u.startsWith('dia')) return dia(bAddD(hoy, -n));
+        if (u.startsWith('sem')) { const l = bAddD(hoy, -((hoy.getDay() + 6) % 7) - 7 * n); return { desde: l, hasta: bAddD(l, 7), etiqueta: 'La semana del ' + bFechaLarga(l) }; }
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() - n, 1); return { desde: d, hasta: new Date(d.getFullYear(), d.getMonth() + 1, 1), etiqueta: 'En ' + B_MESES[d.getMonth()] + ' de ' + d.getFullYear() };
+    });
     take(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/, m => { let y = +m[3]; if (y < 100) y += 2000; return dia(new Date(y, +m[2] - 1, +m[1])); });
     take(/\b(\d{1,2})\/(\d{1,2})\b/, m => (+m[2] >= 1 && +m[2] <= 12) ? dia(fechaSinAnio(+m[1], +m[2] - 1)) : null);
     take(new RegExp('\\b(\\d{1,2}) de (' + mesesRe + ')(?: (?:de|del) (\\d{4}))?\\b'), m => m[3] ? dia(new Date(+m[3], bMesIdx(m[2]), +m[1])) : dia(fechaSinAnio(+m[1], bMesIdx(m[2]))));
@@ -5199,9 +5226,11 @@ function bParseRango(q) {
 
 // ---------- Interpretación de la pregunta ----------
 function bIntencion(q) {
+    if (/\bsin (venta|ventas|movimiento|salida|rotacion)|no se (ha |han )?vend|no (he |hemos )?vend|\bno (salen|sale|rota|rotan|se mueve|se mueven)|estancad|menos vend|peor(es)? vend|nunca se vend|muert[oa]s?\b|no tienen salida|no han salido|no se han movido/.test(q)) return 'sin';
     if (/cambi|modific|\bedit|ajust|historial|correg|actualiz/.test(q)) return 'mod';
-    if (/rapid|veloc|rotac|\brota|baja|bajo|bajad|bajan|agot|acaba|durar|\bdura\b|duran|tarda|consum|por dia|ritmo|salida/.test(q)) return 'vel';
-    if (/surt|carg|reabast|repos|repus|abast|restock|llegaron|entrada/.test(q)) return 'sur';
+    if (/cuant[oa]s? (me )?(queda|quedan|hay|tengo|tenemos|existen|sobran)|\bquedan?\b|existencia|en stock|stock actual|me falta|faltan|por agotar|poco stock|stock bajo|bajo stock|que (me )?(queda|hay)|nivel de inventario/.test(q)) return 'stk';
+    if (/rapid|veloc|rotac|\brota|baja|bajo|bajad|bajan|agot|acaba|durar|\bdura\b|duran|tarda|consum|por dia|ritmo|salida|alcanza/.test(q)) return 'vel';
+    if (/surt|carg|reabast|repos|repus|abast|restock|llegaron|entrada|resurt|compre|compramos/.test(q)) return 'sur';
     return 'ven';
 }
 function bLev(a, b) {
@@ -5217,7 +5246,8 @@ function bBuscaProductos(toks) {
         nt: bTokens(p.nombre).map(bStem),
         sig: bTokens(p.nombre).filter(w => !B_STOP.has(w)).map(bStem)
     }));
-    const ok = (x, t) => x.cod === t || x.nt.includes(t) || (t.length >= 3 && x.nt.some(w => w.startsWith(t)));
+    const ok1 = (x, t) => x.cod === t || x.nt.includes(t) || (t.length >= 3 && x.nt.some(w => w.startsWith(t)));
+    const ok = (x, t) => bAlts(t).some(a => ok1(x, a));
     let c = info.filter(x => st.every(t => ok(x, t)));
     if (c.length > 1) { const ex = c.filter(x => x.sig.length === st.length && st.every(t => x.sig.includes(t))); if (ex.length) c = ex; }
     if (c.length) return { cands: c.map(x => x.p), sug: [] };
@@ -5231,9 +5261,18 @@ function bAnaliza(texto) {
     const intent = bIntencion(q);
     const { rango, resto } = bParseRango(q);
     const toks = bTokens(resto).filter(t => !B_STOP.has(t));
-    const m = toks.length ? bBuscaProductos(toks) : { cands: [], sug: [] };
+    let m = toks.length ? bBuscaProductos(toks) : { cands: [], sug: [] };
+    let ignoradas = [];
+    if (toks.length > 1 && !m.cands.length) {
+        // Quita las palabras que no se parecen a ningún producto ("total", "mi", errores) y busca con las demás
+        const conocidas = toks.filter(t => bBuscaProductos([t]).cands.length || bBuscaProductos([t]).sug.length);
+        if (conocidas.length && conocidas.length < toks.length) {
+            const m2 = bBuscaProductos(conocidas);
+            if (m2.cands.length) { ignoradas = toks.filter(t => !conocidas.includes(t)); m = m2; toks.splice(0, toks.length, ...conocidas); }
+        }
+    }
     const campos = ['precio', 'stock', 'costo', 'nombre'].filter(c => c === 'stock' ? /stock|existenc|inventario/.test(q) : q.includes(c));
-    return { intent, rango, toks, etq: toks.join(' '), cands: m.cands, sug: m.sug, campos };
+    return { intent, rango, toks, etq: toks.join(' '), cands: m.cands, sug: m.sug, campos, ignoradas };
 }
 
 // ---------- Datos ----------
@@ -5425,7 +5464,37 @@ function bResModificaciones(prods, rango, etq, campos) {
     return out;
 }
 
+function bUltimaVentaPorCodigo() {
+    const u = {}; bEventosVenta().forEach(e => { if (!u[e.codigo] || e.fecha > u[e.codigo]) u[e.codigo] = e.fecha; }); return u;
+}
+// Productos que NO se vendieron en el periodo (por defecto, últimos 30 días)
+function bResSinVentas(prods, rango, etq) {
+    const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const r = rango || { desde: bAddD(h0, -29), hasta: bAddD(h0, 1), etiqueta: 'En los últimos 30 días' };
+    const vendidos = new Set(bEventosVenta().filter(e => bEnRango(e.fecha, r)).map(e => e.codigo));
+    const base = (prods && prods.length ? prods : inventario).filter(p => !p.noActivo);
+    const sin = base.filter(p => !vendidos.has(p.codigo)), ult = bUltimaVentaPorCodigo();
+    if (!sin.length) return bCard(`Todos los productos${prods && prods.length ? ' de ' + bEtqProd(prods, etq) : ''} tuvieron al menos una venta. ${bEsc(r.etiqueta)}.`);
+    const filas = sin.map(p => ({ p, v: (p.stock || 0) * ((p.costo || 0) || (p.precio || 0)) })).sort((a, b) => b.v - a.v).slice(0, 40)
+        .map(o => [bNom(o.p), bFmt(o.p.stock), ult[o.p.codigo] ? bFechaLarga(ult[o.p.codigo]) : 'Nunca en el historial', '$' + formatMiles(o.v)]);
+    return bCard(`<div class="text-base">${bEsc(r.etiqueta)}, <b>${sin.length} producto${sin.length === 1 ? '' : 's'}</b> no se vendieron${prods && prods.length ? ' de ' + bEtqProd(prods, etq) : ''}.</div>`)
+        + `<div>${bbTit('Con más dinero parado primero (stock × costo)')}${bTabla(['Producto', 'Stock', 'Última venta', 'Dinero parado'], filas)}</div>`;
+}
+// Cuánto hay de un producto (o cuáles están por agotarse)
+function bResStock(prods, etq) {
+    const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()), r = { desde: bAddD(h0, -29), hasta: bAddD(h0, 1) };
+    const v30 = {}; bEventosVenta().filter(e => bEnRango(e.fecha, r)).forEach(e => { v30[e.codigo] = (v30[e.codigo] || 0) + e.cant; });
+    const st = p => VINCULOS_STOCK[p.codigo] ? stockDisponible(p.codigo) : p.stock;
+    const lista = (prods && prods.length ? prods : inventario.filter(p => !p.noActivo && (v30[p.codigo] || 0) > 0));
+    const rows = lista.map(p => { const s = st(p), pd = (v30[p.codigo] || 0) / 30; return { p, s, v: v30[p.codigo] || 0, d: pd > 0 ? s / pd : null }; })
+        .sort((a, b) => (prods && prods.length) ? 0 : ((a.d == null ? 1e9 : a.d) - (b.d == null ? 1e9 : b.d))).slice(0, prods && prods.length ? 60 : 15);
+    const titulo = prods && prods.length ? `Stock de ${bEtqProd(prods, etq)}` : 'Los 15 que antes se agotan al ritmo de los últimos 30 días';
+    return bCard(`<div class="text-base">${titulo}</div>`) + `<div>${bTabla(['Producto', 'Stock', 'Precio', 'Vendidas (30 d)', 'Alcanza para'],
+        rows.map(o => [bNom(o.p), `<b>${bFmt(o.s)}</b>`, '$' + formatMiles(o.p.precio || 0), bFmt(o.v), o.d != null ? '~' + Math.round(o.d) + ' días' : '—']))}</div>`;
+}
 function bComponer(intent, rango, prods, etq, campos) {
+    if (intent === 'sin') return bResSinVentas(prods, rango, etq);
+    if (intent === 'stk') return bResStock(prods, etq);
     if (intent === 'mod') return bResModificaciones(prods, rango, etq, campos);
     if (intent === 'sur') return bResSurtidos(prods, rango, etq);
     if (intent === 'vel') return bResVelocidad(prods, rango, etq);
@@ -5458,9 +5527,14 @@ async function ejecutarBuscador(texto) {
     const q = inp.value.trim(); if (!q) return;
     if (!BUS.cargado) { await iniciarBuscador(); if (!BUS.cargado) return; }
     if (!inventario || !inventario.length) { res.innerHTML = bCard('El inventario aún no se ha cargado. Pulsa "Sincronizar" e inténtalo de nuevo.'); return; }
-    const a = bAnaliza(q); BUS.ult = { intent: a.intent, rango: a.rango, campos: a.campos };
-    const nombres = { mod: 'cambios en productos (log)', sur: 'surtidos (log)', vel: 'velocidad de salida', ven: 'ventas' };
-    const interp = `<div class="text-[11px] text-gray-500 dark:text-gray-400">Entendí → <b>${nombres[a.intent]}</b> · producto: <b>${a.etq ? bEsc(a.etq) : 'todos'}</b> · periodo: <b>${a.rango ? bEsc(a.rango.etiqueta) : 'todo el historial'}</b></div>`;
+    res.innerHTML = bCard('<div class="text-sm text-gray-500 dark:text-gray-400">🤖 Interpretando tu pregunta...</div>');
+    let a = await bAnalizaIA(q);
+    if (a && a.noSoportada) { res.innerHTML = bCard('<div class="text-sm">' + bEsc(a.mensaje) + '</div>'); return; }
+    const usoIA = !!a;
+    if (!a) a = bAnaliza(q);
+    BUS.ult = { intent: a.intent, rango: a.rango, campos: a.campos };
+    const nombres = { sin: 'productos sin ventas', stk: 'existencias (stock)', mod: 'cambios en productos (log)', sur: 'surtidos (log)', vel: 'velocidad de salida', ven: 'ventas' };
+    const interp = `<div class="text-[11px] text-gray-500 dark:text-gray-400">Entendí → <b>${nombres[a.intent]}</b> · producto: <b>${a.etq ? bEsc(a.etq) : 'todos'}</b> · periodo: <b>${a.rango ? bEsc(a.rango.etiqueta) : 'todo el historial'}</b>${a.ignoradas && a.ignoradas.length ? ' · ignoré: <b>' + bEsc(a.ignoradas.join(' ')) + '</b>' : ''} · ${usoIA ? '🤖 interpretado con IA' : (BUS.iaError === 'sinIA' ? 'modo básico (IA sin configurar)' : (BUS.iaError ? 'modo básico (la IA no respondió)' : 'modo básico'))}</div>`;
     let h;
     if (a.toks.length && !a.cands.length) {
         h = bCard(a.sug.length
@@ -5468,6 +5542,24 @@ async function ejecutarBuscador(texto) {
             : `No encontré ningún producto parecido a “${bEsc(a.etq)}”. Prueba con otra palabra del nombre o con el código.`);
     } else h = bComponer(a.intent, a.rango, a.cands.length ? a.cands : null, a.etq, a.campos);
     res.innerHTML = interp + h;
+}
+// Pregunta a la IA (vía Apps Script) cómo interpretar el texto. Devuelve el mismo formato que bAnaliza, o null si no hay IA / falló.
+async function bAnalizaIA(texto) {
+    if (BUS.iaNoDisponible) return null;
+    let d;
+    try { d = await (await apiFetch('interpretarBuscador&q=' + encodeURIComponent(texto))).json(); }
+    catch (e) { if (e && e.code === 'sinIA') BUS.iaNoDisponible = true; BUS.iaError = e && e.code === 'sinIA' ? 'sinIA' : 'error'; return null; }
+    if (!d || d.status !== 'success') { BUS.iaError = 'error'; return null; }
+    BUS.iaError = null;
+    const mapa = { ventas: 'ven', surtidos: 'sur', velocidad: 'vel', cambios: 'mod' };
+    if (d.intent === 'no_soportada') return { noSoportada: true, mensaje: d.respuesta || 'No puedo responder eso con los datos del log y las ventas.' };
+    const cands = (d.codigos || []).map(c => inventario.find(x => x.codigo === c)).filter(Boolean);
+    const ymd = s => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+    let rango = null; const ds = ymd(d.desde), hs = ymd(d.hasta);
+    if (ds) { const hasta = bAddD(hs && hs >= ds ? hs : ds, 1); rango = { desde: ds, hasta, etiqueta: d.periodo || (bFechaLarga(ds) + (hs && hs > ds ? ' al ' + bFechaLarga(hs) : '')) }; }
+    const etq = d.producto || (cands.length ? cands.map(c => c.nombre).join(', ') : '');
+    const pedia = !!(d.producto || (d.codigos && d.codigos.length));
+    return { ia: true, intent: mapa[d.intent] || 'ven', rango, toks: pedia && !cands.length ? ['?'] : [], etq, cands, sug: [], campos: d.campos || [] };
 }
 function bUsaProducto(cod) {
     const p = inventario.find(x => x.codigo === cod); if (!p || !BUS.ult) return;
