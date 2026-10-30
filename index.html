@@ -4955,45 +4955,63 @@ const impEstados = {
 };
 const impSigno = n => (n > 0 ? '+' : (n < 0 ? '−' : '')) + bFmt(Math.abs(n));
 
-// Vista simple: un renglón por día. Barra roja a la derecha = se imprimió más de lo que se cobró; barra ámbar a la izquierda = se cobró más de lo que se imprimió.
+// Vista simple: el eje es el DÍA. Arriba una cuadrícula día × tipo de impresión (diferencia contador − cobrado, con lo que contó y lo que se cobró),
+// abajo una gráfica por tipo con dos barras por día (contó / cobró). Rojo = se imprimió de más, ámbar = se cobró de más.
 function impSimpleRender(canales, dias, resumen, fmtEstado) {
     const el = document.getElementById('imp-simple'); if (!el) return;
-    const corto = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
-    const filas = [];
-    dias.forEach((d, i) => {
-        const con = canales.filter(c => fmtEstado(c.filas[i]));
-        if (!con.length) return;
-        let sobra = 0, falta = 0; const det = [];
-        con.forEach(c => { const f = c.filas[i]; if (f.estado === 'sobra') { sobra += f.diff; det.push(`${c.nombre}: ${impSigno(f.diff)}`); } else if (f.estado === 'falta') { falta += -f.diff; det.push(`${c.nombre}: ${impSigno(f.diff)}`); } });
-        filas.push({ d, sobra, falta, det });
+    (window.chartImpCanales || []).forEach(ch => { try { ch.destroy(); } catch (e) {} }); window.chartImpCanales = [];
+    const idx = dias.map((d, i) => i).filter(i => canales.some(c => fmtEstado(c.filas[i])));
+    if (!idx.length) { el.innerHTML = ''; return; }
+    const dia = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }), mes = d => d.toLocaleDateString('es-MX', { month: 'short' });
+    const tSobra = [], tFalta = []; let nOk = 0, nSob = 0, nFal = 0;
+    idx.forEach(i => {
+        let s = 0, f = 0; canales.forEach(c => { const x = c.filas[i]; if (x.estado === 'sobra') s += x.diff; else if (x.estado === 'falta') f += -x.diff; });
+        tSobra.push(s); tFalta.push(f); if (s) nSob++; if (f) nFal++; if (!s && !f) nOk++;
     });
-    if (!filas.length) { el.innerHTML = ''; return; }
-    const tSobra = filas.reduce((a, f) => a + f.sobra, 0), tFalta = filas.reduce((a, f) => a + f.falta, 0), dinero = resumen.reduce((a, r) => a + (r.dinero || 0), 0);
-    const nOk = filas.filter(f => !f.sobra && !f.falta).length, nSob = filas.filter(f => f.sobra).length, nFal = filas.filter(f => f.falta).length;
-    const max = Math.max(1, ...filas.map(f => Math.max(f.sobra, f.falta)));
+    const sumS = tSobra.reduce((a, x) => a + x, 0), sumF = tFalta.reduce((a, x) => a + x, 0), dinero = resumen.reduce((a, r) => a + (r.dinero || 0), 0);
     let titular;
-    if (!tSobra && !tFalta) titular = `<span class="text-emerald-600 dark:text-emerald-400 font-bold">✅ Todo cuadra:</span> lo que contaron las impresoras coincide con lo cobrado.`;
+    if (!sumS && !sumF) titular = `<span class="text-emerald-600 dark:text-emerald-400 font-bold">✅ Todo cuadra:</span> lo que contaron las impresoras coincide con lo cobrado.`;
     else {
         titular = '';
-        if (tSobra) titular += `<span class="text-red-600 dark:text-red-400 font-bold">⚠️ Se imprimieron ${bFmt(tSobra)} impresiones más de las que se cobraron</span>${dinero > 0 ? ` (unos <b>$${formatMiles(dinero)}</b> sin cobrar)` : ''}. `;
-        if (tFalta) titular += `<span class="text-amber-600 dark:text-amber-400 font-bold">🔎 Se cobraron ${bFmt(tFalta)} de más</span> que lo que contó la impresora.`;
+        if (sumS) titular += `<span class="text-red-600 dark:text-red-400 font-bold">⚠️ Se imprimieron ${bFmt(sumS)} impresiones más de las que se cobraron</span>${dinero > 0 ? ` (unos <b>$${formatMiles(dinero)}</b> sin cobrar)` : ''}. `;
+        if (sumF) titular += `<span class="text-amber-600 dark:text-amber-400 font-bold">🔎 Se cobraron ${bFmt(sumF)} de más</span> que lo que contó la impresora.`;
     }
-    const fila = f => {
-        const izq = f.falta ? `<div class="h-3 bg-amber-400 rounded-l" style="width:${Math.max(3, f.falta / max * 100)}%"></div>` : '';
-        const der = f.sobra ? `<div class="h-3 bg-red-500 rounded-r" style="width:${Math.max(3, f.sobra / max * 100)}%"></div>` : '';
-        let txt;
-        if (!f.sobra && !f.falta) txt = '<span class="text-emerald-600 dark:text-emerald-400">✅ Cuadra</span>';
-        else txt = [f.sobra ? `<span class="text-red-600 dark:text-red-400"><b>${bFmt(f.sobra)}</b> sin cobrar</span>` : '', f.falta ? `<span class="text-amber-600 dark:text-amber-400">cobró <b>${bFmt(f.falta)}</b> de más</span>` : ''].filter(Boolean).join(' · ');
-        return `<div class="flex items-center gap-2 text-xs py-0.5" title="${bEsc(f.det.join(' · '))}"><span class="w-24 shrink-0 font-medium whitespace-nowrap">${bEsc(corto(f.d))}</span><div class="flex-1 flex justify-end min-w-0">${izq}</div><div class="w-px h-5 bg-gray-300 dark:bg-gray-600 shrink-0"></div><div class="flex-1 min-w-0">${der}</div><span class="w-40 sm:w-48 shrink-0 text-right leading-tight">${txt}</span></div>`;
+    const celda = (c, i) => {
+        const f = c.filas[i];
+        if (!fmtEstado(f)) return `<td class="px-1.5 py-1 text-center text-gray-300 dark:text-gray-600">—</td>`;
+        const cls = f.estado === 'sobra' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' : f.estado === 'falta' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' : f.estado === 'migra' ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300' : 'text-emerald-600 dark:text-emerald-400';
+        const main = f.diff === 0 ? '✅' : impSigno(f.diff);
+        return `<td class="px-1.5 py-1 text-center ${cls}" title="${bEsc(c.nombre)} · contó ${bFmt(f.delta)} · cobró ${bFmt(f.pos)}"><div class="font-bold">${main}</div><div class="text-[9px] opacity-70 whitespace-nowrap">${bFmt(f.delta)} / ${bFmt(f.pos)}</div></td>`;
     };
+    const thDia = i => `<th class="px-1.5 py-1 text-center font-medium whitespace-nowrap">${bEsc(dia(dias[i]))}<div class="text-[9px] text-gray-400 font-normal">${bEsc(mes(dias[i]))}</div></th>`;
+    const filasC = canales.map(c => `<tr class="border-t dark:border-gray-700/60"><td class="sticky left-0 bg-white dark:bg-gray-800 px-2 py-1 font-bold whitespace-nowrap" style="color:${c.color}">${bEsc(c.nombre)}</td>${idx.map(i => celda(c, i)).join('')}</tr>`).join('');
+    const filaTotal = `<tr class="border-t-2 dark:border-gray-600"><td class="sticky left-0 bg-white dark:bg-gray-800 px-2 py-1 font-bold">Total del día</td>${idx.map((i, k) => {
+        const s = tSobra[k], f = tFalta[k];
+        if (!s && !f) return `<td class="px-1.5 py-1 text-center text-emerald-600 dark:text-emerald-400 font-bold">✅</td>`;
+        return `<td class="px-1.5 py-1 text-center leading-tight">${s ? `<div class="text-red-600 dark:text-red-400 font-bold">+${bFmt(s)}</div>` : ''}${f ? `<div class="text-amber-600 dark:text-amber-400 font-bold">−${bFmt(f)}</div>` : ''}</td>`;
+    }).join('')}</tr>`;
     el.innerHTML = `<div class="border dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40">
         <p class="text-[11px] uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">¿Cuadra lo impreso con lo cobrado?</p>
         <p class="text-sm mb-2 leading-snug">${titular}</p>
         <div class="flex flex-wrap gap-2 text-[11px] mb-2"><span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✅ ${nOk} día${nOk === 1 ? '' : 's'} cuadra${nOk === 1 ? '' : 'n'}</span><span class="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠️ ${nSob} con impresiones sin cobrar</span><span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">🔎 ${nFal} con cobro de más</span></div>
-        <div class="flex items-center gap-2 text-[10px] text-gray-400 mb-0.5"><span class="w-24 shrink-0"></span><div class="flex-1 text-right">← se cobró de más</div><div class="w-px shrink-0"></div><div class="flex-1">se imprimió de más →</div><span class="w-40 sm:w-48 shrink-0"></span></div>
-        <div class="max-h-[340px] overflow-y-auto">${filas.slice().reverse().map(fila).join('')}</div>
-        <p class="text-[10px] text-gray-400 mt-1">Suma de todas las impresoras, comparando el contador con lo cobrado en el corte de cada día. Pasa el cursor sobre un día para ver qué impresora fue. Los días sin corte no se comparan.</p>
+        <div class="overflow-x-auto border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"><table class="text-xs border-collapse min-w-full"><thead class="text-gray-600 dark:text-gray-300"><tr><th class="sticky left-0 bg-white dark:bg-gray-800 px-2 py-1 text-left">Tipo de impresión</th>${idx.map(thDia).join('')}</tr></thead><tbody>${filasC}${filaTotal}</tbody></table></div>
+        <p class="text-[10px] text-gray-400 mt-1">Cada casilla: <b>diferencia</b> y, abajo, <b>lo que contó la impresora / lo que se cobró</b>. <span class="text-red-500">Rojo (+)</span> = se imprimió de más · <span class="text-amber-500">ámbar (−)</span> = se cobró de más · ✅ cuadra. Los días sin corte y el turno en curso no se comparan.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-3">${canales.map(c => `<div class="border dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800" style="height:170px;position:relative"><canvas id="imp-ch-${bEsc(c.id)}"></canvas></div>`).join('')}</div>
     </div>`;
+    if (typeof Chart === 'undefined') return;
+    const etq = idx.map(i => dias[i].toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }));
+    canales.forEach(c => {
+        const cv = document.getElementById('imp-ch-' + c.id); if (!cv) return;
+        window.chartImpCanales.push(new Chart(cv, {
+            type: 'bar',
+            data: { labels: etq, datasets: [
+                { label: 'Contó la impresora', data: idx.map(i => fmtEstado(c.filas[i]) ? c.filas[i].delta : null), backgroundColor: c.color, borderRadius: 3 },
+                { label: 'Se cobró', data: idx.map(i => fmtEstado(c.filas[i]) ? c.filas[i].pos : null), backgroundColor: '#9ca3af', borderRadius: 3 }] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: c.nombre + ': contó vs cobró por día', font: { size: 11 } } },
+                scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { autoSkip: true, maxTicksLimit: 14, maxRotation: 0, font: { size: 9 } } } } }
+        }));
+    });
 }
 function impRender() {
     const sel = document.getElementById('sel-imp-dias'), nDias = parseInt(sel && sel.value) || 30;
