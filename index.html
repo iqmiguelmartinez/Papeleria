@@ -706,9 +706,13 @@
                 </div>
             </div>
             <div id="imp-vivo" class="mb-2 shrink-0"></div>
+            <div id="imp-simple" class="mb-2 shrink-0"></div>
             <div id="imp-resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0"></div>
-            <div id="imp-grafico" class="hidden mt-2 shrink-0" style="height: 150px; position: relative;"><canvas id="chartImpresiones"></canvas></div>
-            <div id="imp-tabla" class="mt-2"></div>
+            <details id="imp-detalle" class="mt-2" ontoggle="if (this.open && window.chartImpInstance) window.chartImpInstance.resize()">
+                <summary class="cursor-pointer select-none text-xs font-semibold text-gray-600 dark:text-gray-300 py-1">🔍 Ver detalle por impresora (tabla y gráfica)</summary>
+                <div id="imp-grafico" class="hidden mt-2 shrink-0" style="height: 150px; position: relative;"><canvas id="chartImpresiones"></canvas></div>
+                <div id="imp-tabla" class="mt-2"></div>
+            </details>
             <div id="imp-consumo"></div>
             <p class="text-[10px] text-gray-400 mt-2">Los lectores revisan las impresoras cada 5 minutos y solo guardan cuando un contador cambia. Cada corte se compara con el corte anterior: lo que contó cada contador entre uno y otro contra lo cobrado en ese turno (según Equivalencias). Diferencias pequeñas son normales (pruebas, atascos, ventas cobradas después del corte).</p>
         </div>
@@ -4951,6 +4955,46 @@ const impEstados = {
 };
 const impSigno = n => (n > 0 ? '+' : (n < 0 ? '−' : '')) + bFmt(Math.abs(n));
 
+// Vista simple: un renglón por día. Barra roja a la derecha = se imprimió más de lo que se cobró; barra ámbar a la izquierda = se cobró más de lo que se imprimió.
+function impSimpleRender(canales, dias, resumen, fmtEstado) {
+    const el = document.getElementById('imp-simple'); if (!el) return;
+    const corto = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+    const filas = [];
+    dias.forEach((d, i) => {
+        const con = canales.filter(c => fmtEstado(c.filas[i]));
+        if (!con.length) return;
+        let sobra = 0, falta = 0; const det = [];
+        con.forEach(c => { const f = c.filas[i]; if (f.estado === 'sobra') { sobra += f.diff; det.push(`${c.nombre}: ${impSigno(f.diff)}`); } else if (f.estado === 'falta') { falta += -f.diff; det.push(`${c.nombre}: ${impSigno(f.diff)}`); } });
+        filas.push({ d, sobra, falta, det });
+    });
+    if (!filas.length) { el.innerHTML = ''; return; }
+    const tSobra = filas.reduce((a, f) => a + f.sobra, 0), tFalta = filas.reduce((a, f) => a + f.falta, 0), dinero = resumen.reduce((a, r) => a + (r.dinero || 0), 0);
+    const nOk = filas.filter(f => !f.sobra && !f.falta).length, nSob = filas.filter(f => f.sobra).length, nFal = filas.filter(f => f.falta).length;
+    const max = Math.max(1, ...filas.map(f => Math.max(f.sobra, f.falta)));
+    let titular;
+    if (!tSobra && !tFalta) titular = `<span class="text-emerald-600 dark:text-emerald-400 font-bold">✅ Todo cuadra:</span> lo que contaron las impresoras coincide con lo cobrado.`;
+    else {
+        titular = '';
+        if (tSobra) titular += `<span class="text-red-600 dark:text-red-400 font-bold">⚠️ Se imprimieron ${bFmt(tSobra)} impresiones más de las que se cobraron</span>${dinero > 0 ? ` (unos <b>$${formatMiles(dinero)}</b> sin cobrar)` : ''}. `;
+        if (tFalta) titular += `<span class="text-amber-600 dark:text-amber-400 font-bold">🔎 Se cobraron ${bFmt(tFalta)} de más</span> que lo que contó la impresora.`;
+    }
+    const fila = f => {
+        const izq = f.falta ? `<div class="h-3 bg-amber-400 rounded-l" style="width:${Math.max(3, f.falta / max * 100)}%"></div>` : '';
+        const der = f.sobra ? `<div class="h-3 bg-red-500 rounded-r" style="width:${Math.max(3, f.sobra / max * 100)}%"></div>` : '';
+        let txt;
+        if (!f.sobra && !f.falta) txt = '<span class="text-emerald-600 dark:text-emerald-400">✅ Cuadra</span>';
+        else txt = [f.sobra ? `<span class="text-red-600 dark:text-red-400"><b>${bFmt(f.sobra)}</b> sin cobrar</span>` : '', f.falta ? `<span class="text-amber-600 dark:text-amber-400">cobró <b>${bFmt(f.falta)}</b> de más</span>` : ''].filter(Boolean).join(' · ');
+        return `<div class="flex items-center gap-2 text-xs py-0.5" title="${bEsc(f.det.join(' · '))}"><span class="w-24 shrink-0 font-medium whitespace-nowrap">${bEsc(corto(f.d))}</span><div class="flex-1 flex justify-end min-w-0">${izq}</div><div class="w-px h-5 bg-gray-300 dark:bg-gray-600 shrink-0"></div><div class="flex-1 min-w-0">${der}</div><span class="w-40 sm:w-48 shrink-0 text-right leading-tight">${txt}</span></div>`;
+    };
+    el.innerHTML = `<div class="border dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40">
+        <p class="text-[11px] uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">¿Cuadra lo impreso con lo cobrado?</p>
+        <p class="text-sm mb-2 leading-snug">${titular}</p>
+        <div class="flex flex-wrap gap-2 text-[11px] mb-2"><span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✅ ${nOk} día${nOk === 1 ? '' : 's'} cuadra${nOk === 1 ? '' : 'n'}</span><span class="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠️ ${nSob} con impresiones sin cobrar</span><span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">🔎 ${nFal} con cobro de más</span></div>
+        <div class="flex items-center gap-2 text-[10px] text-gray-400 mb-0.5"><span class="w-24 shrink-0"></span><div class="flex-1 text-right">← se cobró de más</div><div class="w-px shrink-0"></div><div class="flex-1">se imprimió de más →</div><span class="w-40 sm:w-48 shrink-0"></span></div>
+        <div class="max-h-[340px] overflow-y-auto">${filas.slice().reverse().map(fila).join('')}</div>
+        <p class="text-[10px] text-gray-400 mt-1">Suma de todas las impresoras, comparando el contador con lo cobrado en el corte de cada día. Pasa el cursor sobre un día para ver qué impresora fue. Los días sin corte no se comparan.</p>
+    </div>`;
+}
 function impRender() {
     const sel = document.getElementById('sel-imp-dias'), nDias = parseInt(sel && sel.value) || 30;
     const hoy = new Date(), h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
@@ -4998,6 +5042,8 @@ function impRender() {
             <p class="text-[10px] text-gray-500">contó <b>${bFmt(r.sDelta)}</b> · cobró <b>${bFmt(r.sPos)}</b> · ${r.con} día${r.con === 1 ? '' : 's'}</p>
             <p class="text-[10px] ${r.alertas ? 'text-red-600 font-bold' : 'text-gray-400'}">${r.alertas} fuera de tolerancia${r.dinero > 0 ? ` · $${formatMiles(r.dinero)} en juego` : ''}</p></div>`;
     }).join('');
+
+    impSimpleRender(canales, dias, resumen, fmtEstado);
 
     // Tabla compacta: un día por fila, una columna por contador (más reciente primero).
     // Los días sin nada que comparar se agrupan en un renglón plegable para no ocupar pantalla.
