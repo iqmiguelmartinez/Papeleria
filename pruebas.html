@@ -3486,26 +3486,27 @@ function renderSankey() {
     const pct = n => (S.ing > 0 ? (n / S.ing * 100).toFixed(0) : 0) + '%';
     if (kp) kp.innerHTML = tk('Ventas', $(S.ing), 'text-emerald-600 dark:text-emerald-400', 'ingreso del periodo') + tk('Costo mercancía', $(S.costo), 'text-red-600 dark:text-red-400', pct(S.costo) + ' de las ventas') + tk('Gasto operativo', $(S.op), 'text-amber-600 dark:text-amber-400', pct(S.op) + ' de las ventas') + tk('Utilidad', (S.util < 0 ? '-' : '') + $(Math.abs(S.util)), S.util >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400', (S.util < 0 ? 'pérdida · ' : '') + pct(Math.abs(S.util)) + ' de las ventas');
 
-    // Nodos por columna. Si el gasto operativo supera la ganancia bruta, el exceso se muestra como "Déficit".
+    // Nodos por columna (de arriba hacia abajo). Si el gasto operativo supera la ganancia bruta, el exceso se muestra como "Gasto sin cubrir".
+    // Orden: ARRIBA lo que se queda (ganancia bruta → utilidad), ABAJO lo que se va (costo de mercancía, gastos operativos).
     const gb = Math.max(0, S.gan), opCub = Math.min(S.op, gb), deficit = Math.max(0, S.op - gb), util = Math.max(0, S.util);
-    const nodos = [], links = [], N = (id, col, nom, val, color) => { nodos.push({ id, col, nom, val, color }); };
+    const nodos = [], links = [], N = (id, col, nom, val, color, hv) => { nodos.push({ id, col, nom, val, color, hv: hv === undefined ? val : hv }); };
     N('v', 0, 'Ventas', S.ing, '#10b981');
-    N('c', 1, 'Costo de mercancía', S.costo, '#ef4444'); N('g', 1, 'Ganancia bruta', gb, '#3b82f6');
-    links.push(['v', 'c', S.costo], ['v', 'g', gb]);
-    const subs = GASTO_SUBS.filter(s => S.sub[s] > 0);
-    subs.forEach(s => { const v = S.sub[s] * (S.op > 0 ? opCub / S.op : 0); if (v > 0) { N('s' + s, 2, s, S.sub[s], GASTO_SUB_COLOR[s]); links.push(['g', 's' + s, v]); } });
+    N('g', 1, 'Ganancia bruta', gb, '#3b82f6'); N('c', 1, 'Costo de mercancía', S.costo, '#ef4444');
+    links.push(['v', 'g', gb], ['v', 'c', S.costo]);
     if (util > 0) { N('u', 2, 'Utilidad', util, '#8b5cf6'); links.push(['g', 'u', util]); }
+    const subs = GASTO_SUBS.filter(s => S.sub[s] > 0);
+    subs.forEach(s => { const v = S.sub[s] * (S.op > 0 ? opCub / S.op : 0); if (v > 0) { N('s' + s, 2, s, S.sub[s], GASTO_SUB_COLOR[s], v); links.push(['g', 's' + s, v]); } });
     if (deficit > 0) N('d', 2, 'Gasto sin cubrir', deficit, '#dc2626');
     const nd = {}; nodos.forEach(n => nd[n.id] = n);
-    const W = Math.max(640, box.clientWidth || 640), H = 340, padX = 8, nw = 14, gap = 10, lab = 250, cols = 3;
+    const W = Math.max(640, Math.round(box.clientWidth) || 900), Hbase = 320, padX = 8, padY = 14, nw = 14, gap = 10, lab = 250, cols = 3, minH = 15;
     const xs = c => padX + c * ((W - 2 * padX - nw - lab) / (cols - 1));
     const tc = anaTxtColor(), bg = document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff';
-    // altura de cada columna: la escala es única (px por peso) = la columna más cargada cabe en H
-    const sumaCol = c => nodos.filter(n => n.col === c).reduce((a, n) => a + Math.max(n.val, 0), 0) + gap * Math.max(0, nodos.filter(n => n.col === c).length - 1);
-    const k = Math.min(...[0, 1, 2].map(c => { const nn = nodos.filter(n => n.col === c); const gp = gap * Math.max(0, nn.length - 1); const t = nn.reduce((a, n) => a + n.val, 0); return t > 0 ? (H - gp) / t : 1e9; }));
-    // Mínimo visible: 3px por nodo
-    [0, 1, 2].forEach(c => { let y = 0; const nn = nodos.filter(n => n.col === c); const tot = nn.reduce((a, n) => a + Math.max(n.val * k, 15), 0) + gap * Math.max(0, nn.length - 1); y = (H - tot) / 2; nn.forEach(n => { n.h = Math.max(n.val * k, 15); n.y = y; n.x = xs(c); n.sal = 0; n.ent = 0; y += n.h + gap; }); });
-    let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto;font-family:inherit">`;
+    // Escala única (px por peso): la columna más cargada cabe en Hbase. El alto del dibujo se ajusta a lo que realmente ocupen los nodos (nada se corta)
+    const k = Math.min(...[0, 1, 2].map(c => { const nn = nodos.filter(n => n.col === c); const gp = gap * Math.max(0, nn.length - 1), t = nn.reduce((a, n) => a + n.hv, 0); return t > 0 ? (Hbase - gp) / t : 1e9; }));
+    let H = 0;
+    [0, 1, 2].forEach(c => { const nn = nodos.filter(n => n.col === c); let y = padY; nn.forEach(n => { n.h = Math.max(n.hv * k, minH); n.y = y; n.x = xs(c); n.sal = 0; n.ent = 0; y += n.h + gap; }); H = Math.max(H, y - gap + padY); });
+    H = Math.max(H, 220);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto;display:block;font-family:inherit">`;
     links.forEach(([a, b, v]) => {
         if (!(v > 0)) return; const A_ = nd[a], B_ = nd[b], w = Math.max(v * k, 1.5);
         const y0 = A_.y + A_.sal + w / 2, y1 = B_.y + B_.ent + w / 2; A_.sal += w; B_.ent += w;
@@ -3521,6 +3522,7 @@ function renderSankey() {
     box.innerHTML = svg;
     if (nota) nota.innerText = 'Costo de mercancía = ventas − ganancia bruta (con el costo vigente a la fecha de cada venta). Gastos operativos: solo los de categoría Operativo con fecha dentro del periodo, pagados o a crédito.' + (deficit > 0 ? ' En este periodo los gastos operativos superaron la ganancia bruta por ' + $(deficit) + ' (barra roja).' : '');
 }
+(function () { let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const c = document.getElementById('card-sankey'); if (c && c.offsetParent) renderSankey(); }, 250); }); })();
 function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderSankey(); renderValuacion(); renderKpisExtra(); instalarTips(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
