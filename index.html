@@ -1108,6 +1108,19 @@
                     </div>
                 </div>
             </div>
+            <!-- ROW 4D2: SANKEY — A DÓNDE SE VA CADA PESO -->
+            <div id="card-sankey" class="pb-6 shrink-0">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">🔀 ¿A dónde se va cada peso que vendes? (Sankey)</h3>
+                        <select id="sel-sankey" onchange="renderSankey()" class="text-xs border rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer"><option value="mes">Este mes</option><option value="30">Últimos 30 días</option><option value="90" selected>Últimos 90 días</option><option value="365">Últimos 12 meses</option><option value="todo">Todo el historial</option></select>
+                    </div>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Ventas → costo de la mercancía y ganancia bruta → gastos operativos y utilidad. El grosor de cada banda es proporcional al dinero.</p>
+                    <div id="sankey-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2"></div>
+                    <div id="sankey-box" class="w-full overflow-x-auto"></div>
+                    <p id="sankey-nota" class="text-[10px] text-gray-400 mt-2"></p>
+                </div>
+            </div>
             <!-- ROW 4D3: VALUACIÓN -->
             <div id="card-valuacion" class="pb-6 shrink-0">
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
@@ -1902,24 +1915,24 @@
             let waStr = wa ? "SI" : "NO";
             let telStr = wa ? numeroLimpio : (tel || "N/A");
             
-            // Reducir stock localmente
-            carrito.forEach(i => { 
-                let codReal = VINCULOS_STOCK[i.codigo] || i.codigo;
-                let p = inventario.find(x => x.codigo === codReal); 
-                if(p) p.stock -= i.cantidad * factorVinculo(i.codigo); 
-            });
-            
-            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr, credito: clienteCr });
-            
-            await enviarDatosAGoogleSheets({ 
+            const resVenta = await enviarDatosAGoogleSheets({ 
                 tipo: 'venta', 
                 detalle: detalleStr,
-                productos: [...carrito], 
+                productos: carrito.map(i => ({ ...i })), 
                 total: t, 
                 telefono: telStr, 
                 whatsappEnviado: waStr,
                 credito: clienteCr ? { cliente: clienteCr } : undefined
             });
+            // Si el servidor no confirmó, la venta se queda en el carrito (no se pierde ni se descuenta): al volver a cobrar no se duplica
+            if (!resVenta || resVenta.status !== 'success') return;
+            // Reducir stock localmente (solo con la venta ya guardada)
+            carrito.forEach(i => { 
+                let codReal = VINCULOS_STOCK[i.codigo] || i.codigo;
+                let p = inventario.find(x => x.codigo === codReal); 
+                if(p) p.stock -= i.cantidad * factorVinculo(i.codigo); 
+            });
+            ventasActivas.push({ hora: new Date().toLocaleTimeString(), productos: [...carrito], total: t, telefono: telStr, whatsappEnviado: waStr, credito: clienteCr });
             
             if (wa) {
                 if(numeroLimpio.length === 10) numeroLimpio = '52' + numeroLimpio;
@@ -3445,7 +3458,72 @@ function renderKpisExtra() {
     else { set('kx-opmes', '—'); set('kx-opmes-sub', 'sin gastos operativos con fecha'); set('kx-pe', '—'); set('kx-pe-sub', ''); }
 }
 
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderValuacion(); renderKpisExtra(); instalarTips(); }
+// ==========================================================================
+// 🔀 SANKEY (SVG propio, sin librerías): Ventas → Costo / Ganancia bruta → Gastos operativos / Utilidad
+// ==========================================================================
+function calcSankey(A, hoy, modo) {
+    let ini = null;
+    if (modo === 'mes') ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    else if (modo !== 'todo') ini = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - (parseInt(modo) - 1));
+    const ok = d => d && (!ini || d >= ini) && d <= hoy;
+    const suma = obj => Object.keys(obj || {}).reduce((a, k) => a + (ok(anaParseK(k)) ? (obj[k] || 0) : 0), 0);
+    const ing = suma(A.ingresoPorDia), gan = suma(A.gananciaPorDia), costo = Math.max(0, ing - gan);
+    const sub = {}; let op = 0;
+    (A.invs || []).forEach(g => {
+        if (gastoEsInicial(g) || gastoCategoria(g) !== 'Operativo') return;
+        if (!ok(anaParseFechaEs(g.fecha))) return;
+        const m = Math.abs(g.cantidad || 0), s = gastoSub(g); sub[s] = (sub[s] || 0) + m; op += m;
+    });
+    return { ing, gan, costo, op, sub, util: gan - op, ini };
+}
+function renderSankey() {
+    const box = document.getElementById('sankey-box'); if (!box) return;
+    const A = window.analisisCache || {}, modo = (document.getElementById('sel-sankey') || {}).value || '90';
+    const S = calcSankey(A, anaHoy(), modo), $ = n => '$' + formatMiles(Math.round(n));
+    const kp = document.getElementById('sankey-kpis'), nota = document.getElementById('sankey-nota');
+    if (!(S.ing > 0)) { box.innerHTML = '<p class="py-8 text-center text-gray-400 italic text-sm">Aún no hay ventas en este periodo.</p>'; if (kp) kp.innerHTML = ''; if (nota) nota.innerText = ''; return; }
+    const tk = (tit, val, cls, sub) => `<div class="bg-gray-50 dark:bg-gray-800/60 border dark:border-gray-700 rounded-lg px-3 py-2"><p class="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">${tit}</p><p class="text-lg font-bold ${cls}">${val}</p><p class="text-[10px] text-gray-400">${sub}</p></div>`;
+    const pct = n => (S.ing > 0 ? (n / S.ing * 100).toFixed(0) : 0) + '%';
+    if (kp) kp.innerHTML = tk('Ventas', $(S.ing), 'text-emerald-600 dark:text-emerald-400', 'ingreso del periodo') + tk('Costo mercancía', $(S.costo), 'text-red-600 dark:text-red-400', pct(S.costo) + ' de las ventas') + tk('Gasto operativo', $(S.op), 'text-amber-600 dark:text-amber-400', pct(S.op) + ' de las ventas') + tk('Utilidad', (S.util < 0 ? '-' : '') + $(Math.abs(S.util)), S.util >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400', (S.util < 0 ? 'pérdida · ' : '') + pct(Math.abs(S.util)) + ' de las ventas');
+
+    // Nodos por columna (de arriba hacia abajo). Si el gasto operativo supera la ganancia bruta, el exceso se muestra como "Gasto sin cubrir".
+    // Orden: ARRIBA lo que se queda (ganancia bruta → utilidad), ABAJO lo que se va (costo de mercancía, gastos operativos).
+    const gb = Math.max(0, S.gan), opCub = Math.min(S.op, gb), deficit = Math.max(0, S.op - gb), util = Math.max(0, S.util);
+    const nodos = [], links = [], N = (id, col, nom, val, color, hv) => { nodos.push({ id, col, nom, val, color, hv: hv === undefined ? val : hv }); };
+    N('v', 0, 'Ventas', S.ing, '#10b981');
+    N('g', 1, 'Ganancia bruta', gb, '#3b82f6'); N('c', 1, 'Costo de mercancía', S.costo, '#ef4444');
+    links.push(['v', 'g', gb], ['v', 'c', S.costo]);
+    if (util > 0) { N('u', 2, 'Utilidad', util, '#8b5cf6'); links.push(['g', 'u', util]); }
+    const subs = GASTO_SUBS.filter(s => S.sub[s] > 0);
+    subs.forEach(s => { const v = S.sub[s] * (S.op > 0 ? opCub / S.op : 0); if (v > 0) { N('s' + s, 2, s, S.sub[s], GASTO_SUB_COLOR[s], v); links.push(['g', 's' + s, v]); } });
+    if (deficit > 0) N('d', 2, 'Gasto sin cubrir', deficit, '#dc2626');
+    const nd = {}; nodos.forEach(n => nd[n.id] = n);
+    const W = Math.max(640, Math.round(box.clientWidth) || 900), Hbase = 320, padX = 8, padY = 14, nw = 14, gap = 10, lab = 250, cols = 3, minH = 15;
+    const xs = c => padX + c * ((W - 2 * padX - nw - lab) / (cols - 1));
+    const tc = anaTxtColor(), bg = document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff';
+    // Escala única (px por peso): la columna más cargada cabe en Hbase. El alto del dibujo se ajusta a lo que realmente ocupen los nodos (nada se corta)
+    const k = Math.min(...[0, 1, 2].map(c => { const nn = nodos.filter(n => n.col === c); const gp = gap * Math.max(0, nn.length - 1), t = nn.reduce((a, n) => a + n.hv, 0); return t > 0 ? (Hbase - gp) / t : 1e9; }));
+    let H = 0;
+    [0, 1, 2].forEach(c => { const nn = nodos.filter(n => n.col === c); let y = padY; nn.forEach(n => { n.h = Math.max(n.hv * k, minH); n.y = y; n.x = xs(c); n.sal = 0; n.ent = 0; y += n.h + gap; }); H = Math.max(H, y - gap + padY); });
+    H = Math.max(H, 220);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto;display:block;font-family:inherit">`;
+    links.forEach(([a, b, v]) => {
+        if (!(v > 0)) return; const A_ = nd[a], B_ = nd[b], w = Math.max(v * k, 1.5);
+        const y0 = A_.y + A_.sal + w / 2, y1 = B_.y + B_.ent + w / 2; A_.sal += w; B_.ent += w;
+        const x0 = A_.x + nw, x1 = B_.x, mx = (x0 + x1) / 2;
+        svg += `<path d="M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}" fill="none" stroke="${B_.color}" stroke-opacity="0.35" stroke-width="${w}"><title>${A_.nom} → ${B_.nom}: ${$(v)} (${pct(v)} de las ventas)</title></path>`;
+    });
+    nodos.forEach(n => {
+        const izq = n.col === 2, tx = izq ? n.x + nw + 6 : (n.col === 0 ? n.x + nw + 6 : n.x + nw + 6), ty = n.y + n.h / 2;
+        svg += `<rect x="${n.x}" y="${n.y}" width="${nw}" height="${n.h}" rx="2" fill="${n.color}"><title>${n.nom}: ${$(n.val)} (${pct(n.val)} de las ventas)</title></rect>`;
+        svg += `<text x="${tx}" y="${ty + 4}" font-size="11" fill="${tc}" stroke="${bg}" stroke-width="3" paint-order="stroke" stroke-linejoin="round"><tspan font-weight="700">${bEsc(n.nom)}</tspan> ${$(n.val)} · ${pct(n.val)}</text>`;
+    });
+    svg += '</svg>';
+    box.innerHTML = svg;
+    if (nota) nota.innerText = 'Costo de mercancía = ventas − ganancia bruta (con el costo vigente a la fecha de cada venta). Gastos operativos: solo los de categoría Operativo con fecha dentro del periodo, pagados o a crédito.' + (deficit > 0 ? ' En este periodo los gastos operativos superaron la ganancia bruta por ' + $(deficit) + ' (barra roja).' : '');
+}
+(function () { let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const c = document.getElementById('card-sankey'); if (c && c.offsetParent) renderSankey(); }, 250); }); })();
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderSankey(); renderValuacion(); renderKpisExtra(); instalarTips(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             const HIA = indiceCostosHist((cacheUltimoAnalisis || {}).hist);
@@ -3854,15 +3932,32 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             let link = document.createElement('a'); link.download = 'lista-para-surtir.png'; link.href = canvas.toDataURL(); link.click();
         }
 
+        // Cada operación de dinero/inventario lleva un idOp: si la respuesta se pierde y se reenvía lo mismo, el servidor NO la vuelve a aplicar.
+        // Solo se reutiliza el mismo idOp cuando el intento anterior quedó sin confirmar y se manda exactamente el mismo contenido.
+        const OPS_CON_ID = ['venta', 'ventaPasada', 'surtirLote', 'corte', 'retiro', 'movimientoCaja', 'abonoCredito', 'nuevoProducto', 'nuevaInversion'];
+        const _opsPendientes = {};
+        function nuevoIdOp() { try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {} return 'op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12); }
         async function enviarDatosAGoogleSheets(data, _reintento) {
             if (URL_APPS_SCRIPT.includes("TU_URL")) return { status: 'success' };
             data.token = tokenSesion;
+            let conId = OPS_CON_ID.indexOf(data.tipo) >= 0;
+            if (conId && !data.idOp) {
+                const huella = JSON.stringify(Object.assign({}, data, { token: undefined, idOp: undefined })), pend = _opsPendientes[data.tipo];
+                data.idOp = (pend && pend.huella === huella) ? pend.id : nuevoIdOp();
+                _opsPendientes[data.tipo] = { huella, id: data.idOp };
+            }
             if (!LEER_RESPUESTA_POST) { await fetch(URL_APPS_SCRIPT, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) }); return { status: 'success' }; }
             let res;
             try { res = await apiPost(data); }
-            catch (e) { mostrarAlertaServidor('No se pudo confirmar que el servidor guardó la operación (' + data.tipo + '). Revisa tu conexión y pulsa Sincronizar para verificar.'); return { status: 'unknown' }; }
-            if (res && res.status === 'success') return res;
+            catch (e) {
+                // Sin respuesta: puede que el servidor SÍ la haya guardado. Se reintenta una vez con el mismo idOp (no se duplica)
+                if (conId && !_reintento) { await new Promise(r => setTimeout(r, 1500)); return enviarDatosAGoogleSheets(data, true); }
+                mostrarAlertaServidor(conId ? 'No se pudo confirmar que el servidor guardó la operación (' + data.tipo + '). Vuelve a pulsar el mismo botón: el sistema evita que se duplique.' : 'No se pudo confirmar que el servidor guardó la operación (' + data.tipo + '). Revisa tu conexión y pulsa Sincronizar para verificar.');
+                return { status: 'unknown' };
+            }
+            if (res && res.status === 'success') { if (conId) delete _opsPendientes[data.tipo]; return res; }
             if (res && res.code === 'sesion' && !_reintento) { if (await reautenticar()) return enviarDatosAGoogleSheets(data, true); }
+            if (conId && res && res.status === 'error') delete _opsPendientes[data.tipo];   // el servidor rechazó: no se guardó nada, el siguiente intento es nuevo
             if (!(res && res.code === 'pass')) mostrarAlertaServidor('NO se guardó (' + data.tipo + '): ' + ((res && res.error) || 'error desconocido'));
             return res || { status: 'error' };
         }
