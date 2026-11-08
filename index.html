@@ -35,6 +35,12 @@
         html.dark { --v-bg:#1f2937; --v-bd:#374151; --v-ink:#f3f4f6; --v-mut:#9ca3af; --v-sel-bg:#1e3a5f; --v-sel-bd:#3b82f6; --v-soft:#111827; --v-price:#34d399; --v-grp-bg:#27323f; --v-grp-bd:#52647a; --v-let:#2563eb; --v-let-line:#64748b; }
         .v-panel { background:var(--v-bg); border:1px solid var(--v-bd); border-radius:12px; padding:10px; color:var(--v-ink); }
         .v-search { width:100%; box-sizing:border-box; font-size:16px; padding:9px 12px; border:2px solid #2563eb; border-radius:10px; background:var(--v-bg); color:var(--v-ink); outline:none; }
+        /* Modo pantalla completa (tablet): oculta barra superior y pestañas, deja solo la venta */
+        body.kiosco #app-header, body.kiosco #tabs-desktop, body.kiosco #nav-movil { display:none !important; }
+        body.kiosco > div.max-w-\[99\%\] { padding:6px !important; max-width:100% !important; }
+        .v-full { flex:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:600; padding:0 12px; border-radius:10px; border:2px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; white-space:nowrap; }
+        .v-full:hover { border-color:#2563eb; color:#2563eb; }
+        body.kiosco .v-full { background:#2563eb; border-color:#2563eb; color:#fff; }
         .v-chip { font-size:12px; padding:5px 11px; border-radius:999px; border:1px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; }
         .v-chip.on { background:#2563eb; border-color:#2563eb; color:#ffffff; font-weight:600; }
         .v-h { margin:0 0 6px; font-size:13px; font-weight:700; color:var(--v-ink); display:flex; align-items:center; gap:6px; }
@@ -236,8 +242,9 @@
         <!-- SECCIÓN: VENTAS -->
         <div id="tab-ventas" class="flex flex-col lg:flex-row gap-3 flex-1 min-h-0 overflow-hidden pb-3">
             <div class="flex-1 min-w-0 min-h-0 flex flex-col gap-2 overflow-hidden">
-                <div class="v-panel shrink-0">
+                <div class="v-panel shrink-0" style="display:flex;gap:8px;align-items:stretch">
                     <input type="text" id="buscar-producto" class="v-search" placeholder="Escribe el nombre o escanea el código y presiona Enter" autocomplete="off" onkeyup="filtrarProductos(event)">
+                    <button type="button" id="btn-kiosco" class="v-full" onclick="toggleKiosco()" title="Pantalla completa: oculta la barra superior y las pestañas" aria-pressed="false"><svg id="ico-kiosco" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span id="txt-kiosco" class="hidden sm:inline">Pantalla completa</span></button>
                 </div>
                 <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-1">
                     <div id="v-estrellas-wrap" class="v-panel hidden shrink-0">
@@ -1442,9 +1449,31 @@
         }
         (function () { const sc = document.getElementById('nav-scroll'); if (sc) { sc.addEventListener('scroll', actualizarPistaNav, { passive: true }); window.addEventListener('resize', actualizarPistaNav); setTimeout(actualizarPistaNav, 300); } })();
 
+        // ---- Modo pantalla completa (tablet) ----
+        let kioscoActivo = false, kioscoUsoFS = false;
+        function toggleKiosco(forzar) {
+            const on = (typeof forzar === 'boolean') ? forzar : !kioscoActivo;
+            if (on === kioscoActivo) return;
+            kioscoActivo = on;
+            document.body.classList.toggle('kiosco', on);
+            const b = document.getElementById('btn-kiosco'), t = document.getElementById('txt-kiosco'), ic = document.getElementById('ico-kiosco');
+            if (b) { b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Salir de pantalla completa' : 'Pantalla completa: oculta la barra superior y las pestañas'; }
+            if (t) t.textContent = on ? 'Salir' : 'Pantalla completa';
+            if (ic) ic.innerHTML = on ? '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>' : '<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>';
+            // Además, pantalla completa del navegador cuando el dispositivo lo permite (en tablets que no lo permiten, igual se oculta la barra)
+            try {
+                const el = document.documentElement;
+                if (on && !document.fullscreenElement) { const r = (el.requestFullscreen || el.webkitRequestFullscreen); if (r) { kioscoUsoFS = true; Promise.resolve(r.call(el)).catch(() => { kioscoUsoFS = false; }); } }
+                else if (!on && document.fullscreenElement) { kioscoUsoFS = false; (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+            } catch (e) { kioscoUsoFS = false; }
+        }
+        // Si se sale de pantalla completa con Esc / gesto del sistema, también se sale del modo
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if (kioscoActivo && kioscoUsoFS && !document.fullscreenElement) { kioscoUsoFS = false; toggleKiosco(false); } }));
+
         function cambiarTab(tab) {
             if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'margenes', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
+            if (tab !== 'ventas' && kioscoActivo) toggleKiosco(false);
 
             ['ventas', 'inventario', 'ventasPasadas', 'inversion', 'retiros', 'corte', 'creditos', 'log', 'analisis', 'caja', 'buscador', 'margenes', 'impresiones'].forEach(t => {
                 let eTab = document.getElementById(`tab-${t}`);
