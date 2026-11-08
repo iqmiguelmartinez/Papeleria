@@ -1449,6 +1449,21 @@
         }
         (function () { const sc = document.getElementById('nav-scroll'); if (sc) { sc.addEventListener('scroll', actualizarPistaNav, { passive: true }); window.addEventListener('resize', actualizarPistaNav); setTimeout(actualizarPistaNav, 300); } })();
 
+        // ---- Evitar que la pantalla se apague (tablet como caja) ----
+        // Usa la API Screen Wake Lock (Chrome/Android y Safari 16.4+). Se vuelve a pedir al regresar a la app o al tocar la pantalla,
+        // porque el navegador la suelta cuando la app pasa a segundo plano. Si el equipo no la soporta, simplemente no hace nada.
+        let _wakeLock = null;
+        async function mantenerPantallaEncendida() {
+            try {
+                if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || (_wakeLock && !_wakeLock.released)) return;
+                _wakeLock = await navigator.wakeLock.request('screen');
+                _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+            } catch (e) { _wakeLock = null; }
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') mantenerPantallaEncendida(); });
+        ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, mantenerPantallaEncendida, { passive: true }));
+        mantenerPantallaEncendida();
+
         // ---- Modo pantalla completa (tablet) ----
         let kioscoActivo = false, kioscoUsoFS = false;
         function toggleKiosco(forzar) {
