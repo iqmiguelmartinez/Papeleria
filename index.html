@@ -39,7 +39,7 @@
         body.kiosco #app-header, body.kiosco #tabs-desktop, body.kiosco #nav-movil { display:none !important; }
         body.kiosco > div.max-w-\[99\%\] { padding:6px !important; max-width:100% !important; }
         .v-full { flex:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:600; padding:0 12px; border-radius:10px; border:2px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; white-space:nowrap; }
-        .v-full:hover { border-color:#2563eb; color:#2563eb; }
+        @media (hover: hover) { .v-full:hover { border-color:#2563eb; color:#2563eb; } }
         body.kiosco .v-full { background:#2563eb; border-color:#2563eb; color:#fff; }
         .v-chip { font-size:12px; padding:5px 11px; border-radius:999px; border:1px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; }
         .v-chip.on { background:#2563eb; border-color:#2563eb; color:#ffffff; font-weight:600; }
@@ -47,7 +47,7 @@
         .v-h small { font-weight:400; font-size:11px; color:var(--v-mut); }
         .v-tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:7px; }
         .v-tile { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:66px; padding:6px 8px; box-sizing:border-box; border:1px solid var(--v-bd); border-radius:9px; background:var(--v-bg); color:var(--v-ink); text-align:left; cursor:pointer; font-family:inherit; }
-        .v-tile:hover, .v-row:hover { border-color:#2563eb; }
+        @media (hover: hover) { .v-tile:hover, .v-row:hover { border-color:#2563eb; } }
         .v-tile.sel, .v-row.sel { border:2px solid var(--v-sel-bd); background:var(--v-sel-bg); }
         .v-tile.sel { padding:5px 7px; }
         .v-tile.off, .v-row.off { opacity:.5; cursor:not-allowed; }
@@ -83,7 +83,7 @@
         .v-barra .v-h { margin:0; white-space:nowrap; }
         .v-az { flex:1; min-width:0; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; }
         .v-az button { min-width:22px; height:22px; padding:0 3px; border:0; border-radius:6px; background:transparent; color:var(--v-ink); font-size:12px; font-weight:700; line-height:1; font-family:inherit; cursor:pointer; }
-        .v-az button:hover:not(:disabled) { background:var(--v-sel-bg); color:var(--v-sel-bd); }
+        @media (hover: hover) { .v-az button:hover:not(:disabled) { background:var(--v-sel-bg); color:var(--v-sel-bd); } }
         /* El panel de "Todos los productos" crece hasta el final de la pantalla y sus filas se reparten el espacio; si hay muchas, la columna hace scroll */
         .v-fill { flex:1 0 auto; display:flex; flex-direction:column; }
         .v-fill .v-list { flex:1; align-content:start; }
@@ -101,7 +101,7 @@
         .v-qbtn { width:30px; height:30px; border:1px solid var(--v-bd); border-radius:7px; background:var(--v-bg); color:var(--v-ink); font-size:17px; line-height:1; cursor:pointer; font-family:inherit; }
         .v-qin { width:46px; height:30px; box-sizing:border-box; text-align:center; font-size:15px; font-weight:700; border:1px solid var(--v-bd); border-radius:7px; background:var(--v-bg); color:var(--v-ink); }
         .v-quick { font-size:13px; font-weight:600; padding:6px 11px; border-radius:8px; border:1px solid var(--v-bd); background:var(--v-bg); color:var(--v-ink); cursor:pointer; font-family:inherit; }
-        .v-quick:hover { border-color:#2563eb; }
+        @media (hover: hover) { .v-quick:hover { border-color:#2563eb; } }
         .v-pay { display:flex; align-items:center; gap:4px; flex:1; min-width:0; border:1px solid var(--v-bd); border-radius:9px; padding:0 10px; background:var(--v-bg); color:var(--v-mut); }
         .v-pay input { flex:1; min-width:0; width:100%; border:none; outline:none; font-size:18px; font-weight:700; padding:8px 0; background:transparent; color:var(--v-ink); }
         .v-cambio { min-width:104px; box-sizing:border-box; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; padding:4px 10px; border-radius:9px; background:#d1fae5; color:#065f46; }
@@ -111,7 +111,7 @@
         /* Los grupos llevan un tinte gris acero tenue para distinguirlos de los productos sueltos (solo en "Todos los productos") */
         .v-row.v-grupo { border-style:dashed; }
         .v-row.v-grupo:not(.sel):not(.off) { background:var(--v-grp-bg); border-color:var(--v-grp-bd); }
-        .v-row.v-grupo:not(.sel):hover { border-color:#475569; }
+        @media (hover: hover) { .v-row.v-grupo:not(.sel):hover { border-color:#475569; } }
         .v-grupo.abierto { border-style:solid; border-color:#2563eb; }
         .v-pop { position:fixed; z-index:60; width:330px; max-width:calc(100vw - 16px); max-height:min(60vh,460px); display:flex; flex-direction:column; background:var(--v-bg); color:var(--v-ink); border:1px solid var(--v-sel-bd); border-radius:12px; box-shadow:0 12px 32px rgba(15,23,42,.28); }
         .v-pop-h { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--v-bd); font-size:13px; font-weight:700; }
@@ -121,7 +121,8 @@
         .v-pop-b .v-row { min-height:36px; }
         .v-sugs { position:absolute; left:0; right:0; bottom:100%; margin-bottom:4px; z-index:40; background:var(--v-bg); border:1px solid var(--v-sel-bd); border-radius:10px; box-shadow:0 8px 24px rgba(15,23,42,.25); overflow:hidden; }
         .v-sug { display:block; width:100%; text-align:left; padding:8px 12px; border:none; background:transparent; color:var(--v-ink); font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; letter-spacing:.02em; }
-        .v-sug:hover, .v-sug.on { background:var(--v-sel-bg); }
+        .v-sug.on { background:var(--v-sel-bg); }
+        @media (hover: hover) { .v-sug:hover { background:var(--v-sel-bg); } }
         .v-cobrar { width:100%; font-size:18px; font-weight:800; padding:13px; border:none; border-radius:10px; color:#ffffff; background:#047857; cursor:pointer; font-family:inherit; }
         .v-cobrar:disabled { background:#94a3b8; cursor:not-allowed; }
 
@@ -181,6 +182,26 @@
         #tip-flotante { position: fixed; z-index: 99999; max-width: 330px; padding: .55rem .75rem; border-radius: .6rem; background: #111827; color: #f9fafb; font-size: 12px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.3); white-space: pre-line; pointer-events: none; opacity: 0; transition: opacity .12s; }
         #tip-flotante.on { opacity: 1; }
         #tip-flotante b { color: #fcd34d; }
+            .v-xbtn { flex-shrink:0; width:24px; height:24px; border:none; background:transparent; color:var(--v-mut); font-size:18px; line-height:1; cursor:pointer; }
+        /* ===== Pantallas táctiles (tablet): blancos de toque de al menos 44 px y respuesta al tocar en lugar de al pasar el mouse ===== */
+        @media (pointer: coarse) {
+            button, .v-row, .v-tile, .v-chip, .v-quick { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+            .v-qbtn { width:52px; height:46px; font-size:24px; border-radius:10px; }
+            .v-qin { width:64px; height:46px; font-size:18px; border-radius:10px; }
+            .v-xbtn { width:46px; height:46px; font-size:28px; margin:-10px -9px -6px 0; border-radius:10px; }
+            .v-chip { min-height:44px; padding:0 18px; font-size:14px; }
+            .v-quick { min-height:46px; padding:0 18px; font-size:16px; border-radius:10px; }
+            .v-tile { min-height:76px; padding:8px 10px; }
+            .v-row, .v-pop-b .v-row { min-height:46px; }
+            .v-az button { min-width:34px; height:38px; font-size:14px; }
+            .v-pop-x { width:46px; height:46px; font-size:26px; }
+            .v-sug { padding:13px 14px; }
+            .v-cobrar { padding:17px; }
+            .v-full { min-height:46px; padding:0 14px; }
+            .v-item { gap:8px; padding:9px 10px; }
+            .v-tile:active, .v-row:active, .v-qbtn:active, .v-quick:active, .v-chip:active, .v-xbtn:active, .v-full:active, .v-az button:active { transform:scale(.96); background:var(--v-sel-bg); border-color:var(--v-sel-bd); }
+            .v-cobrar:active { transform:scale(.98); filter:brightness(.9); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 overflow-hidden flex flex-col">
@@ -1735,11 +1756,12 @@
         function ajustarFilasLista() {
             const l = document.getElementById('v-lista'); if (!l || !l.offsetParent) return;   // oculta (otra pestaña): se reajusta al mostrarse
             const cols = l.querySelector('.v-cols'); if (!cols) return;
-            cols.style.setProperty('--v-h', '34px');
+            const MIN = window.matchMedia && matchMedia('(pointer: coarse)').matches ? 46 : 34;   // en táctil las filas nunca bajan de 46 px
+            cols.style.setProperty('--v-h', MIN + 'px');
             const alto = l.clientHeight;   // espacio disponible (o el alto del contenido si no cabe)
             // Se busca la fila más alta (hasta 110px) con la que todas las columnas siguen cabiendo en pantalla
-            let h = 34;
-            for (let t = 110; t > 34; t -= 4) { cols.style.setProperty('--v-h', t + 'px'); if (cols.offsetHeight <= alto) { h = t; break; } }
+            let h = MIN;
+            for (let t = 110; t > MIN; t -= 4) { cols.style.setProperty('--v-h', t + 'px'); if (cols.offsetHeight <= alto) { h = t; break; } }
             cols.style.setProperty('--v-h', h + 'px');
             l.classList.toggle('v-grande', h >= 64);
         }
@@ -1893,7 +1915,7 @@
             if (carrito.length === 0) {
                 c.innerHTML = `<p class="text-xs text-center py-6" style="color:var(--v-mut)">Toca un producto o escanea un código para empezar</p>`;
             } else {
-                c.innerHTML = carrito.map((i, idx) => `<div class="v-item"><div class="flex justify-between items-start gap-2"><span class="text-xs font-semibold" style="line-height:1.25;overflow-wrap:anywhere">${escV(i.nombre)}</span><button type="button" onclick="quitarDelCarrito(${idx})" aria-label="Quitar del ticket" style="flex-shrink:0;width:24px;height:24px;border:none;background:transparent;color:var(--v-mut);font-size:18px;line-height:1;cursor:pointer">×</button></div><div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><button type="button" class="v-qbtn" onclick="cambiarCantidad(${idx}, -1)" aria-label="Menos">−</button><input type="number" min="0.01" step="0.01" class="v-qin" value="${Number(i.cantidad.toFixed(2))}" onchange="actualizarCantidadCarrito(${idx}, this.value)"><button type="button" class="v-qbtn" onclick="cambiarCantidad(${idx}, 1)" aria-label="Más">+</button><span class="text-[11px] ml-1" style="color:var(--v-mut)">$${i.precio.toFixed(2)} c/u</span></div><span class="text-sm font-bold" style="color:var(--v-ink)">$${(i.precio * i.cantidad).toFixed(2)}</span></div></div>`).join('');
+                c.innerHTML = carrito.map((i, idx) => `<div class="v-item"><div class="flex justify-between items-start gap-2"><span class="text-xs font-semibold" style="line-height:1.25;overflow-wrap:anywhere">${escV(i.nombre)}</span><button type="button" onclick="quitarDelCarrito(${idx})" aria-label="Quitar del ticket" class="v-xbtn">×</button></div><div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><button type="button" class="v-qbtn" onclick="cambiarCantidad(${idx}, -1)" aria-label="Menos">−</button><input type="number" min="0.01" step="0.01" class="v-qin" value="${Number(i.cantidad.toFixed(2))}" onchange="actualizarCantidadCarrito(${idx}, this.value)"><button type="button" class="v-qbtn" onclick="cambiarCantidad(${idx}, 1)" aria-label="Más">+</button><span class="text-[11px] ml-1" style="color:var(--v-mut)">$${i.precio.toFixed(2)} c/u</span></div><span class="text-sm font-bold" style="color:var(--v-ink)">$${(i.precio * i.cantidad).toFixed(2)}</span></div></div>`).join('');
             }
             // Botones de pago rápido: exacto y los billetes que alcanzan para cubrir el total
             let rap = document.getElementById('v-rapidos');
