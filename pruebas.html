@@ -1360,6 +1360,7 @@
         let usuarioActual = null;
         let tienePermisoAnalisis = false;
         let editandoInventario = false;
+        let BORR = new WeakMap();   // cambios escritos en el modo edición (por producto): sobreviven a la búsqueda y a reordenar, y se descartan al cancelar
         let inventario = [];
         let carrito = [];
         let ventasActivas = [];
@@ -2174,10 +2175,22 @@
                     }
                 });
             });
+            // Modo edición: se vuelven a poner los cambios ya escritos (al buscar la tabla se redibuja con solo los productos que coinciden)
+            if (editandoInventario) document.querySelectorAll('.inv-edit-input').forEach(inp => {
+                const p = inventario[parseInt(inp.getAttribute('data-index'))], b = p && BORR.get(p), f = inp.getAttribute('data-field');
+                if (b && Object.prototype.hasOwnProperty.call(b, f)) inp.value = b[f];
+            });
         }
 
         (function(){ const mq = window.matchMedia('(min-width: 768px)'); const f = () => { if (document.getElementById('tabla-inv-1') && typeof inventario !== 'undefined' && inventario.length && !editandoInventario) renderInventario(document.getElementById('buscar-inventario').value); }; (mq.addEventListener ? mq.addEventListener('change', f) : mq.addListener(f)); })();
-        function filtrarInventario() { if(!editandoInventario) renderInventario(document.getElementById('buscar-inventario').value); }
+        function filtrarInventario() { renderInventario(document.getElementById('buscar-inventario').value); }
+        // Cada cambio escrito en el modo edición se guarda aparte (por producto), así no se pierde al buscar otro producto
+        document.addEventListener('input', e => {
+            const t = e.target;
+            if (!editandoInventario || !t || !t.classList || !t.classList.contains('inv-edit-input')) return;
+            const p = inventario[parseInt(t.getAttribute('data-index'))]; if (!p) return;
+            const b = BORR.get(p) || {}; b[t.getAttribute('data-field')] = t.value; BORR.set(p, b);
+        });
         function actualizarCantSurtir(cod, val) { let c=parseFloat(val)||0; if(c>0) cantidadesSurtir[cod]=c; else delete cantidadesSurtir[cod]; }
         
         function dragStart(e) { if(document.getElementById('buscar-inventario').value || ordenStockInv) { e.preventDefault(); return; } draggedIndex = parseInt(e.currentTarget.getAttribute('data-index')); }
@@ -2190,11 +2203,13 @@
             renderInventario(); renderProductos();
         }
 
-        function toggleModificarInventario() { stockBaseEdicion = {}; inventario.forEach(p => stockBaseEdicion[p.codigo] = p.stock); editandoInventario = true; document.getElementById('buscar-inventario').disabled = true; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(); }
-        function cancelarModificacionInventario() { editandoInventario = false; document.getElementById('buscar-inventario').disabled = false; document.getElementById('btn-modificar-productos').classList.remove('hidden'); document.getElementById('btn-re-codificar').classList.remove('hidden'); document.getElementById('btn-guardar-modificacion').classList.add('hidden'); document.getElementById('btn-cancelar-modificacion').classList.add('hidden'); document.getElementById('btn-surtir-inv').classList.remove('hidden'); document.getElementById('btn-nuevo-prod').classList.remove('hidden'); renderInventario(); }
+        function toggleModificarInventario() { stockBaseEdicion = {}; inventario.forEach(p => stockBaseEdicion[p.codigo] = p.stock); editandoInventario = true; BORR = new WeakMap(); document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(document.getElementById('buscar-inventario').value); }
+        function cancelarModificacionInventario() { editandoInventario = false; BORR = new WeakMap(); document.getElementById('buscar-inventario').disabled = false; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.remove('hidden'); document.getElementById('btn-re-codificar').classList.remove('hidden'); document.getElementById('btn-guardar-modificacion').classList.add('hidden'); document.getElementById('btn-cancelar-modificacion').classList.add('hidden'); document.getElementById('btn-surtir-inv').classList.remove('hidden'); document.getElementById('btn-nuevo-prod').classList.remove('hidden'); renderInventario(); }
         
         async function guardarModificacionInventario() {
             let invA = JSON.parse(JSON.stringify(inventario));
+            // Primero los cambios guardados aparte (incluye productos que quedaron ocultos por la búsqueda) y luego lo que se ve en pantalla
+            inventario.forEach((p, i) => { const b = BORR.get(p); if (b) Object.keys(b).forEach(f => { const v = b[f]; invA[i][f] = (f === 'precio' || f === 'costo' || f === 'stock') ? (parseFloat(v) || 0) : String(v).trim(); }); });
             document.querySelectorAll('.inv-edit-input').forEach(inp => {
                 let idx = parseInt(inp.getAttribute('data-index')), f = inp.getAttribute('data-field'), v = inp.value;
                 if(f==='precio'||f==='costo'||f==='stock') invA[idx][f]=parseFloat(v)||0; else invA[idx][f]=v.trim();
