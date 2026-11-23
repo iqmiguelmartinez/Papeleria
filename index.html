@@ -4678,6 +4678,14 @@ function impFactorEsc(cod) {
     return impEsEscaneo(impNombreProd(cod)) ? 1 : 0;
 }
 // Los cuatro contadores que se comparan, uno por columna de la tabla
+// Color en hoja carta = Brother A4 + Epson. La serie suma el último valor de cada una; empieza cuando ya hay lectura de las dos.
+function impSerieColorCarta() {
+    const A = IMP.brother.map(l => ({ t: new Date(l.t), v: l.a4, k: 'a' })).filter(x => x.v !== null && x.v !== undefined && isFinite(x.v) && !isNaN(x.t.getTime()));
+    const E = IMP.epson.map(l => ({ t: new Date(l.t), v: Number(l.total), k: 'e' })).filter(x => isFinite(x.v) && !isNaN(x.t.getTime()));
+    let a = null, e = null; const out = [];
+    A.concat(E).sort((p, q) => p.t - q.t).forEach(x => { if (x.k === 'a') a = x.v; else e = x.v; if (a !== null && e !== null) out.push({ t: x.t.toISOString(), total: a + e }); });
+    return out;
+}
 function impCanales() {
     const serie = f => IMP.brother.map(l => ({ t: l.t, total: f(l) })).filter(l => l.total !== null && l.total !== undefined && isFinite(l.total));
     return [
@@ -4685,7 +4693,8 @@ function impCanales() {
         { id: 'a4', nombre: 'Brother A4', unidad: 'hojas', lecturas: serie(l => l.a4), factor: c => impFactorBrother(c, 'A4'), visto: IMP.vistoBrother, color: '#10b981' },
         { id: 'a3', nombre: 'Brother A3', unidad: 'hojas', lecturas: serie(l => l.a3), factor: c => impFactorBrother(c, 'A3'), visto: IMP.vistoBrother, color: '#f59e0b' },
         { id: 'esc', nombre: 'Brother escaneos', unidad: 'escaneos', lecturas: serie(l => (l.adf === null || l.adf === undefined || l.plano === null || l.plano === undefined) ? null : l.adf + l.plano - ((l.copia === null || l.copia === undefined) ? 0 : l.copia)), factor: impFactorEsc, visto: IMP.vistoBrother, color: '#8b5cf6' },
-        { id: 'eps', nombre: 'Epson', unidad: 'hojas', lecturas: IMP.epson.map(l => ({ t: l.t, total: l.total })).filter(l => l.total !== null && l.total !== undefined && isFinite(l.total)), factor: impFactorEpson, visto: IMP.vistoEpson, color: '#ec4899' }
+        { id: 'eps', nombre: 'Epson', unidad: 'hojas', lecturas: IMP.epson.map(l => ({ t: l.t, total: l.total })).filter(l => l.total !== null && l.total !== undefined && isFinite(l.total)), factor: impFactorEpson, visto: IMP.vistoEpson, color: '#ec4899' },
+        { id: 'ctot', nombre: 'Color carta (Brother A4 + Epson)', unidad: 'hojas', lecturas: impSerieColorCarta(), factor: c => Math.max(impFactorBrother(c, 'A4'), impFactorEpson(c)), visto: IMP.vistoEpson, color: '#14b8a6' }
     ];
 }
 
@@ -4754,9 +4763,10 @@ async function iniciarImpresiones(forzar) {
 // ---- Ajustes manuales: impresiones que salen pero no se cobran (tickets de internet, pruebas...) ----
 const IMP_CANALES_AJ = [['kyocera', 'Kyocera (B/N)'], ['a4', 'Brother A4'], ['a3', 'Brother A3'], ['esc', 'Brother escaneos'], ['eps', 'Epson (color)']];
 const impKeyDia = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const impAjusteDia = (id, d) => (IMP.ajustes || []).reduce((a, x) => a + (x.canal === id && x.fecha === impKeyDia(d) ? x.cantidad : 0), 0);
+const impIdsAj = id => id === 'ctot' ? ['a4', 'eps'] : [id];
+const impAjusteDia = (id, d) => (IMP.ajustes || []).reduce((a, x) => a + (impIdsAj(id).includes(x.canal) && x.fecha === impKeyDia(d) ? x.cantidad : 0), 0);
 // Turno abierto: solo los de hoy registrados después del último corte (los anteriores ya entran en la comparación del corte)
-const impAjusteVivo = (id, ultCorte, ahora) => (IMP.ajustes || []).reduce((a, x) => a + (x.canal === id && x.fecha === impKeyDia(ahora) && (!x.t || !ultCorte || new Date(x.t) > ultCorte) ? x.cantidad : 0), 0);
+const impAjusteVivo = (id, ultCorte, ahora) => (IMP.ajustes || []).reduce((a, x) => a + (impIdsAj(id).includes(x.canal) && x.fecha === impKeyDia(ahora) && (!x.t || !ultCorte || new Date(x.t) > ultCorte) ? x.cantidad : 0), 0);
 function impAbrirAjustes() {
     const hoyK = impKeyDia(new Date()), lim = new Date(); lim.setDate(lim.getDate() - 14);
     const lista = (IMP.ajustes || []).filter(x => x.fecha >= impKeyDia(lim)).sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -4844,7 +4854,7 @@ function impVivoRender(canales, ahora) {
             return tarjeta(c, f.delta, f.pos, '', f.aj);
         });
         const aprox = canales.some(c => { const f = c.filas.find(x => x.cortes.some(k => k.t.getTime() === dCorte.getTime())); return f && f.parcial; });
-        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 ${esHoy ? 'Comparación final de hoy' : 'Comparación final del ' + etiqueta} <span class="font-normal text-gray-500">· corte de las ${hhmm(dCorte)} · sin ventas nuevas${aprox ? ' · aproximada (el lector empezó a leer después del corte anterior)' : ''}. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">${tarj.join('')}</div>`;
+        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200">🔒 ${esHoy ? 'Comparación final de hoy' : 'Comparación final del ' + etiqueta} <span class="font-normal text-gray-500">· corte de las ${hhmm(dCorte)} · sin ventas nuevas${aprox ? ' · aproximada (el lector empezó a leer después del corte anterior)' : ''}. El turno se abre con la siguiente venta.</span></p><span class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div><div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">${tarj.join('')}</div>`;
         return;
     }
     const cab = `<div class="flex flex-wrap items-center justify-between gap-1 mb-1"><p class="text-xs font-bold text-gray-700 dark:text-gray-200"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1"></span>En vivo · turno abierto${ult ? ` <span class="font-normal text-gray-500">${sinCorte ? 'desde las' : 'desde el corte de las'} ${hhmm(ult)}${ult < new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()) ? ' de ' + ult.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : ''} · ${ventas.length} venta${ventas.length === 1 ? '' : 's'}${sinCorte ? ' (inicio del turno)' : ''}` : ''}</span></p><span id="imp-vivo-ts" class="text-[10px] text-gray-400">${IMP.vivoTs ? 'actualizado ' + hhmm(new Date(IMP.vivoTs)) : ''}</span></div>`;
@@ -4852,6 +4862,7 @@ function impVivoRender(canales, ahora) {
     const cajas = canales.map(c => {
         const L = c.lecturas.map(l => ({ t: new Date(l.t), total: Number(l.total) })).filter(l => !isNaN(l.t.getTime()) && isFinite(l.total)).sort((a, b) => a.t - b.t);
         if (c.id === 'eps') return tarjeta(c, 0, 0, 'Se lee 3 veces al día (7:00, 14:00 y 18:45): se compara en el corte, no en vivo');
+        if (c.id === 'ctot') return tarjeta(c, 0, 0, 'Incluye la Epson (se lee 3 veces al día): se compara en el corte, no en vivo');
         const base = L.filter(l => l.t <= ult).pop(), actual = L.length ? L[L.length - 1] : null;
         if (!base || !actual) return tarjeta(c, 0, 0, 'Este lector aún no tiene lecturas de antes del turno');
         const delta = actual.total - base.total;
@@ -4859,7 +4870,7 @@ function impVivoRender(canales, ahora) {
         const aj = impAjusteVivo(c.id, C[0], ahora);
         return tarjeta(c, delta, vendidoDe(c.factor) + aj, '', aj);
     });
-    el.innerHTML = cab + `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">${cajas.join('')}</div>`;
+    el.innerHTML = cab + `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">${cajas.join('')}</div>`;
 }
 // Refresca ventas del turno y lecturas sin recargar toda la pestaña
 async function impRefrescarVivo() {
@@ -5129,15 +5140,16 @@ const impSigno = n => (n > 0 ? '+' : (n < 0 ? '−' : '')) + bFmt(Math.abs(n));
 function impSimpleRender(canales, dias, resumen, fmtEstado) {
     const el = document.getElementById('imp-simple'); if (!el) return;
     (window.chartImpCanales || []).forEach(ch => { try { ch.destroy(); } catch (e) {} }); window.chartImpCanales = [];
+    const hayTot = canales.some(c => c.id === 'ctot' && c.lecturas.length), cuentan = c => !(hayTot && (c.id === 'a4' || c.id === 'eps'));
     const idx = dias.map((d, i) => i).filter(i => canales.some(c => fmtEstado(c.filas[i])));
     if (!idx.length) { el.innerHTML = ''; return; }
     const dia = d => d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }), mes = d => d.toLocaleDateString('es-MX', { month: 'short' });
     const tSobra = [], tFalta = []; let nOk = 0, nSob = 0, nFal = 0;
     idx.forEach(i => {
-        let s = 0, f = 0; canales.forEach(c => { const x = c.filas[i]; if (x.estado === 'sobra') s += x.diff; else if (x.estado === 'falta') f += -x.diff; });
+        let s = 0, f = 0; canales.filter(cuentan).forEach(c => { const x = c.filas[i]; if (x.estado === 'sobra') s += x.diff; else if (x.estado === 'falta') f += -x.diff; });
         tSobra.push(s); tFalta.push(f); if (s) nSob++; if (f) nFal++; if (!s && !f) nOk++;
     });
-    const sumS = tSobra.reduce((a, x) => a + x, 0), sumF = tFalta.reduce((a, x) => a + x, 0), dinero = resumen.reduce((a, r) => a + (r.dinero || 0), 0);
+    const sumS = tSobra.reduce((a, x) => a + x, 0), sumF = tFalta.reduce((a, x) => a + x, 0), dinero = resumen.filter(r => cuentan(r.c)).reduce((a, r) => a + (r.dinero || 0), 0);
     let titular;
     if (!sumS && !sumF) titular = `<span class="text-emerald-600 dark:text-emerald-400 font-bold">✅ Todo cuadra:</span> lo que contaron las impresoras coincide con lo cobrado.`;
     else {
@@ -5356,7 +5368,7 @@ function abrirConfigImpresion() {
     ov.style.display = 'flex';
     ov.innerHTML = `<div class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3 max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center"><h3 class="text-lg font-bold">⚙️ Equivalencias de impresión</h3><button onclick="cerrarConfigImpresion()" class="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button></div>
-        <p class="text-xs text-gray-500">Cuántas páginas suma el contador de cada impresora por cada unidad vendida: <b>Kyocera</b> (carta b/n), <b>Brother A4</b> y <b>Brother A3</b> (la Brother cuenta las hojas por tamaño) y <b>Epson</b> (hojas de color; por defecto lo mismo que Br. A4: si el color se reparte entre la Brother y la Epson, deja el 1 donde sale cada producto y 0 en la otra). Pon <b>0</b> en las que NO salen de esa impresora. Si una venta de "ambos lados" cuenta cada cara, pon 2.</p>
+        <p class="text-xs text-gray-500">Cuántas páginas suma el contador de cada impresora por cada unidad vendida: <b>Kyocera</b> (carta b/n), <b>Brother A4</b> y <b>Brother A3</b> (la Brother cuenta las hojas por tamaño) y <b>Epson</b> (hojas de color; por defecto lo mismo que Br. A4: si el color se reparte entre la Brother y la Epson, deja el 1 donde sale cada producto y 0 en la otra). La tarjeta <b>Color carta</b> suma Brother A4 + Epson contra todo el color en hoja carta (usa el mayor de los dos números de cada producto); el color doble carta solo cuenta en Br. A3. Pon <b>0</b> en las que NO salen de esa impresora. Si una venta de "ambos lados" cuenta cada cara, pon 2.</p>
         <table class="w-full text-left"><thead><tr class="text-[10px] uppercase text-gray-500"><th>Código</th><th>Producto</th><th>Kyocera</th><th>Br. A4</th><th>Br. A3</th><th>Epson</th></tr></thead><tbody>${filas}</tbody></table>
         <div class="border-t dark:border-gray-700 pt-2"><p class="text-xs text-gray-500 mb-1"><b>Escaneos de la Brother</b> (alimentador + cristal). El contador no separa color de b/n, así que todos los productos de escaneo se suman contra él. Pon <b>1</b> si cada venta es un escaneo.</p>
         <table class="w-full text-left"><tbody id="imp-esc-filas">${impCodigosEsc().map(impFilaEsc).join('')}</tbody></table>
