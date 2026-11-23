@@ -1123,17 +1123,12 @@
                     <p class="text-[10px] text-gray-400 mt-2">Semanas de lunes a domingo. Es dinero que entró y salió de caja: por eso el resurtido pagado sí cuenta aquí (desmárcalo para ver solo la operación). En las métricas de ganancia el resurtido nunca se resta, porque ya está en el costo de lo vendido. Gastos a crédito sin pagar y gastos sin fecha no se cuentan. Si un mismo gasto lo capturaste como retiro y como gasto, aparece en ambos.</p>
                 </div>
 
-                <!-- PROYECCIÓN INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) -->
+                <!-- CRECIMIENTO DEL ROI EN EL TIEMPO -->
                 <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-                        <div>
-                            <h3 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">🚀 Proyección de Retorno de Inversión (Punto de Equilibrio)</h3>
-                            <p id="txt-break-even" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Calculando proyecciones...</p>
-                        </div>
-                    </div>
-                    <div class="flex-1" style="min-height: 320px; position: relative; width: 100%;">
-                        <canvas id="chartProyeccionROI"></canvas>
-                    </div>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-sm">📈 Crecimiento del ROI (%) por Semana</h3>
+                    <p id="txt-roi-tiempo" class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 mb-2"></p>
+                    <div class="flex-1" style="min-height: 320px; position: relative; width: 100%;"><canvas id="chartRoiTiempo"></canvas></div>
+                    <p class="text-[10px] text-gray-400 mt-2">ROI al cierre de cada semana (lunes a domingo) = (ganancia acumulada − gastos e inversión acumulados) ÷ gastos e inversión acumulados. Igual que la tarjeta Retorno (ROI): sin resurtido ni saldos iniciales. Con * la semana en curso (incompleta). Los gastos sin fecha se cuentan desde la primera semana.</p>
                 </div>
             </div>
             <!-- ROW 4D2: SANKEY — A DÓNDE SE VA CADA PESO -->
@@ -2913,6 +2908,52 @@ function renderAvanceMes() {
     });
 }
 
+function renderRoiTiempo() {
+    let ctx = document.getElementById('chartRoiTiempo'); if (!ctx) return;
+    let A = window.analisisCache || {}, gan = A.gananciaPorDia || {}, invs = A.invs || [];
+    if (window.chartRoiTiempoInstance) window.chartRoiTiempoInstance.destroy();
+    const lunes = d => { let x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+    let sG = {}, sI = {}, sinFecha = 0;
+    Object.keys(gan).forEach(k => { let d = calParseKey(k); if (!d) return; let w = calKey(lunes(d)); sG[w] = (sG[w] || 0) + gan[k]; });
+    invs.forEach(g => {
+        if (gastoEsInicial(g) || gastoCategoria(g) === 'Resurtido') return;
+        let m = Math.abs(g.cantidad || 0), d = anaParseFechaEs(g.fecha);
+        if (!d) { sinFecha += m; return; }
+        let w = calKey(lunes(d)); sI[w] = (sI[w] || 0) + m;
+    });
+    let claves = Object.keys(sG).concat(Object.keys(sI)).sort(), txt = document.getElementById('txt-roi-tiempo');
+    if (!claves.length) { if (txt) txt.textContent = 'Aún no hay datos para calcular el ROI.'; return; }
+    let wHoy = calKey(lunes(new Date())), cur = calParseKey(claves[0]), sem = [], G = 0, I = sinFecha;
+    for (let guard = 0; guard < 600; guard++) {
+        let k = calKey(cur); if (k > wHoy) break;
+        G += sG[k] || 0; I += sI[k] || 0;
+        sem.push({ k, d: new Date(cur), G, I, roi: I > 0 ? ((G - I) / I) * 100 : null });
+        cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7);
+    }
+    sem = sem.slice(-52);
+    let lbl = m => m.d.getDate() + ' ' + CAL_MESES[m.d.getMonth()].substring(0, 3).toLowerCase() + (m.k === wHoy ? '*' : '');
+    let val = sem.filter(m => m.roi !== null), u = val[val.length - 1], p = val.length > 1 ? val[val.length - 2] : null;
+    if (txt) {
+        if (!u) txt.textContent = 'Aún no hay gastos o inversión registrados con los que calcular el ROI.';
+        else {
+            let rec = val.find(m => m.roi >= 0), f = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+            txt.innerHTML = 'ROI actual: <b class="' + (u.roi >= 0 ? 'text-emerald-600' : 'text-red-500') + '">' + f(u.roi) + '</b>' +
+                (p ? ' · cambio vs semana anterior: <b>' + (u.roi - p.roi >= 0 ? '+' : '') + (u.roi - p.roi).toFixed(1) + ' puntos</b>' : '') +
+                (rec ? ' · inversión recuperada desde la semana del ' + rec.d.getDate() + ' ' + CAL_MESES[rec.d.getMonth()].toLowerCase() + ' ' + rec.d.getFullYear() : ' · aún no se recupera la inversión');
+        }
+    }
+    window.chartRoiTiempoInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: sem.map(lbl), datasets: [
+            { label: 'ROI (%)', data: sem.map(m => m.roi), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.12)', fill: true, tension: 0.2, pointRadius: sem.length > 30 ? 2 : 3, spanGaps: true, segment: { borderColor: c => (c.p1.parsed.y >= 0 ? '#10b981' : '#3b82f6') } },
+            { label: 'Punto de recuperación (0%)', data: sem.map(() => 0), borderColor: '#f43f5e', borderDash: [5, 5], pointRadius: 0, fill: false }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { title: it => 'Semana del ' + it[0].label.replace('*', ''), label: c => c.datasetIndex === 1 ? null : 'ROI: ' + c.parsed.y.toFixed(1) + '%' } } },
+            scales: { y: { ticks: { callback: v => v + '%' } }, x: { ticks: { maxRotation: 60, autoSkip: true } } } }
+    });
+}
+
 function renderMargenMensual() {
     let ctx = document.getElementById('chartMargenMes'); if (!ctx) return;
     let A = window.analisisCache || {}, gan = A.gananciaPorDia || {}, ing = A.ingresoPorDia || {};
@@ -3678,7 +3719,7 @@ function renderSankey() {
     if (nota) nota.innerText = 'Costo de mercancía = ventas − ganancia bruta (con el costo vigente a la fecha de cada venta). Gastos operativos: solo los de categoría Operativo con fecha dentro del periodo, pagados o a crédito.' + (deficit > 0 ? ' En este periodo los gastos operativos superaron la ganancia bruta por ' + $(deficit) + ' (barra roja).' : '');
 }
 (function () { let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const c = document.getElementById('card-sankey'); if (c && c.offsetParent) renderSankey(); }, 250); }); })();
-function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderSankey(); renderValuacion(); renderKpisExtra(); instalarTips(); }
+function renderGraficosExtra() { renderAvanceMes(); renderMargenMensual(); renderRoiTiempo(); renderDineroParado(); renderVolumenMargen(); renderCobertura(); renderPareto(); renderDiaSemana(); renderFlujoCaja(); renderBenchmark(); renderGastoOperativo(); renderSankey(); renderValuacion(); renderKpisExtra(); instalarTips(); }
 
 function procesarMetricasAnalisis(vts, inv, invs) {
             const HIA = indiceCostosHist((cacheUltimoAnalisis || {}).hist);
@@ -3981,92 +4022,6 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                     type: 'bar',
                     data: { labels: horasLabels, datasets: [{ label: 'Operaciones', data: horasData, backgroundColor: '#f43f5e', borderRadius: 2 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
-                });
-            }
-
-
-            // ==========================================
-            // 5. GRÁFICO DE PROYECCIÓN Y RETORNO DE INVERSIÓN
-            // ==========================================
-            let ctxProyeccion = document.getElementById('chartProyeccionROI');
-            if (ctxProyeccion) {
-                // Ganancia promedio por DÍA HÁBIL (hasta ayer), según el calendario laboral
-                let hoy0 = new Date(hoyL.getFullYear(), hoyL.getMonth(), hoyL.getDate());
-                let clavesGan = Object.keys(gananciaPorDia).sort();
-                let promGananciaDiaria = 0;
-                if (clavesGan.length) {
-                    let habilesHist = calHabilesEntre(calParseKey(clavesGan[0]), hoy0);
-                    let gananciaHist = 0;
-                    clavesGan.forEach(k => { if (k < calKey(hoy0)) gananciaHist += gananciaPorDia[k]; });
-                    promGananciaDiaria = habilesHist > 0 ? gananciaHist / habilesHist : gT / clavesGan.length;
-                }
-
-                let projLabels = [];
-                let projGanancias = [];
-                let projInversion = [];
-
-                let accumulatedProfit = gT;
-                let targetInvestment = iT;
-
-                projLabels.push("Hoy");
-                projGanancias.push(accumulatedProfit);
-                projInversion.push(targetInvestment);
-
-                let habilesAProyectar = 0;
-                let textLabel = document.getElementById('txt-break-even');
-
-                if (targetInvestment <= accumulatedProfit && targetInvestment > 0) {
-                    habilesAProyectar = 7;
-                    if(textLabel) textLabel.innerHTML = "<span class='text-emerald-600 font-bold'>¡Inversión Recuperada!</span> El negocio ya opera con utilidades netas puras.";
-                } else if (promGananciaDiaria > 0 && targetInvestment > 0) {
-                    let habilesParaRecuperar = Math.ceil((targetInvestment - accumulatedProfit) / promGananciaDiaria);
-                    let fechaRecupera = calFechaHabilN(hoy0, habilesParaRecuperar);
-                    habilesAProyectar = Math.min(habilesParaRecuperar + 2, 365);
-                    if(textLabel) {
-                        if (fechaRecupera) {
-                            let dateText = fechaRecupera.toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-                            let naturales = Math.round((fechaRecupera - hoy0) / 86400000);
-                            textLabel.innerHTML = `Con la ganancia promedio por día hábil ($${formatMiles(promGananciaDiaria)}; sin contar descansos ni feriados), recuperarás el total de tu inversión el <b>${dateText}</b> (en ${habilesParaRecuperar} días hábiles, unos ${naturales} días naturales).`;
-                        } else {
-                            textLabel.innerHTML = "<span class='text-amber-500 dark:text-amber-400 font-bold'>Revisa el calendario laboral.</span> No hay días hábiles configurados para proyectar la recuperación.";
-                        }
-                    }
-                } else {
-                    habilesAProyectar = 14;
-                    if(textLabel) textLabel.innerHTML = "<span class='text-amber-500 dark:text-amber-400 font-bold'>Datos insuficientes.</span> Se necesita un promedio de ganancia positiva para calcular la fecha de retorno.";
-                }
-
-                // Puntos del gráfico: solo avanzan los días hábiles
-                let stepHab = habilesAProyectar > 180 ? 15 : (habilesAProyectar > 60 ? 7 : 1);
-                let cursorProy = new Date(hoy0), contHab = 0, guardaProy = 0;
-                while (contHab < habilesAProyectar && guardaProy < 4000) {
-                    cursorProy = calSig(cursorProy); guardaProy++;
-                    if (!calEsHabil(cursorProy)) continue;
-                    contHab++;
-                    if (contHab === habilesAProyectar || contHab % stepHab === 0) {
-                        projLabels.push(cursorProy.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }));
-                        projGanancias.push(accumulatedProfit + (promGananciaDiaria * contHab));
-                        projInversion.push(targetInvestment);
-                    }
-                }
-
-                if(window.chartProyeccionInstance) window.chartProyeccionInstance.destroy();
-                window.chartProyeccionInstance = new Chart(ctxProyeccion, {
-                    type: 'line',
-                    data: { 
-                        labels: projLabels, 
-                        datasets: [
-                            { label: 'Ganancia Acumulada Proyectada ($)', data: projGanancias, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.1 },
-                            { label: 'Meta de Inversión Total ($)', data: projInversion, borderColor: '#f43f5e', borderDash: [5, 5], fill: false, pointRadius: 0 }
-                        ] 
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + formatMiles(context.parsed.y); } } } },
-                        scales: { y: { beginAtZero: false } }
-                    }
                 });
             }
         }        
