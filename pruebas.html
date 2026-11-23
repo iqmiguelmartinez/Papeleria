@@ -225,7 +225,7 @@
                         <p class="kicker">Papelería</p>
                         <div class="flex items-center gap-2 min-w-0">
                             <h1 id="titulo-app" class="text-base md:text-xl font-bold"></h1>
-                            <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.0.0</span>
+                            <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.1.0</span>
                         </div>
                         <p id="label-sesion" class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">Usuario: Conectado</p>
                     </div>
@@ -1400,7 +1400,7 @@
                     const d = await (await apiFetch('validarSesion', true)).json();
                     usuarioActual = d.usuario; tienePermisoAnalisis = !!d.puedeAnalisis;
                     sessionStorage.setItem('usuario_activo', usuarioActual); sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
-                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); return;
+                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); abrirTabInicial(); return;
                 } catch (e) {
                     if (e.code !== 'sesion') {
                         await Swal.fire({ title: 'Sin conexión', text: 'No se pudo verificar tu sesión. Revisa tu internet.', icon: 'error', confirmButtonText: 'Reintentar', allowOutsideClick: false });
@@ -1409,8 +1409,11 @@
                     precarga = null; tokenSesion = ''; sessionStorage.removeItem('token_sesion');
                 }
             }
-            if (await pedirLogin()) cargarDatosIniciales();
+            if (await pedirLogin()) { cargarDatosIniciales(); abrirTabInicial(); }
         }
+
+        // Pestaña con la que se abre la página al entrar: Corte para quien tiene Análisis, Venta para los demás
+        function abrirTabInicial() { try { if (tienePermisoAnalisis) cambiarTab('corte'); else cambiarTab('ventas'); } catch (e) { console.warn(e); } }
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
@@ -1455,7 +1458,7 @@
         // Al tocar a la mascota: saludo según la hora
         function saludoMascota() {
             const hr = new Date().getHours(), saludo = hr < 12 ? '¡Buenos días' : (hr < 19 ? '¡Buenas tardes' : '¡Buenas noches');
-            Swal.fire({ title: saludo + (typeof usuarioActual !== 'undefined' && usuarioActual ? ', ' + usuarioActual : '') + '!', text: 'Pixel y Papel · v3.0.0', imageUrl: 'logo.jpeg', imageHeight: 260, imageAlt: 'Pixel y Papel', confirmButtonText: 'A vender 🚀', showClass: { popup: 'swal2-show' } });
+            Swal.fire({ title: saludo + (typeof usuarioActual !== 'undefined' && usuarioActual ? ', ' + usuarioActual : '') + '!', text: 'Pixel y Papel · v3.1.0', imageUrl: 'logo.jpeg', imageHeight: 260, imageAlt: 'Pixel y Papel', confirmButtonText: 'A vender 🚀', showClass: { popup: 'swal2-show' } });
         }
 
         function marcarTabActiva(tab) {
