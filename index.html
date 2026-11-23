@@ -225,7 +225,7 @@
                         <p class="kicker">Papelería</p>
                         <div class="flex items-center gap-2 min-w-0">
                             <h1 id="titulo-app" class="text-base md:text-xl font-bold"></h1>
-                            <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.0.0</span>
+                            <span class="shrink-0 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] rounded-md font-bold border border-blue-100 dark:border-blue-900/50">v3.1.0</span>
                         </div>
                         <p id="label-sesion" class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">Usuario: Conectado</p>
                     </div>
@@ -1360,6 +1360,7 @@
         let usuarioActual = null;
         let tienePermisoAnalisis = false;
         let editandoInventario = false;
+        let BORR = new WeakMap();   // cambios escritos en el modo edición (por producto): sobreviven a la búsqueda y a reordenar, y se descartan al cancelar
         let inventario = [];
         let carrito = [];
         let ventasActivas = [];
@@ -1399,7 +1400,7 @@
                     const d = await (await apiFetch('validarSesion', true)).json();
                     usuarioActual = d.usuario; tienePermisoAnalisis = !!d.puedeAnalisis;
                     sessionStorage.setItem('usuario_activo', usuarioActual); sessionStorage.setItem('puede_analisis', tienePermisoAnalisis);
-                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); return;
+                    document.getElementById('label-sesion').innerText = `Usuario: ${usuarioActual}`; actualizarVisibilidadTabs(); cargarDatosIniciales(); abrirTabInicial(); return;
                 } catch (e) {
                     if (e.code !== 'sesion') {
                         await Swal.fire({ title: 'Sin conexión', text: 'No se pudo verificar tu sesión. Revisa tu internet.', icon: 'error', confirmButtonText: 'Reintentar', allowOutsideClick: false });
@@ -1408,8 +1409,11 @@
                     precarga = null; tokenSesion = ''; sessionStorage.removeItem('token_sesion');
                 }
             }
-            if (await pedirLogin()) cargarDatosIniciales();
+            if (await pedirLogin()) { cargarDatosIniciales(); abrirTabInicial(); }
         }
+
+        // Pestaña con la que se abre la página al entrar: Corte para quien tiene Análisis, Venta para los demás
+        function abrirTabInicial() { try { if (tienePermisoAnalisis) cambiarTab('corte'); else cambiarTab('ventas'); } catch (e) { console.warn(e); } }
 
         function actualizarVisibilidadTabs() {
             // Ocultar botones de pestañas especiales
@@ -1428,7 +1432,7 @@
                         if (e && !e.classList.contains('hidden')) cambiarTab('ventas');
                     });
                     IMP.lecturas = []; IMP.brother = []; IMP.epson = []; IMP.cargado = false; BUS.logs = []; BUS.ventas = []; BUS.cargado = false;
-                    cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
+                    cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] }; cacheMovimientosCaja = []; Object.keys(SYNC).forEach(k => delete SYNC[k]);
                     ['imp-resumen', 'imp-tabla', 'bus-resultado'].forEach(id => { const e = document.getElementById(id); if (e) e.innerHTML = ''; });
                     ['imp-overlay', 'cal-overlay', 'vinc-overlay'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
                 } catch (e) { console.warn(e); }
@@ -1454,7 +1458,7 @@
         // Al tocar a la mascota: saludo según la hora
         function saludoMascota() {
             const hr = new Date().getHours(), saludo = hr < 12 ? '¡Buenos días' : (hr < 19 ? '¡Buenas tardes' : '¡Buenas noches');
-            Swal.fire({ title: saludo + (typeof usuarioActual !== 'undefined' && usuarioActual ? ', ' + usuarioActual : '') + '!', text: 'Pixel y Papel · v3.0.0', imageUrl: 'logo.jpeg', imageHeight: 260, imageAlt: 'Pixel y Papel', confirmButtonText: 'A vender 🚀', showClass: { popup: 'swal2-show' } });
+            Swal.fire({ title: saludo + (typeof usuarioActual !== 'undefined' && usuarioActual ? ', ' + usuarioActual : '') + '!', text: 'Pixel y Papel · v3.1.0', imageUrl: 'logo.jpeg', imageHeight: 260, imageAlt: 'Pixel y Papel', confirmButtonText: 'A vender 🚀', showClass: { popup: 'swal2-show' } });
         }
 
         function marcarTabActiva(tab) {
@@ -1506,6 +1510,36 @@
         // Si se sale de pantalla completa con Esc / gesto del sistema, también se sale del modo
         ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { if (kioscoActivo && kioscoUsoFS && !document.fullscreenElement) { kioscoUsoFS = false; toggleKiosco(false); } }));
 
+        // ---------- Actualización en segundo plano ----------
+        // Al volver a una pestaña con datos de hace menos de FRESCO_MS no se pide nada; si son más viejos, se muestra lo que ya hay
+        // y se actualiza por detrás (sin pantalla de carga). Todo vive solo en memoria: se borra al cerrar sesión.
+        const FRESCO_MS = 60000;
+        const SYNC = {};                                   // por grupo: { t: última carga correcta (ms), cargando, error }
+        const SYNC_DE_TAB = { analisis: 'analisis', inversion: 'analisis', caja: 'caja', impresiones: 'impresiones' };
+        let tabActual = 'ventas';
+        function syncEstado(k) { return SYNC[k] || (SYNC[k] = { t: 0, cargando: false, error: false }); }
+        function syncFresco(k) { const s = syncEstado(k); return s.t > 0 && (Date.now() - s.t) < FRESCO_MS; }
+        function syncPintar() {
+            let el = document.getElementById('sync-pill');
+            if (!el) {
+                el = document.createElement('div'); el.id = 'sync-pill';
+                el.style.cssText = 'position:fixed;left:10px;z-index:40;font-size:11px;padding:3px 10px;border-radius:999px;pointer-events:none;opacity:.85';
+                el.className = 'bg-gray-800 text-gray-100 dark:bg-gray-200 dark:text-gray-800 shadow';
+                document.body.appendChild(el);
+            }
+            const k = SYNC_DE_TAB[tabActual], s = k ? syncEstado(k) : null;
+            if (!s || (!s.cargando && !s.t)) { el.style.display = 'none'; return; }
+            el.style.bottom = (window.innerWidth < 1024 ? 64 : 8) + 'px';
+            let txt;
+            if (s.cargando) txt = '🔄 Actualizando…';
+            else if (s.error) txt = '⚠️ No se pudo actualizar · datos de hace ' + Math.max(1, Math.round((Date.now() - s.t) / 60000)) + ' min';
+            else { const seg = Math.round((Date.now() - s.t) / 1000); txt = '✓ Actualizado ' + (seg < 10 ? 'ahora' : seg < 60 ? 'hace ' + seg + ' s' : 'hace ' + Math.round(seg / 60) + ' min'); }
+            el.textContent = txt; el.style.display = '';
+        }
+        setInterval(syncPintar, 5000);
+        function avisoToast(txt, icono) { try { Swal.fire({ toast: true, position: 'bottom-end', icon: icono || 'success', title: txt, showConfirmButton: false, timer: 1800 }); } catch (e) {} }
+        function avisoGuardando(txt) { try { Swal.fire({ toast: true, position: 'bottom-end', title: txt, showConfirmButton: false, didOpen: () => Swal.showLoading() }); } catch (e) {} }
+
         function cambiarTab(tab) {
             if (['analisis', 'inversion', 'ventasPasadas', 'log', 'caja', 'buscador', 'margenes', 'impresiones'].includes(tab) && !tienePermisoAnalisis) return Swal.fire('Acceso Denegado', 'Sin permisos.', 'warning');
             if (tab !== 'inventario' && editandoInventario) cancelarModificacionInventario();
@@ -1518,16 +1552,17 @@
             
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
             marcarTabActiva(tab);
+            tabActual = tab; syncPintar();
             if (tab === 'ventas' && window.innerWidth >= 1024) setTimeout(() => { let b = document.getElementById('buscar-producto'); if (b) b.focus(); }, 50);
             
             if(tab === 'inventario') renderInventario();
             if(tab === 'ventasPasadas') renderVentasPasadas();
-            if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis();
+            if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis({ auto: true });
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') renderCorte();
             if(tab === 'creditos') { renderCreditos(); cargarCreditos(); }
             if(tab === 'log') cargarLogActividad();
-            if(tab === 'caja') cargarDatosCaja();
+            if(tab === 'caja') cargarDatosCaja({ auto: true });
             if(tab === 'buscador') iniciarBuscador();
             if(tab === 'margenes') iniciarMargenes();
             if(tab === 'impresiones') iniciarImpresiones();
@@ -2143,10 +2178,22 @@
                     }
                 });
             });
+            // Modo edición: se vuelven a poner los cambios ya escritos (al buscar la tabla se redibuja con solo los productos que coinciden)
+            if (editandoInventario) document.querySelectorAll('.inv-edit-input').forEach(inp => {
+                const p = inventario[parseInt(inp.getAttribute('data-index'))], b = p && BORR.get(p), f = inp.getAttribute('data-field');
+                if (b && Object.prototype.hasOwnProperty.call(b, f)) inp.value = b[f];
+            });
         }
 
         (function(){ const mq = window.matchMedia('(min-width: 768px)'); const f = () => { if (document.getElementById('tabla-inv-1') && typeof inventario !== 'undefined' && inventario.length && !editandoInventario) renderInventario(document.getElementById('buscar-inventario').value); }; (mq.addEventListener ? mq.addEventListener('change', f) : mq.addListener(f)); })();
-        function filtrarInventario() { if(!editandoInventario) renderInventario(document.getElementById('buscar-inventario').value); }
+        function filtrarInventario() { renderInventario(document.getElementById('buscar-inventario').value); }
+        // Cada cambio escrito en el modo edición se guarda aparte (por producto), así no se pierde al buscar otro producto
+        document.addEventListener('input', e => {
+            const t = e.target;
+            if (!editandoInventario || !t || !t.classList || !t.classList.contains('inv-edit-input')) return;
+            const p = inventario[parseInt(t.getAttribute('data-index'))]; if (!p) return;
+            const b = BORR.get(p) || {}; b[t.getAttribute('data-field')] = t.value; BORR.set(p, b);
+        });
         function actualizarCantSurtir(cod, val) { let c=parseFloat(val)||0; if(c>0) cantidadesSurtir[cod]=c; else delete cantidadesSurtir[cod]; }
         
         function dragStart(e) { if(document.getElementById('buscar-inventario').value || ordenStockInv) { e.preventDefault(); return; } draggedIndex = parseInt(e.currentTarget.getAttribute('data-index')); }
@@ -2159,11 +2206,13 @@
             renderInventario(); renderProductos();
         }
 
-        function toggleModificarInventario() { stockBaseEdicion = {}; inventario.forEach(p => stockBaseEdicion[p.codigo] = p.stock); editandoInventario = true; document.getElementById('buscar-inventario').disabled = true; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(); }
-        function cancelarModificacionInventario() { editandoInventario = false; document.getElementById('buscar-inventario').disabled = false; document.getElementById('btn-modificar-productos').classList.remove('hidden'); document.getElementById('btn-re-codificar').classList.remove('hidden'); document.getElementById('btn-guardar-modificacion').classList.add('hidden'); document.getElementById('btn-cancelar-modificacion').classList.add('hidden'); document.getElementById('btn-surtir-inv').classList.remove('hidden'); document.getElementById('btn-nuevo-prod').classList.remove('hidden'); renderInventario(); }
+        function toggleModificarInventario() { stockBaseEdicion = {}; inventario.forEach(p => stockBaseEdicion[p.codigo] = p.stock); editandoInventario = true; BORR = new WeakMap(); document.getElementById('btn-modificar-productos').classList.add('hidden'); document.getElementById('btn-re-codificar').classList.add('hidden'); document.getElementById('btn-guardar-modificacion').classList.remove('hidden'); document.getElementById('btn-cancelar-modificacion').classList.remove('hidden'); document.getElementById('btn-surtir-inv').classList.add('hidden'); document.getElementById('btn-nuevo-prod').classList.add('hidden'); renderInventario(document.getElementById('buscar-inventario').value); }
+        function cancelarModificacionInventario() { editandoInventario = false; BORR = new WeakMap(); document.getElementById('buscar-inventario').disabled = false; document.getElementById('buscar-inventario').value = ""; document.getElementById('btn-modificar-productos').classList.remove('hidden'); document.getElementById('btn-re-codificar').classList.remove('hidden'); document.getElementById('btn-guardar-modificacion').classList.add('hidden'); document.getElementById('btn-cancelar-modificacion').classList.add('hidden'); document.getElementById('btn-surtir-inv').classList.remove('hidden'); document.getElementById('btn-nuevo-prod').classList.remove('hidden'); renderInventario(); }
         
         async function guardarModificacionInventario() {
             let invA = JSON.parse(JSON.stringify(inventario));
+            // Primero los cambios guardados aparte (incluye productos que quedaron ocultos por la búsqueda) y luego lo que se ve en pantalla
+            inventario.forEach((p, i) => { const b = BORR.get(p); if (b) Object.keys(b).forEach(f => { const v = b[f]; invA[i][f] = (f === 'precio' || f === 'costo' || f === 'stock') ? (parseFloat(v) || 0) : String(v).trim(); }); });
             document.querySelectorAll('.inv-edit-input').forEach(inp => {
                 let idx = parseInt(inp.getAttribute('data-index')), f = inp.getAttribute('data-field'), v = inp.value;
                 if(f==='precio'||f==='costo'||f==='stock') invA[idx][f]=parseFloat(v)||0; else invA[idx][f]=v.trim();
@@ -2536,7 +2585,7 @@
             let f = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
             const { value: v } = await Swal.fire({ title: 'Gasto / Inversión', html: '<input id="sw-con" class="swal2-input" placeholder="Concepto"><input id="sw-can" type="number" class="swal2-input" placeholder="Monto"><input id="sw-obs" class="swal2-input" placeholder="Notas"><select id="sw-pag" class="swal2-input"><option value="NO">No (Crédito)</option><option value="SI">Sí (Pagado)</option></select><select id="sw-cat" class="swal2-input"><option value="">Categoría: automática</option><option value="Resurtido">Resurtido (mercancía)</option><option value="Operativo">Operativo (renta, sueldos, internet, consumibles)</option><option value="Inversión">Inversión (equipo, local, mobiliario)</option></select><input id="sw-fec" class="swal2-input" value="'+f+'"><input id="sw-per" class="swal2-input" placeholder="Persona">', focusConfirm: false, preConfirm: () => ({ concepto:document.getElementById('sw-con').value, cantidad:parseFloat(document.getElementById('sw-can').value)||0, observaciones:document.getElementById('sw-obs').value, pagado:document.getElementById('sw-pag').value, fecha:document.getElementById('sw-fec').value, persona:document.getElementById('sw-per').value, categoria:document.getElementById('sw-cat').value }) });
             if (v && !v.categoria) v.categoria = gastoCatAuto(v);
-            if(v && v.concepto && v.cantidad) { Swal.fire({title:'Guardando...',didOpen:()=>Swal.showLoading()}); await enviarDatosAGoogleSheets({tipo:'nuevaInversion', ...v}); await cargarDatosAnalisis(); Swal.fire('¡Guardado!', '', 'success'); }
+            if(v && v.concepto && v.cantidad) await guardarGastoOptimista(v);
         }
 
         async function cambiarCategoriaGasto(rowIndex, actual) {
@@ -2547,7 +2596,7 @@
             await cargarDatosAnalisis(); Swal.fire('¡Actualizado!', '', 'success');
         }
         async function guardarCategoriasAuto() {
-            const items = (cacheUltimoAnalisis && cacheUltimoAnalisis.inversion || []).filter(i => !gastoCatGuardada(i)).map(i => ({ rowIndex: i.rowIndex, categoria: gastoCategoria(i) }));
+            const items = (cacheUltimoAnalisis && cacheUltimoAnalisis.inversion || []).filter(i => !i._pend && !gastoCatGuardada(i)).map(i => ({ rowIndex: i.rowIndex, categoria: gastoCategoria(i) }));
             if (!items.length) return;
             const ok = await Swal.fire({ title: `Guardar ${items.length} categorías`, text: 'Se escribirán en la hoja las categorías sugeridas. Luego puedes cambiar cualquiera tocando su etiqueta.', icon: 'question', showCancelButton: true, confirmButtonText: 'Guardar' });
             if (!ok.isConfirmed) return;
@@ -2556,26 +2605,66 @@
             await cargarDatosAnalisis(); Swal.fire('¡Guardado!', '', 'success');
         }
 
+        // Pagado SÍ/NO: el cambio se ve al instante, se manda al servidor por detrás y, al confirmar, se actualiza en segundo plano.
         async function cambiarEstadoPago(r, act) {
-            let n = act==="SI"?"NO":"SI"; Swal.fire({title:'Actualizando...',didOpen:()=>Swal.showLoading()});
-            await enviarDatosAGoogleSheets({tipo:'actualizarPagoInversion', rowIndex:r, pagado:n}); await cargarDatosAnalisis(); Swal.fire('¡Actualizado!', '', 'success');
+            const fila = ((cacheUltimoAnalisis && cacheUltimoAnalisis.inversion) || []).find(x => x.rowIndex === r);
+            if (!fila || fila._pend || fila._pagoPend) return;                              // ya hay un cambio en camino para este renglón
+            const n = act === "SI" ? "NO" : "SI", antes = fila.pagado;
+            fila.pagado = n; fila._pagoPend = true;
+            _anaSeq++; syncEstado('analisis').cargando = false;                             // una carga que venía en camino ya no trae este cambio: se descarta
+            try { renderInversiones(cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+            _anaEscrit++; let res;
+            try { res = await enviarDatosAGoogleSheets({ tipo: 'actualizarPagoInversion', rowIndex: r, pagado: n }); } finally { _anaEscrit--; }
+            delete fila._pagoPend;
+            if (res && res.status === 'success') avisoToast(n === 'SI' ? 'Marcado como pagado' : 'Marcado como pendiente de pago');
+            else if (!(res && res.status === 'unknown')) fila.pagado = antes;                // el servidor lo rechazó: vuelve a como estaba
+            try { renderInversiones(cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+            if (_anaEscrit === 0) cargarDatosAnalisis({ silencioso: true });                // confirma con lo que de verdad hay en el servidor
         }
 
-async function cargarDatosAnalisis() {
-            try { 
-                Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() }); 
-                let r = await apiFetch("getDataAnalisis"); 
-                let d = await r.json(); 
-                cacheUltimoAnalisis = d; 
-                await cargarCalendario();
-                
-                // Agregamos la llamada a la función que pinta la tabla
-                renderInversiones(d.inversion); 
-                
-                procesarMetricasAnalisis(d.ventas, d.inventario, d.inversion); 
-                Swal.close(); 
-            } catch(e) { console.error(e); }
-        }
+let _anaSeq = 0, _anaEscrit = 0;                                                         // _anaEscrit: escrituras al servidor en camino (no se recarga mientras haya alguna)
+async function cargarDatosAnalisis(opts) {
+    opts = opts || {};
+    const S = syncEstado('analisis'), yaHubo = S.t > 0;
+    if (opts.auto && yaHubo && syncFresco('analisis')) { syncPintar(); return; }          // datos de hace menos de 60 s: no se pide nada
+    const silencioso = !!opts.silencioso || (!!opts.auto && yaHubo);                       // si ya hay algo que mostrar, se actualiza por detrás
+    if (silencioso && S.cargando) return;
+    const seq = ++_anaSeq; S.cargando = true; S.error = false; syncPintar();
+    try {
+        if (!silencioso) Swal.fire({ title: 'Actualizando finanzas...', didOpen: () => Swal.showLoading() });
+        const [r] = await Promise.all([apiFetch("getDataAnalisis"), cargarCalendario()]);
+        const d = await r.json();
+        if (seq !== _anaSeq) { if (!silencioso && !S.cargando) Swal.close(); return; }     // llegó otra carga más nueva (o se guardó algo): esta ya es vieja
+        cacheUltimoAnalisis = d;
+        renderInversiones(d.inversion);
+        procesarMetricasAnalisis(d.ventas, d.inventario, d.inversion);
+        S.t = Date.now();
+        if (!silencioso) Swal.close();
+    } catch (e) {
+        console.error(e);
+        if (seq === _anaSeq) { S.error = true; if (!silencioso) Swal.close(); }
+    } finally { if (seq === _anaSeq) { S.cargando = false; syncPintar(); } }
+}
+
+// Gasto/inversión: aparece al instante en la lista, se manda al servidor por detrás y, al confirmar, se actualiza en segundo plano.
+async function guardarGastoOptimista(v) {
+    const S = syncEstado('analisis');
+    const fila = Object.assign({}, v, { _pend: true });
+    if (!cacheUltimoAnalisis || !Array.isArray(cacheUltimoAnalisis.inversion)) cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
+    cacheUltimoAnalisis.inversion.push(fila);
+    _anaSeq++; S.cargando = false;                                                          // una carga que venía en camino ya no trae este gasto: se descarta
+    try { renderInversiones(cacheUltimoAnalisis.inversion); procesarMetricasAnalisis(cacheUltimoAnalisis.ventas, cacheUltimoAnalisis.inventario, cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+    avisoGuardando('Guardando gasto…');
+    _anaEscrit++; let r; try { r = await enviarDatosAGoogleSheets(Object.assign({ tipo: 'nuevaInversion' }, v)); } finally { _anaEscrit--; }
+    if (r && r.status === 'success') avisoToast('Gasto guardado');
+    else if (!(r && r.status === 'unknown')) {                                              // el servidor lo rechazó: se quita y se avisa
+        const i = cacheUltimoAnalisis.inversion.indexOf(fila); if (i >= 0) cacheUltimoAnalisis.inversion.splice(i, 1);
+        try { renderInversiones(cacheUltimoAnalisis.inversion); procesarMetricasAnalisis(cacheUltimoAnalisis.ventas, cacheUltimoAnalisis.inventario, cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+        Swal.fire('No se guardó', (r && r.error) || 'Intenta de nuevo.', 'error');
+        return;
+    }
+    if (_anaEscrit === 0) cargarDatosAnalisis({ silencioso: true });                        // trae el renglón real (con su número de fila) y los cálculos del servidor
+}
 
 
         // ==========================================================================
@@ -2712,7 +2801,7 @@ async function cargarDatosAnalisis() {
                 
                 if(p === 'NO' || p === 'FALSE') tC += v; else tP += v;
                 
-                let btnPagado = p === 'NO' ? 
+                let btnPagado = i._pend ? `<span class="text-xs text-gray-400">⏳ guardando…</span>` : i._pagoPend ? `<span class="px-3 py-1 rounded shadow-sm text-xs font-bold opacity-60 ${p === 'NO' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${p === 'NO' ? 'NO' : 'SÍ'} ⏳</span>` : p === 'NO' ? 
                     `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'NO')" class="bg-amber-100 text-amber-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-amber-200">NO</button>` : 
                     `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'SI')" class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-emerald-200">SÍ</button>`;
                 
@@ -2723,7 +2812,7 @@ async function cargarDatosAnalisis() {
                     <td class="py-2 px-3 text-center">${btnPagado}</td>
                     <td class="py-2 px-3 text-gray-500">${fmtFechaGasto(i.fecha)}</td>
                     <td class="py-2 px-3 text-gray-600 dark:text-gray-300 font-medium">${i.persona||'-'}</td>
-                    <td class="py-2 px-3">${badgeCategoriaGasto(i)}</td>
+                    <td class="py-2 px-3">${i._pend ? '<span class="text-xs text-gray-400">…</span>' : badgeCategoriaGasto(i)}</td>
                 </tr>`;
             });
             // Resumen por categoría y botón para guardar las sugeridas
@@ -4258,24 +4347,55 @@ function procesarMetricasAnalisis(vts, inv, invs) {
         // ==========================================
         let cacheMovimientosCaja = [];
         
-        async function cargarDatosCaja() {
+        let _cajaSeq = 0;
+        async function cargarDatosCaja(opts) {
+            opts = opts || {};
+            const S = syncEstado('caja'), yaHubo = S.t > 0;
+            if (opts.auto && yaHubo && syncFresco('caja')) { syncPintar(); return; }       // datos de hace menos de 60 s: no se pide nada
+            const silencioso = !!opts.silencioso || (!!opts.auto && yaHubo);               // si ya hay algo que mostrar, se actualiza por detrás
+            if (silencioso && S.cargando) return;
+            const seq = ++_cajaSeq; S.cargando = true; S.error = false; syncPintar();
             try {
-                Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                if (!silencioso) Swal.fire({ title: 'Cargando Caja...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 let resp = await apiFetch("getMovimientosCaja");
                 let datos = await resp.json();
                 if (!Array.isArray(datos)) {
                     throw new Error("Respuesta inesperada: " + JSON.stringify(datos).substring(0, 150) + " — Falta publicar una NUEVA VERSIÓN del Apps Script.");
                 }
+                if (seq !== _cajaSeq) { if (!silencioso && !S.cargando) Swal.close(); return; }   // llegó otra carga más nueva (o se guardó algo): esta ya es vieja
                 cacheMovimientosCaja = datos;
-                Swal.close();
+                S.t = Date.now();
+                if (!silencioso) Swal.close();
                 renderCaja();
             } catch (e) {
                 console.error("Error caja:", e);
-                Swal.close();
-                Swal.fire('Error', 'No se pudieron obtener los datos de la caja.<br><small>' + (e.message || e) + '</small>', 'error');
-            }
+                if (seq === _cajaSeq) {
+                    S.error = true;
+                    if (!silencioso) { Swal.close(); Swal.fire('Error', 'No se pudieron obtener los datos de la caja.<br><small>' + (e.message || e) + '</small>', 'error'); }
+                }
+            } finally { if (seq === _cajaSeq) { S.cargando = false; syncPintar(); } }
         }
-        
+
+        // Movimiento de caja: aparece al instante, se manda por detrás y al confirmar se actualiza en segundo plano.
+        async function guardarMovimientoCajaOptimista(tipoMov, fv) {
+            const S = syncEstado('caja'), d = new Date(), p2 = n => String(n).padStart(2, '0');
+            const fila = { fechaHora: `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`, tipoMov: tipoMov, concepto: fv.concepto, monto: fv.monto, usuario: (typeof usuarioActual !== 'undefined' ? usuarioActual : ''), desglose: fv.desglose, recibido: 'SI', _pend: true };
+            if (!Array.isArray(cacheMovimientosCaja)) cacheMovimientosCaja = [];
+            cacheMovimientosCaja.push(fila);
+            _cajaSeq++; S.cargando = false;                                                  // una carga que venía en camino ya no trae este movimiento: se descarta
+            renderCaja();
+            avisoGuardando('Guardando…');
+            const r = await enviarDatosAGoogleSheets({ tipo: 'movimientoCaja', tipoMov: tipoMov, concepto: fv.concepto, monto: fv.monto, desglose: fv.desglose, recibido: 'SI' });
+            if (r && r.status === 'success') avisoToast(tipoMov === 'INGRESO' ? 'Ingreso registrado' : 'Egreso registrado');
+            else if (!(r && r.status === 'unknown')) {                                       // el servidor lo rechazó: se quita
+                const i = cacheMovimientosCaja.indexOf(fila); if (i >= 0) cacheMovimientosCaja.splice(i, 1);
+                renderCaja();
+                if (r && r.code === 'pass') Swal.fire('No se guardó', 'Contraseña incorrecta.', 'error');
+                return;
+            }
+            cargarDatosCaja({ silencioso: true });                                           // trae el movimiento real (con su número de fila)
+        }
+
         function renderCaja() {
             let tb = document.getElementById('tabla-caja-historial');
             if (!tb) return;
@@ -4340,9 +4460,13 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 confirmButtonColor: '#059669'
             });
             if (!conf.isConfirmed) return;
-            Swal.fire({ title: 'Actualizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            await enviarDatosAGoogleSheets({ tipo: 'actualizarRecibidoCaja', rowIndex: rowIndex, recibido: 'SI' });
-            await cargarDatosCaja();
+            const mv = (cacheMovimientosCaja || []).find(x => x.rowIndex === rowIndex), antes = mv ? mv.recibido : null;
+            if (mv) { mv.recibido = 'SI'; _cajaSeq++; syncEstado('caja').cargando = false; renderCaja(); }
+            avisoGuardando('Actualizando…');
+            const rr = await enviarDatosAGoogleSheets({ tipo: 'actualizarRecibidoCaja', rowIndex: rowIndex, recibido: 'SI' });
+            if (!(rr && rr.status === 'success')) { if (mv) { mv.recibido = antes; renderCaja(); } if (!(rr && rr.status === 'unknown')) return; }
+            else avisoToast('Marcado como recibido');
+            cargarDatosCaja({ silencioso: true });
         }
         
         async function abrirModalMovimientoCaja(tipoMov) {
@@ -4402,17 +4526,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
             });
         
             if (formValues) {
-                Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                await enviarDatosAGoogleSheets({
-                    tipo: 'movimientoCaja',
-                    tipoMov: tipoMov,
-                    concepto: formValues.concepto,
-                    monto: formValues.monto,
-                    desglose: formValues.desglose,
-                    recibido: 'SI'
-                });
-                await cargarDatosCaja();
-                Swal.fire('¡Registrado!', '', 'success');
+                await guardarMovimientoCajaOptimista(tipoMov, formValues);
             }
         }
         
@@ -4743,20 +4857,22 @@ function impCalcular(lecturas, cortes, dias, factorDe, tolPct, tolMin, ahora, aj
     });
 }
 
-async function iniciarImpresiones(forzar) {
+async function iniciarImpresiones(forzar, silencioso) {
     const est = document.getElementById('imp-estado');
     if (IMP.cargando) return;
-    if (IMP.cargado && !forzar) { impRender(); return; }
-    IMP.cargando = true; if (est) est.textContent = '⏳ Cargando lecturas y cortes...';
+    if (IMP.cargado && !forzar) { impRender(); if (!syncFresco('impresiones')) iniciarImpresiones(true, true); return; }   // se muestra lo que hay y se actualiza por detrás
+    const S = syncEstado('impresiones');
+    IMP.cargando = true; S.cargando = true; S.error = false; syncPintar();
+    if (est && !silencioso) est.textContent = '⏳ Cargando lecturas y cortes...';
     try {
         const d = await (await apiFetch('getImpresiones')).json(), c = d.config || {};
         IMP.consumibles = d.consumibles || []; IMP.ajustes = d.ajustes || []; IMP.lecturas = d.lecturas || []; IMP.brother = d.brother || []; IMP.epson = d.epson || []; IMP.vistoEpson = d.vistoEpson || null; IMP.factoresEPS = c.factoresEPS || {}; IMP.cortes = d.cortes || []; IMP.visto = d.visto || null; IMP.vistoBrother = d.vistoBrother || null; IMP.factores = c.factores || {}; IMP.factoresA4 = c.factoresA4 || {}; IMP.factoresA3 = c.factoresA3 || {}; IMP.factoresESC = c.factoresESC || {}; IMP.pesos = c.pesos || {}; IMP.costos = c.costos || {}; IMP.rend = c.rendKyocera || 12000; IMP.flags = c.flags || { migracionBrother: 1, aprender: 0 };
         IMP.tolPct = c.tolPct !== undefined ? c.tolPct : 5; IMP.tolMin = c.tolMin !== undefined ? c.tolMin : 10;
         await cargarCalendario();
         try { const t = await (await apiFetch('getDataTurno')).json(); if (t && Array.isArray(t.ventasActivas)) ventasActivas = t.ventasActivas; } catch (e) { }
-        IMP.vivoTs = Date.now(); IMP.cargado = true; impRender();
-    } catch (e) { console.error(e); if (est) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
-    IMP.cargando = false;
+        IMP.vivoTs = Date.now(); IMP.cargado = true; S.t = Date.now(); impRender();
+    } catch (e) { console.error(e); S.error = true; if (est && !silencioso) est.textContent = '❌ No se pudieron cargar los datos. Pulsa "Actualizar".'; }
+    IMP.cargando = false; S.cargando = false; syncPintar();
 }
 
 
