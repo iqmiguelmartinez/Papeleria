@@ -2587,12 +2587,24 @@
             await cargarDatosAnalisis(); Swal.fire('¡Guardado!', '', 'success');
         }
 
+        // Pagado SÍ/NO: el cambio se ve al instante, se manda al servidor por detrás y, al confirmar, se actualiza en segundo plano.
         async function cambiarEstadoPago(r, act) {
-            let n = act==="SI"?"NO":"SI"; Swal.fire({title:'Actualizando...',didOpen:()=>Swal.showLoading()});
-            await enviarDatosAGoogleSheets({tipo:'actualizarPagoInversion', rowIndex:r, pagado:n}); await cargarDatosAnalisis(); Swal.fire('¡Actualizado!', '', 'success');
+            const fila = ((cacheUltimoAnalisis && cacheUltimoAnalisis.inversion) || []).find(x => x.rowIndex === r);
+            if (!fila || fila._pend || fila._pagoPend) return;                              // ya hay un cambio en camino para este renglón
+            const n = act === "SI" ? "NO" : "SI", antes = fila.pagado;
+            fila.pagado = n; fila._pagoPend = true;
+            _anaSeq++; syncEstado('analisis').cargando = false;                             // una carga que venía en camino ya no trae este cambio: se descarta
+            try { renderInversiones(cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+            _anaEscrit++; let res;
+            try { res = await enviarDatosAGoogleSheets({ tipo: 'actualizarPagoInversion', rowIndex: r, pagado: n }); } finally { _anaEscrit--; }
+            delete fila._pagoPend;
+            if (res && res.status === 'success') avisoToast(n === 'SI' ? 'Marcado como pagado' : 'Marcado como pendiente de pago');
+            else if (!(res && res.status === 'unknown')) fila.pagado = antes;                // el servidor lo rechazó: vuelve a como estaba
+            try { renderInversiones(cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
+            if (_anaEscrit === 0) cargarDatosAnalisis({ silencioso: true });                // confirma con lo que de verdad hay en el servidor
         }
 
-let _anaSeq = 0;
+let _anaSeq = 0, _anaEscrit = 0;                                                         // _anaEscrit: escrituras al servidor en camino (no se recarga mientras haya alguna)
 async function cargarDatosAnalisis(opts) {
     opts = opts || {};
     const S = syncEstado('analisis'), yaHubo = S.t > 0;
@@ -2625,7 +2637,7 @@ async function guardarGastoOptimista(v) {
     _anaSeq++; S.cargando = false;                                                          // una carga que venía en camino ya no trae este gasto: se descarta
     try { renderInversiones(cacheUltimoAnalisis.inversion); procesarMetricasAnalisis(cacheUltimoAnalisis.ventas, cacheUltimoAnalisis.inventario, cacheUltimoAnalisis.inversion); } catch (e) { console.warn(e); }
     avisoGuardando('Guardando gasto…');
-    const r = await enviarDatosAGoogleSheets(Object.assign({ tipo: 'nuevaInversion' }, v));
+    _anaEscrit++; let r; try { r = await enviarDatosAGoogleSheets(Object.assign({ tipo: 'nuevaInversion' }, v)); } finally { _anaEscrit--; }
     if (r && r.status === 'success') avisoToast('Gasto guardado');
     else if (!(r && r.status === 'unknown')) {                                              // el servidor lo rechazó: se quita y se avisa
         const i = cacheUltimoAnalisis.inversion.indexOf(fila); if (i >= 0) cacheUltimoAnalisis.inversion.splice(i, 1);
@@ -2633,7 +2645,7 @@ async function guardarGastoOptimista(v) {
         Swal.fire('No se guardó', (r && r.error) || 'Intenta de nuevo.', 'error');
         return;
     }
-    cargarDatosAnalisis({ silencioso: true });                                              // trae el renglón real (con su número de fila) y los cálculos del servidor
+    if (_anaEscrit === 0) cargarDatosAnalisis({ silencioso: true });                        // trae el renglón real (con su número de fila) y los cálculos del servidor
 }
 
 
@@ -2771,7 +2783,7 @@ async function guardarGastoOptimista(v) {
                 
                 if(p === 'NO' || p === 'FALSE') tC += v; else tP += v;
                 
-                let btnPagado = i._pend ? `<span class="text-xs text-gray-400">⏳ guardando…</span>` : p === 'NO' ? 
+                let btnPagado = i._pend ? `<span class="text-xs text-gray-400">⏳ guardando…</span>` : i._pagoPend ? `<span class="px-3 py-1 rounded shadow-sm text-xs font-bold opacity-60 ${p === 'NO' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${p === 'NO' ? 'NO' : 'SÍ'} ⏳</span>` : p === 'NO' ? 
                     `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'NO')" class="bg-amber-100 text-amber-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-amber-200">NO</button>` : 
                     `<button onclick="cambiarEstadoPago(${i.rowIndex}, 'SI')" class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded shadow-sm text-xs font-bold transition hover:bg-emerald-200">SÍ</button>`;
                 
