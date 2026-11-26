@@ -577,6 +577,11 @@
                 <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Total de ventas del día (todos los cortes + turno actual)</p>
                 <p id="corte-dia-total" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">$0.00</p>
                 <p id="corte-dia-sub" class="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5"></p>
+                <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-indigo-200/60 dark:border-indigo-800/60">
+                    <div><p class="text-xs text-red-600 dark:text-red-400 font-medium">Retiros / gastos del día</p><p id="corte-dia-retiros" class="text-lg font-bold text-red-700 dark:text-red-300">-$0.00</p></div>
+                    <div><p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Total en caja del día</p><p id="corte-dia-caja" class="text-lg font-bold text-emerald-700 dark:text-emerald-300">$0.00</p></div>
+                </div>
+                <p class="text-[10px] text-indigo-700/70 dark:text-indigo-300/70 mt-1">Total en caja = ventas − fiado + cobros de cuentas − retiros, de todos los cortes y el turno actual.</p>
             </div>
             <div class="grid grid-cols-2 gap-4 mb-3 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50" title="Vendido hoy a crédito: no entra a caja hasta que la persona pague">
@@ -2416,6 +2421,9 @@
                     let cd_ = cortesDelDia(), previos = cd_.reduce((a, c) => a + (Number(c.totalVentas) || 0), 0), n = cd_.length;
                     document.getElementById('corte-dia-total').innerText = `$${formatMiles(previos + tV)}`;
                     document.getElementById('corte-dia-sub').innerText = `${n} corte${n === 1 ? '' : 's'} ya hecho${n === 1 ? '' : 's'}: $${formatMiles(previos)} · turno actual: $${formatMiles(tV)}`;
+                    let retPrev = cd_.reduce((a, c) => a + (Number(c.totalRetiros) || 0), 0), cajaPrev = cd_.reduce((a, c) => a + (Number(c.efectivoNeto) || 0), 0);
+                    document.getElementById('corte-dia-retiros').innerText = `-$${formatMiles(retPrev + tR)}`;
+                    document.getElementById('corte-dia-caja').innerText = `$${formatMiles(cajaPrev + neto)}`;
                 }
             }
             let sc = document.getElementById('corte-fiado'); if (sc) sc.innerText = `-$${formatMiles(tF)}`;
