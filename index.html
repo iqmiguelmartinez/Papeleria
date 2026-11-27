@@ -1609,6 +1609,7 @@
             if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis({ auto: true });
             if(tab === 'retiros') renderRetiros();
             if(tab === 'corte') { renderCorte(); cargarCortesDia(); }
+            if ((tab === 'corte' || tab === 'retiros') && !_retEnCurso && Date.now() - _turnoTs > 15000) refrescarTurno().then(ok => { if (ok) { if (tabActual === 'corte') renderCorte(); renderRetiros(); } });
             if(tab === 'creditos') { renderCreditos(); cargarCreditos(); }
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja({ auto: true });
@@ -2419,15 +2420,41 @@
         }
 
         /* ======== RESTO DE FUNCIONES (INVERSIÓN, RETIROS, CORTES, ANÁLISIS) ======== */
+        let _retEnCurso = false, _turnoTs = 0;
         async function registrarRetiro() {
-            let m = document.getElementById('ret-motivo').value, val = parseFloat(document.getElementById('ret-monto').value), clase = (document.getElementById('ret-clase') || {}).value || '';
-            if(!m||!val)return; retirosActivos.push({hora:new Date().toLocaleTimeString(), motivo:m, monto:val});
-            await enviarDatosAGoogleSheets({tipo:'retiro', motivo:m, monto:val, clase});
-            document.getElementById('ret-motivo').value=""; document.getElementById('ret-monto').value=""; if (document.getElementById('ret-clase')) document.getElementById('ret-clase').value=""; renderRetiros();
+            if (_retEnCurso) return;   // un solo envío a la vez: un segundo clic ya no puede registrar el retiro doble
+            let eM = document.getElementById('ret-motivo'), eV = document.getElementById('ret-monto'), eC = document.getElementById('ret-clase');
+            let m = eM.value, val = parseFloat(eV.value), clase = (eC || {}).value || '';
+            if (!m || !val) { Swal.fire({ icon: 'info', title: 'Faltan datos', text: 'Escribe el motivo y el monto del retiro.', timer: 2500, showConfirmButton: false }); return; }
+            _retEnCurso = true;
+            let btn = document.querySelector('button[onclick="registrarRetiro()"]'); if (btn) { btn.disabled = true; btn.classList.add('opacity-60'); btn.textContent = 'Registrando...'; }
+            // Se ve al instante en la lista y en el corte (marcado como pendiente) y se vacía el formulario
+            let item = { hora: new Date().toLocaleTimeString(), motivo: m, monto: val, _pend: true };
+            retirosActivos.push(item); eM.value = ""; eV.value = ""; if (eC) eC.value = "";
+            renderRetiros(); renderCorte();
+            let res = null;
+            try { res = await enviarDatosAGoogleSheets({ tipo: 'retiro', motivo: m, monto: val, clase }); } catch (e) { res = { status: 'error' }; }
+            if (res && res.status === 'success') delete item._pend;
+            else if (res && res.status === 'unknown') { item._dudoso = true; }   // quizá sí se guardó: se queda en la lista y el aviso pide Sincronizar
+            else { retirosActivos = retirosActivos.filter(x => x !== item); eM.value = m; eV.value = val; if (eC) eC.value = clase; }   // no se guardó: se quita y se devuelven los datos al formulario
+            _retEnCurso = false;
+            if (btn) { btn.disabled = false; btn.classList.remove('opacity-60'); btn.textContent = 'Registrar Retiro'; }
+            renderRetiros(); renderCorte();
+        }
+        // Lee del servidor lo que hay en el turno (ventas, retiros y cobros de TODOS los equipos). Conserva los retiros que este equipo aún está enviando.
+        async function refrescarTurno() {
+            try {
+                let r = await apiFetch('getDataTurno', true), t = await r.json();
+                if (!t || !Array.isArray(t.ventasActivas) || !Array.isArray(t.retirosActivos)) return false;
+                let pend = retirosActivos.filter(x => x._pend || x._dudoso);
+                ventasActivas = t.ventasActivas; abonosActivos = t.abonosActivos || [];
+                retirosActivos = t.retirosActivos.concat(pend); _turnoTs = Date.now();
+                return true;
+            } catch (e) { return false; }
         }
         function renderRetiros() {
             let tb = document.getElementById('tabla-retiros-historial'); if(!tb)return; tb.innerHTML="";
-            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}</td></tr>`);
+            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}${r._pend ? ' <span class="text-xs font-normal text-gray-400">guardando...</span>' : ''}${r._dudoso ? ' <span class="text-xs font-normal text-amber-600">sin confirmar</span>' : ''}</td></tr>`);
         }
         // Totales del turno. Ventas = todo lo vendido (incluye lo dejado a crédito); Fiado = parte que NO entra a caja hoy;
         // Cobros = pagos de cuentas a crédito recibidos hoy (sí entran a caja); Efectivo = ventas - fiado + cobros - retiros.
@@ -2509,6 +2536,14 @@
         }
 
         async function realizarCorteTurno() {
+            if (_retEnCurso) { Swal.fire({ icon: 'info', title: 'Espera un momento', text: 'Se está registrando un retiro. Intenta el corte en unos segundos.', confirmButtonText: 'Entendido' }); return; }
+            // Antes de calcular, se trae el turno real del servidor: así el corte incluye lo registrado desde cualquier equipo
+            Swal.fire({ title: 'Verificando el turno...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            let okTurno = await refrescarTurno(); Swal.close(); renderCorte(); renderRetiros();
+            if (!okTurno) {
+                let c0 = await Swal.fire({ icon: 'warning', title: 'No se pudo verificar con el servidor', text: 'Sin conexión no se puede confirmar que estén todos los retiros y ventas de otros equipos. ¿Hacer el corte con lo que se ve en esta pantalla?', showCancelButton: true, confirmButtonText: 'Sí, continuar', cancelButtonText: 'Cancelar', reverseButtons: true });
+                if (!c0.isConfirmed) return;
+            }
             if(ventasActivas.length===0 && retirosActivos.length===0 && abonosActivos.length===0) { Swal.fire({ icon: 'info', title: 'Sin movimientos', text: 'No hay ventas ni retiros en este turno para hacer el corte.', confirmButtonText: 'Entendido' }); return; }
 
             let { tV, tR, tF, tC, neto } = resumenTurno();
