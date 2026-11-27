@@ -555,6 +555,8 @@
                 </button>
             </div>
 
+            <!-- ===== SECCIÓN: TURNO ACTUAL (todos los usuarios) ===== -->
+            <div class="flex items-center gap-2 mb-3 shrink-0"><span class="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm font-bold">🕒 Turno actual</span><span class="text-xs text-gray-500 dark:text-gray-400">lo vendido desde el último corte</span></div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 shrink-0">
                 <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
                     <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Ventas Totales</p>
@@ -573,11 +575,6 @@
                     <p id="corte-efectivo-neto" class="text-2xl font-bold text-emerald-800 dark:text-emerald-200">$0.00</p>
                 </div>
             </div>
-            <div id="corte-dia-card" class="hidden mb-4 shrink-0 bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50" title="Solo lo ve quien tiene Análisis">
-                <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Total de ventas del día (todos los cortes + turno actual)</p>
-                <p id="corte-dia-total" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">$0.00</p>
-                <p id="corte-dia-sub" class="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5"></p>
-            </div>
             <div class="grid grid-cols-2 gap-4 mb-3 shrink-0">
                 <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-100 dark:border-amber-900/50" title="Vendido hoy a crédito: no entra a caja hasta que la persona pague">
                     <p class="text-xs text-amber-700 dark:text-amber-400 font-medium">Fiado hoy (no entra a caja)</p>
@@ -591,7 +588,7 @@
             <div id="corte-credito-detalle" class="hidden mb-4 shrink-0 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3 space-y-1"></div>
 
 
-            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Resumen de Artículos Vendidos <span id="corte-art-titulo" class="text-xs font-normal text-indigo-600 dark:text-indigo-400"></span></h3>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Artículos vendidos del turno actual</h3>
             <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl mb-4 flex-1 min-h-[16rem]">
                 <table class="w-full text-left border-collapse relative">
                     <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
@@ -604,6 +601,39 @@
                     </thead>
                     <tbody id="tabla-resumen-articulos" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
                 </table>
+            </div>
+
+            <!-- ===== SECCIÓN: TOTALES DEL DÍA (solo Análisis = SI) ===== -->
+            <div id="corte-dia-seccion" class="hidden shrink-0">
+                <div class="flex items-center gap-2 mb-3 mt-2"><span class="px-3 py-1 rounded-lg bg-indigo-600 text-white text-sm font-bold">📅 Totales del día</span><span class="text-xs text-gray-500 dark:text-gray-400">todos los cortes + el turno actual</span></div>
+                <div id="corte-dia-card" class="mb-4 bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div><p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Ventas del día</p><p id="corte-dia-total" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">$0.00</p></div>
+                        <div><p class="text-xs text-red-600 dark:text-red-400 font-medium">Retiros / gastos del día</p><p id="corte-dia-retiros" class="text-2xl font-bold text-red-700 dark:text-red-300">-$0.00</p></div>
+                        <div><p class="text-xs text-amber-700 dark:text-amber-400 font-medium">Fiado del día</p><p id="corte-dia-fiado" class="text-2xl font-bold text-amber-800 dark:text-amber-200">-$0.00</p></div>
+                        <div><p class="text-xs text-teal-700 dark:text-teal-400 font-medium">Cobros de cuentas del día</p><p id="corte-dia-cobros" class="text-2xl font-bold text-teal-800 dark:text-teal-200">+$0.00</p></div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-indigo-200/60 dark:border-indigo-800/60 flex flex-wrap items-end justify-between gap-2">
+                        <div><p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Total en caja del día</p><p id="corte-dia-caja" class="text-3xl font-bold text-emerald-700 dark:text-emerald-300">$0.00</p></div>
+                        <p id="corte-dia-sub" class="text-[11px] text-indigo-700/80 dark:text-indigo-300/80"></p>
+                    </div>
+                    <p class="text-[10px] text-indigo-700/70 dark:text-indigo-300/70 mt-1">Total en caja = ventas − fiado + cobros de cuentas − retiros.</p>
+                </div>
+            <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 shrink-0">Artículos vendidos en todo el día (todos los cortes + turno actual)</h3>
+            <div class="overflow-x-auto overflow-y-auto border dark:border-gray-700 rounded-xl mb-4 max-h-96">
+                <table class="w-full text-left border-collapse relative">
+                    <thead class="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10 shadow-sm">
+                        <tr class="text-gray-600 dark:text-gray-300 text-xs uppercase border-b dark:border-gray-600">
+                            <th class="p-3">Producto</th>
+                            <th class="p-3 text-center">Cantidad Vendida</th>
+                            <th class="p-3 text-center" title="Stock actual del producto (se actualiza con cada venta)">Existencia Actual</th>
+                            <th class="p-3 text-right">Total Recaudado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-resumen-dia" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                </table>
+            </div>
+
             </div>
 
             <div class="flex justify-between items-center mb-2 shrink-0">
@@ -1368,6 +1398,25 @@
         let abonosActivos = [];      // cobros de cuentas a crédito hechos en este turno (entran a la caja de hoy)
         let modoCredito = false;     // el ticket actual se cobra a una cuenta a crédito
         let cortesRealizados = [];
+        // Cortes de HOY leídos de la hoja Cortes (para quien tiene Análisis): sobreviven a recargar la página, a otro dispositivo y a cortes hechos por otra persona
+        let cortesDia = null, cortesDiaTs = 0, cortesDiaCargando = false;
+        function cortesDelDia() { return (tienePermisoAnalisis && cortesDia) ? cortesDia : cortesRealizados; }
+        async function cargarCortesDia(forzar) {
+            if (!tienePermisoAnalisis || cortesDiaCargando) return;
+            if (!forzar && cortesDia && Date.now() - cortesDiaTs < 20000) return;
+            cortesDiaCargando = true;
+            try {
+                let r = await apiFetch('getCortesHistorico', true), lista = await r.json();
+                if (!Array.isArray(lista)) return;
+                let hoy = calKey(new Date());
+                cortesDia = lista.map(c => ({ d: new Date(c.fecha), c })).filter(x => !isNaN(x.d.getTime()) && calKey(x.d) === hoy)
+                    .sort((a, b) => a.d - b.d)
+                    .map(x => ({ hora: x.d.toLocaleTimeString(), totalVentas: parseFloat(x.c.ventas) || 0, totalRetiros: parseFloat(x.c.retiros) || 0, efectivoNeto: parseFloat(x.c.neto) || 0, articulos: x.c.articulos || [], fiado: x.c.fiado || 0, cobros: x.c.cobros || 0 }));
+                cortesDiaTs = Date.now();
+                if (tabActual === 'corte') renderCorte();
+            } catch (e) { /* sin red: se queda con lo que había */ }
+            finally { cortesDiaCargando = false; }
+        }
         let cacheUltimoAnalisis = { ventas: [], inventario: [], inversion: [] };
 
         let cantidadesSurtir = {};
@@ -1559,7 +1608,8 @@
             if(tab === 'ventasPasadas') renderVentasPasadas();
             if(tab === 'inversion' || tab === 'analisis') cargarDatosAnalisis({ auto: true });
             if(tab === 'retiros') renderRetiros();
-            if(tab === 'corte') renderCorte();
+            if(tab === 'corte') { renderCorte(); cargarCortesDia(); }
+            if ((tab === 'corte' || tab === 'retiros') && !_retEnCurso && Date.now() - _turnoTs > 15000) refrescarTurno().then(ok => { if (ok) { if (tabActual === 'corte') renderCorte(); renderRetiros(); } });
             if(tab === 'creditos') { renderCreditos(); cargarCreditos(); }
             if(tab === 'log') cargarLogActividad();
             if(tab === 'caja') cargarDatosCaja({ auto: true });
@@ -2370,15 +2420,41 @@
         }
 
         /* ======== RESTO DE FUNCIONES (INVERSIÓN, RETIROS, CORTES, ANÁLISIS) ======== */
+        let _retEnCurso = false, _turnoTs = 0;
         async function registrarRetiro() {
-            let m = document.getElementById('ret-motivo').value, val = parseFloat(document.getElementById('ret-monto').value), clase = (document.getElementById('ret-clase') || {}).value || '';
-            if(!m||!val)return; retirosActivos.push({hora:new Date().toLocaleTimeString(), motivo:m, monto:val});
-            await enviarDatosAGoogleSheets({tipo:'retiro', motivo:m, monto:val, clase});
-            document.getElementById('ret-motivo').value=""; document.getElementById('ret-monto').value=""; if (document.getElementById('ret-clase')) document.getElementById('ret-clase').value=""; renderRetiros();
+            if (_retEnCurso) return;   // un solo envío a la vez: un segundo clic ya no puede registrar el retiro doble
+            let eM = document.getElementById('ret-motivo'), eV = document.getElementById('ret-monto'), eC = document.getElementById('ret-clase');
+            let m = eM.value, val = parseFloat(eV.value), clase = (eC || {}).value || '';
+            if (!m || !val) { Swal.fire({ icon: 'info', title: 'Faltan datos', text: 'Escribe el motivo y el monto del retiro.', timer: 2500, showConfirmButton: false }); return; }
+            _retEnCurso = true;
+            let btn = document.querySelector('button[onclick="registrarRetiro()"]'); if (btn) { btn.disabled = true; btn.classList.add('opacity-60'); btn.textContent = 'Registrando...'; }
+            // Se ve al instante en la lista y en el corte (marcado como pendiente) y se vacía el formulario
+            let item = { hora: new Date().toLocaleTimeString(), motivo: m, monto: val, _pend: true };
+            retirosActivos.push(item); eM.value = ""; eV.value = ""; if (eC) eC.value = "";
+            renderRetiros(); renderCorte();
+            let res = null;
+            try { res = await enviarDatosAGoogleSheets({ tipo: 'retiro', motivo: m, monto: val, clase }); } catch (e) { res = { status: 'error' }; }
+            if (res && res.status === 'success') delete item._pend;
+            else if (res && res.status === 'unknown') { item._dudoso = true; }   // quizá sí se guardó: se queda en la lista y el aviso pide Sincronizar
+            else { retirosActivos = retirosActivos.filter(x => x !== item); eM.value = m; eV.value = val; if (eC) eC.value = clase; }   // no se guardó: se quita y se devuelven los datos al formulario
+            _retEnCurso = false;
+            if (btn) { btn.disabled = false; btn.classList.remove('opacity-60'); btn.textContent = 'Registrar Retiro'; }
+            renderRetiros(); renderCorte();
+        }
+        // Lee del servidor lo que hay en el turno (ventas, retiros y cobros de TODOS los equipos). Conserva los retiros que este equipo aún está enviando.
+        async function refrescarTurno() {
+            try {
+                let r = await apiFetch('getDataTurno', true), t = await r.json();
+                if (!t || !Array.isArray(t.ventasActivas) || !Array.isArray(t.retirosActivos)) return false;
+                let pend = retirosActivos.filter(x => x._pend || x._dudoso);
+                ventasActivas = t.ventasActivas; abonosActivos = t.abonosActivos || [];
+                retirosActivos = t.retirosActivos.concat(pend); _turnoTs = Date.now();
+                return true;
+            } catch (e) { return false; }
         }
         function renderRetiros() {
             let tb = document.getElementById('tabla-retiros-historial'); if(!tb)return; tb.innerHTML="";
-            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}</td></tr>`);
+            retirosActivos.slice().reverse().forEach(r => tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${r.hora}</td><td class="p-3">${r.motivo}</td><td class="p-3 text-red-600 font-bold">-$${formatMiles(r.monto)}${r._pend ? ' <span class="text-xs font-normal text-gray-400">guardando...</span>' : ''}${r._dudoso ? ' <span class="text-xs font-normal text-amber-600">sin confirmar</span>' : ''}</td></tr>`);
         }
         // Totales del turno. Ventas = todo lo vendido (incluye lo dejado a crédito); Fiado = parte que NO entra a caja hoy;
         // Cobros = pagos de cuentas a crédito recibidos hoy (sí entran a caja); Efectivo = ventas - fiado + cobros - retiros.
@@ -2390,13 +2466,18 @@
         function renderCorte() {
             let { tV, tR, tF, tC, neto } = resumenTurno();
             document.getElementById('corte-total-ventas').innerText=`$${formatMiles(tV)}`; document.getElementById('corte-total-retiros').innerText=`$${formatMiles(tR)}`; document.getElementById('corte-efectivo-neto').innerText=`$${formatMiles(neto)}`;
-            let cd = document.getElementById('corte-dia-card');
+            let cd = document.getElementById('corte-dia-seccion');
             if (cd) {
                 cd.classList.toggle('hidden', !tienePermisoAnalisis);
                 if (tienePermisoAnalisis) {
-                    let previos = cortesRealizados.reduce((a, c) => a + (Number(c.totalVentas) || 0), 0), n = cortesRealizados.length;
+                    let cd_ = cortesDelDia(), previos = cd_.reduce((a, c) => a + (Number(c.totalVentas) || 0), 0), n = cd_.length;
                     document.getElementById('corte-dia-total').innerText = `$${formatMiles(previos + tV)}`;
                     document.getElementById('corte-dia-sub').innerText = `${n} corte${n === 1 ? '' : 's'} ya hecho${n === 1 ? '' : 's'}: $${formatMiles(previos)} · turno actual: $${formatMiles(tV)}`;
+                    let retPrev = cd_.reduce((a, c) => a + (Number(c.totalRetiros) || 0), 0), cajaPrev = cd_.reduce((a, c) => a + (Number(c.efectivoNeto) || 0), 0);
+                    document.getElementById('corte-dia-retiros').innerText = `-$${formatMiles(retPrev + tR)}`;
+                    document.getElementById('corte-dia-caja').innerText = `$${formatMiles(cajaPrev + neto)}`;
+                    document.getElementById('corte-dia-fiado').innerText = `-$${formatMiles(cd_.reduce((a, c) => a + (Number(c.fiado) || 0), 0) + tF)}`;
+                    document.getElementById('corte-dia-cobros').innerText = `+$${formatMiles(cd_.reduce((a, c) => a + (Number(c.cobros) || 0), 0) + tC)}`;
                 }
             }
             let sc = document.getElementById('corte-fiado'); if (sc) sc.innerText = `-$${formatMiles(tF)}`;
@@ -2407,17 +2488,21 @@
                     .concat(abonosActivos.map(a => `<div class="flex justify-between gap-3"><span>💵 Pago de <b>${escV(a.cliente)}</b></span><span class="text-emerald-600">+$${formatMiles(a.monto)}</span></div>`));
                 dc.innerHTML = filas.join(''); dc.classList.toggle('hidden', !filas.length);
             }
-            let tb = document.getElementById('tabla-resumen-articulos'); if(!tb)return; let mapa={}; 
-            ventasActivas.forEach(v=>{if(v.productos)v.productos.forEach(p=>{if(!mapa[p.codigo])mapa[p.codigo]={k:p.codigo,n:p.nombre,c:0,t:0}; mapa[p.codigo].c+=p.cantidad; mapa[p.codigo].t+=(p.precio*p.cantidad);})});
-            // Con permiso de Análisis la lista es de todo el día: también se suman los artículos de los cortes ya hechos
-            if (tienePermisoAnalisis) cortesRealizados.forEach(c => (c.articulos || []).forEach(p => { if (!mapa[p.codigo]) mapa[p.codigo] = { k: p.codigo, n: p.nombre, c: 0, t: 0 }; mapa[p.codigo].c += Number(p.cantidad) || 0; mapa[p.codigo].t += Number(p.total) || 0; }));
-            let ht = document.getElementById('corte-art-titulo'); if (ht) ht.innerText = tienePermisoAnalisis ? '(todo el día: cortes anteriores + turno actual)' : '';
-            let res=Object.values(mapa); if (tienePermisoAnalisis) res.sort((x, y) => y.t - x.t); tb.innerHTML=res.length===0?`<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin artículos</td></tr>`:"";
-            res.forEach(a=>tb.innerHTML+=`<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-center font-semibold ${obtenerStockReal(a.k) <= 5 ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">${Number(obtenerStockReal(a.k).toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${formatMiles(a.t)}</td></tr>`);
-            
+            const filaArt = a => `<tr class="border-b dark:border-gray-700 text-sm"><td class="p-3">${a.n}</td><td class="p-3 text-center font-bold text-blue-600">${Number(a.c.toFixed(2))} un.</td><td class="p-3 text-center font-semibold ${obtenerStockReal(a.k) <= 5 ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">${Number(obtenerStockReal(a.k).toFixed(2))} un.</td><td class="p-3 text-right font-semibold text-emerald-600">$${formatMiles(a.t)}</td></tr>`;
+            const pintarArt = (id, mapa, ordenar) => { let b = document.getElementById(id); if (!b) return; let r = Object.values(mapa); if (ordenar) r.sort((x, y) => y.t - x.t); b.innerHTML = r.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-400">Sin artículos</td></tr>` : r.map(filaArt).join(''); };
+            let mapa = {};
+            ventasActivas.forEach(v => { if (v.productos) v.productos.forEach(p => { if (!mapa[p.codigo]) mapa[p.codigo] = { k: p.codigo, n: p.nombre, c: 0, t: 0 }; mapa[p.codigo].c += p.cantidad; mapa[p.codigo].t += (p.precio * p.cantidad); }); });
+            pintarArt('tabla-resumen-articulos', mapa, false);
+            if (tienePermisoAnalisis) {   // el día completo = turno actual + artículos de los cortes ya hechos
+                let mapaDia = {}; Object.keys(mapa).forEach(k => mapaDia[k] = Object.assign({}, mapa[k]));
+                cortesDelDia().forEach(c => (c.articulos || []).forEach(p => { if (!mapaDia[p.codigo]) mapaDia[p.codigo] = { k: p.codigo, n: p.nombre, c: 0, t: 0 }; mapaDia[p.codigo].c += Number(p.cantidad) || 0; mapaDia[p.codigo].t += Number(p.total) || 0; }));
+                pintarArt('tabla-resumen-dia', mapaDia, true);
+            }
+
             let cC = document.getElementById('historial-cortes-container'); if(!cC)return; cC.innerHTML="";
-            if(cortesRealizados.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;return;}
-            cortesRealizados.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${formatMiles(c.totalVentas)}</span><span class="text-emerald-600">Neto: $${formatMiles(c.efectivoNeto)}</span></div></div></div>`; });
+            let lstC = cortesDelDia();
+            if(lstC.length===0){cC.innerHTML=`<p class="text-sm text-gray-400">No se han realizado cortes en este día.</p>`;return;}
+            lstC.forEach((c,idx) => { cC.innerHTML+=`<div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border dark:border-gray-700 text-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-2 mb-2"><div class="flex items-center gap-2"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-bold text-xs">Corte #${idx+1}</span><span class="font-semibold">Hora: ${c.hora}</span></div><div class="flex gap-3 text-xs font-semibold items-center"><span class="text-blue-600">Ventas: $${formatMiles(c.totalVentas)}</span><span class="text-emerald-600">Neto: $${formatMiles(c.efectivoNeto)}</span></div></div></div>`; });
         }
 
         function fmtExistencia(v) { return (typeof v === 'number' && isFinite(v)) ? Number(v.toFixed(2)) : '—'; }
@@ -2451,6 +2536,14 @@
         }
 
         async function realizarCorteTurno() {
+            if (_retEnCurso) { Swal.fire({ icon: 'info', title: 'Espera un momento', text: 'Se está registrando un retiro. Intenta el corte en unos segundos.', confirmButtonText: 'Entendido' }); return; }
+            // Antes de calcular, se trae el turno real del servidor: así el corte incluye lo registrado desde cualquier equipo
+            Swal.fire({ title: 'Verificando el turno...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            let okTurno = await refrescarTurno(); Swal.close(); renderCorte(); renderRetiros();
+            if (!okTurno) {
+                let c0 = await Swal.fire({ icon: 'warning', title: 'No se pudo verificar con el servidor', text: 'Sin conexión no se puede confirmar que estén todos los retiros y ventas de otros equipos. ¿Hacer el corte con lo que se ve en esta pantalla?', showCancelButton: true, confirmButtonText: 'Sí, continuar', cancelButtonText: 'Cancelar', reverseButtons: true });
+                if (!c0.isConfirmed) return;
+            }
             if(ventasActivas.length===0 && retirosActivos.length===0 && abonosActivos.length===0) { Swal.fire({ icon: 'info', title: 'Sin movimientos', text: 'No hay ventas ni retiros en este turno para hacer el corte.', confirmButtonText: 'Entendido' }); return; }
 
             let { tV, tR, tF, tC, neto } = resumenTurno();
@@ -2512,11 +2605,12 @@
             });
             
             cortesRealizados.push({hora: new Date().toLocaleTimeString(), totalVentas: tV, totalRetiros: tR, efectivoNeto: neto, promedioVenta: promVenta, articulos: articulosVendidos, fiado: tF, cobros: tC});
+            if (cortesDia) cortesDia.push(cortesRealizados[cortesRealizados.length - 1]);   // evita que el total del día baje un instante mientras se vuelve a leer la hoja
             ventasActivas = []; 
             retirosActivos = []; 
             abonosActivos = []; 
             
-            renderCorte(); 
+            renderCorte(); cargarCortesDia(true); 
             renderRetiros(); 
             Swal.fire('Corte Realizado', 'El turno se ha reiniciado y el ticket se descargó correctamente.', 'success');
             pedirFotoMetricas();   // foto diaria de las métricas del dashboard (el servidor la calcula; en segundo plano; cualquier usuario)
@@ -4105,6 +4199,7 @@ function procesarMetricasAnalisis(vts, inv, invs) {
                 { col: 5, label: 'Persona', dinamico: true } ] },
             { tbody: 'tabla-retiros-historial', sumCol: 2, tipos: ['fecha', 'texto', 'numero'] },
             { tbody: 'tabla-resumen-articulos', sumCol: 3, tipos: ['texto', 'numero', 'numero', 'numero'] },
+            { tbody: 'tabla-resumen-dia', sumCol: 3, tipos: ['texto', 'numero', 'numero', 'numero'] },
             { tbody: 'tabla-log-actividad', tipos: ['fecha', 'texto', 'texto', 'texto'],
               selects: [
                 { col: 1, label: 'Usuario', dinamico: true },
